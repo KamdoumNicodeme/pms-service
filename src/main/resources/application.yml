@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: pms-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pms_db}
+    username: ${DB_USERNAME:pms_user}
+    password: ${DB_PASSWORD:pms_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8484}
+
+pms:
+  demo:
+    auto-seed-enabled: ${PMS_DEMO_AUTO_SEED_ENABLED:true}
+    min-clients: ${PMS_DEMO_MIN_CLIENTS:1200}
+
+security:
+  jwt:
+    secret-base64: ${SECURITY_JWT_SECRET_BASE64:VGhpc0lzQURlbW9TZWNyZXRLZXlGb3JQTVNTZXJ2aWNlVGhpc0lzQURlbW9TZWNyZXQ=}
+    expiration-seconds: ${SECURITY_JWT_EXPIRATION_SECONDS:28800}

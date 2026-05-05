@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pms-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pms-service
+  template:
+    metadata:
+      labels:
+        app: pms-service
+    spec:
+      containers:
+        - name: pms-service
+          image: pms-service:latest
+          ports:
+            - containerPort: 8484
+          env:
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: pms_db
+            - name: DB_USERNAME
+              value: pms_user
+            - name: DB_PASSWORD
+              value: pms_pass
