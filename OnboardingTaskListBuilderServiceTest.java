@@ -1,181 +1,4319 @@
-package com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding;
-
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.Field;
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.Group;
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.ScreenDescription;
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.SelectInputField;
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.Tab;
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.TaskDefinition;
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.TextAreaField;
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.TextInputField;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.AmlSignOffOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.ComplexOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.DailyOperationsTeamOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.EbacEscalationOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.FreeSubTaskOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.FreeTaskOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.InadmissibleAssetOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.NtaNotificationOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.PhysicalBacEscalationOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.common.StrategyMonitoringOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.compliance.DefaultOptionalComplianceOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.compliance.EboResidenceTaxComplianceTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.compliance.ItalianBranchPepComplianceTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.compliance.MarketAbuseComplianceTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.compliance.PcsReviewEscalationComplianceTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.compliance.ResidenceVsFiscalCountryComplianceTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.compliance.TccNotSignedComplianceTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.ic.DefaultOptionalICOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.ic.PremiumWithAssetsICOnboardingTaskBuilderService;
-import com.lombardinternational.casemanagement.service.decision.domain.service.tasklist.onboarding.task.unquoted.DefaultOptionalUnquotedOnboardingTaskBuilderService;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.BUSINESS_ORIGIN;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.EBO_RESIDENCE_COUNTRY_RISK;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.INSIDER;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.PCS_REVIEW;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.PEP;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.PH_FISCAL_COUNTRY;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.PH_RESIDENCE_COUNTRY_RISK;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.PREMIUM_WITH_ASSETS;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.RISK_REASON;
-import static com.lombardinternational.casemanagement.service.decision.domain.utils.constants.OnboardingChecklistIds.TCC_SIGNED;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-class OnboardingTaskListBuilderServiceTest {
-
-    private static final int ONE_DAY = 60 * 60 * 24;
-    private static final int TWO_DAYS = ONE_DAY * 2;
-    private static final int THIRTY_DAYS = ONE_DAY * 30;
-
-    private OnboardingTaskListBuilderService service;
-
-    @BeforeEach
-    void setUp() {
-
-        service = new OnboardingTaskListBuilderService(new PcsReviewEscalationComplianceTaskBuilderService(),
-                new MarketAbuseComplianceTaskBuilderService(), new ItalianBranchPepComplianceTaskBuilderService(),
-                new EboResidenceTaxComplianceTaskBuilderService(), new ResidenceVsFiscalCountryComplianceTaskBuilderService(),
-                new TccNotSignedComplianceTaskBuilderService(), new DefaultOptionalComplianceOnboardingTaskBuilderService(),
-                new PremiumWithAssetsICOnboardingTaskBuilderService(), new DefaultOptionalICOnboardingTaskBuilderService(),
-                new DefaultOptionalUnquotedOnboardingTaskBuilderService(), new StrategyMonitoringOnboardingTaskBuilderService(),
-                new DailyOperationsTeamOnboardingTaskBuilderService(), new ComplexOnboardingTaskBuilderService(),
-                new EbacEscalationOnboardingTaskBuilderService(), new PhysicalBacEscalationOnboardingTaskBuilderService(),
-                new InadmissibleAssetOnboardingTaskBuilderService(), new NtaNotificationOnboardingTaskBuilderService(),
-                new FreeTaskOnboardingTaskBuilderService(), new FreeSubTaskOnboardingTaskBuilderService(),
-                new AmlSignOffOnboardingTaskBuilderService());
+{
+  "officeLocation": null,
+  "id": null,
+  "shallow": false,
+  "creationDate": null,
+  "modificationDate": null,
+  "creationUser": null,
+  "modificationUser": null,
+  "crud": null,
+  "userDetail": {
+    "officeLocation": null,
+    "id": null,
+    "shallow": false,
+    "creationDate": null,
+    "modificationDate": null,
+    "creationUser": null,
+    "modificationUser": null,
+    "crud": null,
+    "userId": "43845",
+    "login": "therveux@lia.int",
+    "firstName": "Thomas",
+    "lastName": "Herveux",
+    "userRole": "INTERNAL",
+    "clientNumber": "0003313745",
+    "authorizedSigntory": false,
+    "phoneNumber": null,
+    "email": "thomas.herveux_EXTERNAL@utmostgroup.lu"
+  },
+  "companyDetail": {
+    "officeLocation": null,
+    "id": null,
+    "shallow": false,
+    "creationDate": null,
+    "modificationDate": null,
+    "creationUser": null,
+    "modificationUser": null,
+    "crud": null,
+    "companyId": "1",
+    "companyName": "Demo Partner",
+    "loginPrefix": "LIA",
+    "partnerType": "OTHER"
+  },
+  "webFormId": "ONBOARDING",
+  "webFormWorkFlow": null,
+  "groups": [
+    {
+      "officeLocation": null,
+      "id": null,
+      "shallow": false,
+      "creationDate": null,
+      "modificationDate": null,
+      "creationUser": null,
+      "modificationUser": null,
+      "crud": null,
+      "groupId": "CONTEXT",
+      "title": null,
+      "i18NTitleKey": null,
+      "type": null,
+      "textFields": [
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "TRANSACTION_TYPE",
+          "label": null,
+          "value": "NEW_BUSINESS"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "CASE_ID",
+          "label": null,
+          "value": "NBD_55734_20260414"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "POLICY_NUMBER",
+          "label": null,
+          "value": "2604-162230"
+        }
+      ],
+      "booleanFields": [],
+      "calendarFields": [],
+      "bigDecimalFields": [],
+      "groups": []
+    },
+    {
+      "officeLocation": null,
+      "id": null,
+      "shallow": false,
+      "creationDate": null,
+      "modificationDate": null,
+      "creationUser": null,
+      "modificationUser": null,
+      "crud": null,
+      "groupId": "WIZARD_DATA",
+      "title": null,
+      "i18NTitleKey": null,
+      "type": null,
+      "textFields": [
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "TARGET_MARKET",
+          "label": null,
+          "value": "FR"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "BRANCH",
+          "label": null,
+          "value": "FOS"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "PRE_CONTRACTUAL_PACKAGE",
+          "label": null,
+          "value": "GENERIC"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "POLICY_NUMBER",
+          "label": null,
+          "value": "2604-162230"
+        }
+      ],
+      "booleanFields": [],
+      "calendarFields": [],
+      "bigDecimalFields": [],
+      "groups": []
+    },
+    {
+      "officeLocation": null,
+      "id": null,
+      "shallow": false,
+      "creationDate": null,
+      "modificationDate": null,
+      "creationUser": null,
+      "modificationUser": null,
+      "crud": null,
+      "groupId": "FACTFIND",
+      "title": null,
+      "i18NTitleKey": null,
+      "type": null,
+      "textFields": [],
+      "booleanFields": [],
+      "calendarFields": [],
+      "bigDecimalFields": [],
+      "groups": [
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "groupId": "KYC",
+          "title": null,
+          "i18NTitleKey": null,
+          "type": null,
+          "textFields": [],
+          "booleanFields": [],
+          "calendarFields": [],
+          "bigDecimalFields": [],
+          "groups": [
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "DISTRIBUTORS",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [],
+              "booleanFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "INTERMEDIATE_IS_APPLICATION_OWNER",
+                  "label": null,
+                  "value": true
+                }
+              ],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "INTERMEDIATE",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "COMPANY_NAME",
+                      "label": null,
+                      "value": "(Internal) - Nicolas Bachmann"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "LASTNAME",
+                      "label": null,
+                      "value": "Thomas"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "FIRSTNAME",
+                      "label": null,
+                      "value": "Herveux"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "REGISTRATION_NUMBER",
+                      "label": null,
+                      "value": "123456789"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "MOBILE_PHONE",
+                      "label": null,
+                      "value": "+3376545678"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "EMAIL",
+                      "label": null,
+                      "value": "gfd@ghjkl.com"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "AUTHORITY_CONTROL_OF",
+                      "label": null,
+                      "value": "ACPR"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "AUTHORITY_ADDRESS",
+                      "label": null,
+                      "value": "4 Place de Budapest, CS 92459, 75436 PARIS CEDEX 09"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "BROKER_NUMBER",
+                      "label": null,
+                      "value": "0140010309"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "BROKER_IDENTIFIER",
+                      "label": null,
+                      "value": "B/2821"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "BROKER_PARTNER_TYPE",
+                      "label": null,
+                      "value": "Agent - Employee (Agent & Direct Sales)"
+                    }
+                  ],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "ADDRESS",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "STREET_NUMBER",
+                          "label": null,
+                          "value": "XXX"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "STREET_NAME",
+                          "label": null,
+                          "value": "XXX"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "TOWN",
+                          "label": null,
+                          "value": "XXX"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "POST_CODE",
+                          "label": null,
+                          "value": "XXX"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "COUNTRY",
+                          "label": null,
+                          "value": "LU"
+                        }
+                      ],
+                      "booleanFields": [],
+                      "calendarFields": [],
+                      "bigDecimalFields": [],
+                      "groups": []
+                    }
+                  ]
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "SIGNATURE_PLACE",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "COUNTRY",
+                      "label": null,
+                      "value": "FR"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "CITY",
+                      "label": null,
+                      "value": "Nancy"
+                    }
+                  ],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": []
+                }
+              ]
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "POLICY_HOLDER",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "TYPE",
+                  "label": null,
+                  "value": "physical"
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "RIGHTS_TRANSFER",
+                  "label": null,
+                  "value": "NOT_APPLICABLE"
+                }
+              ],
+              "booleanFields": [],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "PHYSICAL_PERSONS",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "0",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "UUID",
+                          "label": null,
+                          "value": "68f7a1e0-05eb-4771-ad1f-c80b801d18f5"
+                        }
+                      ],
+                      "booleanFields": [],
+                      "calendarFields": [],
+                      "bigDecimalFields": [],
+                      "groups": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "GENERAL",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "NEW_PROPERTY",
+                              "label": null,
+                              "value": "FULL_PROPERTY"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "TITLE",
+                              "label": null,
+                              "value": "MON"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "LASTNAME",
+                              "label": null,
+                              "value": "gfdx"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "FIRSTNAME",
+                              "label": null,
+                              "value": "hgfd"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "BIRTH_COUNTRY",
+                              "label": null,
+                              "value": "FR"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "BIRTH_TOWN",
+                              "label": null,
+                              "value": "jhgfd"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "MARITAL_STATUS",
+                              "label": null,
+                              "value": "SING"
+                            }
+                          ],
+                          "booleanFields": [],
+                          "calendarFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "BIRTH_DATE",
+                              "label": null,
+                              "value": "1979-01-10T23:00:00.000+00:00"
+                            }
+                          ],
+                          "bigDecimalFields": [],
+                          "groups": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "groupId": "PROFESSION_DETAILS",
+                              "title": null,
+                              "i18NTitleKey": null,
+                              "type": null,
+                              "textFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "OCCUPATION",
+                                  "label": null,
+                                  "value": "mngt_dire"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "EMPLOYER_NAME",
+                                  "label": null,
+                                  "value": "sdfghujio"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "BUSINESS_SECTOR",
+                                  "label": null,
+                                  "value": "adult"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "EMPLOYER_COUNTRY",
+                                  "label": null,
+                                  "value": "FR"
+                                }
+                              ],
+                              "booleanFields": [],
+                              "calendarFields": [],
+                              "bigDecimalFields": [],
+                              "groups": []
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "groupId": "NATIONALITIES",
+                              "title": null,
+                              "i18NTitleKey": null,
+                              "type": null,
+                              "textFields": [],
+                              "booleanFields": [],
+                              "calendarFields": [],
+                              "bigDecimalFields": [],
+                              "groups": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "groupId": "0",
+                                  "title": null,
+                                  "i18NTitleKey": null,
+                                  "type": null,
+                                  "textFields": [
+                                    {
+                                      "officeLocation": null,
+                                      "id": null,
+                                      "shallow": false,
+                                      "creationDate": null,
+                                      "modificationDate": null,
+                                      "creationUser": null,
+                                      "modificationUser": null,
+                                      "crud": null,
+                                      "fieldId": "NATIONALITY",
+                                      "label": null,
+                                      "value": "FR"
+                                    }
+                                  ],
+                                  "booleanFields": [],
+                                  "calendarFields": [
+                                    {
+                                      "officeLocation": null,
+                                      "id": null,
+                                      "shallow": false,
+                                      "creationDate": null,
+                                      "modificationDate": null,
+                                      "creationUser": null,
+                                      "modificationUser": null,
+                                      "crud": null,
+                                      "fieldId": "BEGIN_DATE",
+                                      "label": null,
+                                      "value": "1979-01-10T23:00:00.000+00:00"
+                                    }
+                                  ],
+                                  "bigDecimalFields": [],
+                                  "groups": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "CONTACT_DETAILS",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "PHONE_NUMBER",
+                              "label": null,
+                              "value": "+3323432"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "MOBILE_PHONE",
+                              "label": null,
+                              "value": "+3323432"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "EMAIL",
+                              "label": null,
+                              "value": "ghjk@ghjkl.com"
+                            }
+                          ],
+                          "booleanFields": [],
+                          "calendarFields": [],
+                          "bigDecimalFields": [],
+                          "groups": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "groupId": "ADDRESS",
+                              "title": null,
+                              "i18NTitleKey": null,
+                              "type": null,
+                              "textFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "STREET_NUMBER",
+                                  "label": null,
+                                  "value": "123"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "STREET_NAME",
+                                  "label": null,
+                                  "value": "ghjk"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "TOWN",
+                                  "label": null,
+                                  "value": "hjkl"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "POST_CODE",
+                                  "label": null,
+                                  "value": "45678"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "COUNTRY",
+                                  "label": null,
+                                  "value": "FR"
+                                }
+                              ],
+                              "booleanFields": [],
+                              "calendarFields": [],
+                              "bigDecimalFields": [],
+                              "groups": []
+                            }
+                          ]
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "IDENTITY",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "TYPE",
+                              "label": null,
+                              "value": "IDCARD"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "DELIVERED_BY",
+                              "label": null,
+                              "value": "CON"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "ID_NUMBER",
+                              "label": null,
+                              "value": "123456789"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "DELIVERY_PLACE",
+                              "label": null,
+                              "value": "dfghjklmù"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "DELIVERY_COUNTRY",
+                              "label": null,
+                              "value": "FR"
+                            }
+                          ],
+                          "booleanFields": [],
+                          "calendarFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "DELIVERY_DATE",
+                              "label": null,
+                              "value": "2026-03-04T23:00:00.000+00:00"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "EXPIRATION_DATE",
+                              "label": null,
+                              "value": "2048-06-17T22:00:00.000+00:00"
+                            }
+                          ],
+                          "bigDecimalFields": [],
+                          "groups": []
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "AEOI",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [],
+                          "booleanFields": [],
+                          "calendarFields": [],
+                          "bigDecimalFields": [],
+                          "groups": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "groupId": "0",
+                              "title": null,
+                              "i18NTitleKey": null,
+                              "type": null,
+                              "textFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "RESIDENCE_COUNTRY",
+                                  "label": null,
+                                  "value": "FR"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "TAX_ID",
+                                  "label": null,
+                                  "value": "1567809875678"
+                                }
+                              ],
+                              "booleanFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "HAS_TAX_ID",
+                                  "label": null,
+                                  "value": true
+                                }
+                              ],
+                              "calendarFields": [],
+                              "bigDecimalFields": [],
+                              "groups": []
+                            }
+                          ]
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "SIGNATURE_PLACE",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "COUNTRY",
+                              "label": null,
+                              "value": "FR"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "CITY",
+                              "label": null,
+                              "value": "Nancy"
+                            }
+                          ],
+                          "booleanFields": [],
+                          "calendarFields": [],
+                          "bigDecimalFields": [],
+                          "groups": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "EBO",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [],
+              "booleanFields": [],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "EBOS_PHYSICAL_PERSON",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "0",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "UUID",
+                          "label": null,
+                          "value": "444899a5-204b-4def-b4ff-190e3375ce95"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "SUBSCRIBER",
+                          "label": null,
+                          "value": "68f7a1e0-05eb-4771-ad1f-c80b801d18f5"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "PERSONAL_ANTECEDENTS",
+                          "label": null,
+                          "value": "drtyuio"
+                        }
+                      ],
+                      "booleanFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "IS_SUBSCRIBER",
+                          "label": null,
+                          "value": true
+                        }
+                      ],
+                      "calendarFields": [],
+                      "bigDecimalFields": [],
+                      "groups": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "KNOW_YOUR_CUSTOMER",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [],
+              "booleanFields": [],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "PREMIUM_ORIGINS",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "0",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "BANK_NAME",
+                          "label": null,
+                          "value": "Bank"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "CITY",
+                          "label": null,
+                          "value": "vbjko"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "COUNTRY",
+                          "label": null,
+                          "value": "FR"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "ACCOUNT_OWNER_ID",
+                          "label": null,
+                          "value": "444899a5-204b-4def-b4ff-190e3375ce95"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "ACCOUNT_OWNER",
+                          "label": null,
+                          "value": "hgfd gfdx"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "IBAN",
+                          "label": null,
+                          "value": "FR7623456789876545678"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "PREMIUM_TYPE",
+                          "label": null,
+                          "value": "CASH"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "CURRENCY",
+                          "label": null,
+                          "value": "EUR"
+                        }
+                      ],
+                      "booleanFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "IS_JOINT_ACCOUNT",
+                          "label": null,
+                          "value": false
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "IS_THIRD_PARTY_PAYMENT",
+                          "label": null,
+                          "value": false
+                        }
+                      ],
+                      "calendarFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "BANK_ACCOUNT_OPENED_DATE",
+                          "label": null,
+                          "value": "2026-04-02T22:00:00.000+00:00"
+                        }
+                      ],
+                      "bigDecimalFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "AMOUNT",
+                          "label": null,
+                          "value": 100000000000
+                        }
+                      ],
+                      "groups": []
+                    }
+                  ]
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "DISTRIBUTOR_DECLARATION",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "EBO_MEETING_CONTEXT",
+                      "label": null,
+                      "value": "hgfd"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "MEET_TYPE",
+                      "label": null,
+                      "value": "IN_PERSON"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "EBO_KNOWLEDGE_LEVEL",
+                      "label": null,
+                      "value": "EXCELLENT"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "PROPOSED_INVESTMENT_COMPATIBILITY_WITH_EBO",
+                      "label": null,
+                      "value": "gfd"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "DEAL_REFUSED_BY_OTHER_COMPANY",
+                      "label": null,
+                      "value": "gfd"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "INVESTMENT_OBJECTIVES",
+                      "label": null,
+                      "value": "LONG_TERM"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "ADDITIONAL_PAYMENTS",
+                      "label": null,
+                      "value": "gfds"
+                    }
+                  ],
+                  "booleanFields": [],
+                  "calendarFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "BUSINESS_RELATIONSHIP_START_DATE",
+                      "label": null,
+                      "value": "2026-04-02T22:00:00.000+00:00"
+                    }
+                  ],
+                  "bigDecimalFields": [],
+                  "groups": []
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "PHYSICAL_PERSONS",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "0",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "UUID_EBO",
+                          "label": null,
+                          "value": "444899a5-204b-4def-b4ff-190e3375ce95"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "UUID_PERSON",
+                          "label": null,
+                          "value": "68f7a1e0-05eb-4771-ad1f-c80b801d18f5"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "EBO_NAME",
+                          "label": null,
+                          "value": "hgfd gfdx"
+                        }
+                      ],
+                      "booleanFields": [],
+                      "calendarFields": [],
+                      "bigDecimalFields": [],
+                      "groups": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "IDENTIFICATION",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "SITUATION",
+                              "label": null,
+                              "value": "active"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "CURRENCY",
+                              "label": null,
+                              "value": "EUR"
+                            }
+                          ],
+                          "booleanFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "IS_QUOTED_COMPANY",
+                              "label": null,
+                              "value": false
+                            }
+                          ],
+                          "calendarFields": [],
+                          "bigDecimalFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "ANNUAL_INCOME_BEFORE_TAX",
+                              "label": null,
+                              "value": 12
+                            }
+                          ],
+                          "groups": []
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "PEP_INFO",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [],
+                          "booleanFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "HAS_PUBLIC_FUNCTION",
+                              "label": null,
+                              "value": false
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "HAS_RELATIVE_WITH_PUBLIC_FUNCTION",
+                              "label": null,
+                              "value": false
+                            }
+                          ],
+                          "calendarFields": [],
+                          "bigDecimalFields": [],
+                          "groups": []
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "AMOUNT",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "CURRENCY",
+                              "label": null,
+                              "value": "EUR"
+                            }
+                          ],
+                          "booleanFields": [],
+                          "calendarFields": [],
+                          "bigDecimalFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "AMOUNT",
+                              "label": null,
+                              "value": 10000
+                            }
+                          ],
+                          "groups": []
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "BENEFICIARY_WEALTH",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "AMOUNT_TYPE",
+                              "label": null,
+                              "value": "percentage"
+                            }
+                          ],
+                          "booleanFields": [],
+                          "calendarFields": [],
+                          "bigDecimalFields": [],
+                          "groups": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "groupId": "OTHER",
+                              "title": null,
+                              "i18NTitleKey": null,
+                              "type": null,
+                              "textFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "DETAILS",
+                                  "label": null,
+                                  "value": "GAMBLING"
+                                }
+                              ],
+                              "booleanFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "SELECTED",
+                                  "label": null,
+                                  "value": true
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "ARE_FUNDS_GENERATED_FROM_SOURCE",
+                                  "label": null,
+                                  "value": true
+                                }
+                              ],
+                              "calendarFields": [],
+                              "bigDecimalFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "AMOUNT",
+                                  "label": null,
+                                  "value": 100
+                                }
+                              ],
+                              "groups": []
+                            }
+                          ]
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "ASSET_TYPE",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "AMOUNT_TYPE",
+                              "label": null,
+                              "value": "percentage"
+                            }
+                          ],
+                          "booleanFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "SEE_BALANCED_SHEET",
+                              "label": null,
+                              "value": false
+                            }
+                          ],
+                          "calendarFields": [],
+                          "bigDecimalFields": [],
+                          "groups": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "groupId": "OTHER",
+                              "title": null,
+                              "i18NTitleKey": null,
+                              "type": null,
+                              "textFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "ASSET_TYPE",
+                                  "label": null,
+                                  "value": "uytfrd"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "COMPANY_NAME",
+                                  "label": null,
+                                  "value": "gfdsx"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "CITY",
+                                  "label": null,
+                                  "value": "gfdx"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "COUNTRY",
+                                  "label": null,
+                                  "value": "FR"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "ADDITIONAL_INFO",
+                                  "label": null,
+                                  "value": "gvcx"
+                                }
+                              ],
+                              "booleanFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "SELECTED",
+                                  "label": null,
+                                  "value": true
+                                }
+                              ],
+                              "calendarFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "TRANSACTION_DATE",
+                                  "label": null,
+                                  "value": "2026-03-31T22:00:00.000+00:00"
+                                }
+                              ],
+                              "bigDecimalFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "AMOUNT",
+                                  "label": null,
+                                  "value": 100
+                                }
+                              ],
+                              "groups": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "groupId": "PRODUCT_CHOICE",
+          "title": null,
+          "i18NTitleKey": null,
+          "type": null,
+          "textFields": [
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "fieldId": "PRODUCT_CHOICE",
+              "label": null,
+              "value": "MULTI_FR_001"
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "fieldId": "PRODUCT_NAME",
+              "label": null,
+              "value": "Liberté"
+            }
+          ],
+          "booleanFields": [
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "fieldId": "WANT_TO_HAVE_PAPER_VERSION",
+              "label": null,
+              "value": true
+            }
+          ],
+          "calendarFields": [],
+          "bigDecimalFields": [],
+          "groups": []
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "groupId": "RISK_PROFILE",
+          "title": null,
+          "i18NTitleKey": null,
+          "type": null,
+          "textFields": [
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "fieldId": "CALCULATED_RISK",
+              "label": null,
+              "value": "DEFENSIVE"
+            }
+          ],
+          "booleanFields": [],
+          "calendarFields": [],
+          "bigDecimalFields": [],
+          "groups": [
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "QUESTIONS",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [],
+              "booleanFields": [],
+              "calendarFields": [],
+              "bigDecimalFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION1",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION2",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION3",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION4",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION5",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION6",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION7",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION8",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION9",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION10",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION11",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION12",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION13",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION14",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "QUESTION15",
+                  "label": null,
+                  "value": 1
+                }
+              ],
+              "groups": []
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "INVESTMENT_PROFILE",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "POLICY_HOLDER_CATEGORY",
+                  "label": null,
+                  "value": "D"
+                }
+              ],
+              "booleanFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "DEVIATION",
+                  "label": null,
+                  "value": false
+                }
+              ],
+              "calendarFields": [],
+              "bigDecimalFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "INVESTMENT_PERCENT",
+                  "label": null,
+                  "value": 10
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "INVESTMENT_PRIME",
+                  "label": null,
+                  "value": 1000000000
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "IMMOVABLE_PROPERTY",
+                  "label": null,
+                  "value": 10000000
+                }
+              ],
+              "groups": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "officeLocation": null,
+      "id": null,
+      "shallow": false,
+      "creationDate": null,
+      "modificationDate": null,
+      "creationUser": null,
+      "modificationUser": null,
+      "crud": null,
+      "groupId": "APP_FORM",
+      "title": null,
+      "i18NTitleKey": null,
+      "type": null,
+      "textFields": [],
+      "booleanFields": [],
+      "calendarFields": [],
+      "bigDecimalFields": [],
+      "groups": [
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "groupId": "ADDITIONAL_INFO",
+          "title": null,
+          "i18NTitleKey": null,
+          "type": null,
+          "textFields": [],
+          "booleanFields": [],
+          "calendarFields": [],
+          "bigDecimalFields": [],
+          "groups": [
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "LIFE_ASSURED",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [],
+              "booleanFields": [],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "PHYSICAL_PERSONS",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "0",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "POLICY_HOLDER",
+                          "label": null,
+                          "value": "68f7a1e0-05eb-4771-ad1f-c80b801d18f5"
+                        }
+                      ],
+                      "booleanFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "LIFE_ASSURED_IS_PH",
+                          "label": null,
+                          "value": true
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "SHOULD_BE_SIGNED",
+                          "label": null,
+                          "value": false
+                        }
+                      ],
+                      "calendarFields": [],
+                      "bigDecimalFields": [],
+                      "groups": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "BENEFICIARY",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "MODEL",
+                  "label": null,
+                  "value": "NO_BENEFICIARY"
+                }
+              ],
+              "booleanFields": [],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": []
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "CORRESPONDENCE",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "CORRESPONDENCE_TYPE",
+                  "label": null,
+                  "value": "PLATEFORME_DIGITAL_INSURER"
+                }
+              ],
+              "booleanFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "IS_CORRESPONDENCE_BY_EMAIL",
+                  "label": null,
+                  "value": true
+                }
+              ],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": []
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "GENERAL_CONSENT",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "CP_SENDING_PREFERENCE",
+                  "label": null,
+                  "value": "digital_sending_policy_holder"
+                }
+              ],
+              "booleanFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "DISCLAIMER_DIGITAL_SIGNATURE",
+                  "label": null,
+                  "value": true
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "CONNECT_ACCESS_REQUESTED",
+                  "label": null,
+                  "value": true
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "PAYMENT_DELIVERY_SHARES",
+                  "label": null,
+                  "value": true
+                }
+              ],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "TARGET_MARKET",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "BELONG_TO_TARGET_MARKET",
+                      "label": null,
+                      "value": true
+                    }
+                  ],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": []
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "AGGREGATOR",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "PERSON_TO_CONTACT",
+                      "label": null,
+                      "value": "bank"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "ADDRESS",
+                      "label": null,
+                      "value": "iuytrezsq"
+                    }
+                  ],
+                  "booleanFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "DISCLAIMER_AGGREGATOR",
+                      "label": null,
+                      "value": true
+                    }
+                  ],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": []
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "SIGNATORIES",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "0",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "UUID",
+                          "label": null,
+                          "value": "B/2821"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "DENOMINATION",
+                          "label": null,
+                          "value": "(Internal) - Nicolas Bachmann"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "COUNTRY",
+                          "label": null,
+                          "value": "FR"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "CITY",
+                          "label": null,
+                          "value": "Nancy"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "TYPE",
+                          "label": null,
+                          "value": "broker"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "PHONE_NUMBER",
+                          "label": null,
+                          "value": "+3376545678"
+                        }
+                      ],
+                      "booleanFields": [],
+                      "calendarFields": [],
+                      "bigDecimalFields": [],
+                      "groups": []
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "1",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "UUID",
+                          "label": null,
+                          "value": "68f7a1e0-05eb-4771-ad1f-c80b801d18f5"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "DENOMINATION",
+                          "label": null,
+                          "value": "gfdx hgfd"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "COUNTRY",
+                          "label": null,
+                          "value": "FR"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "CITY",
+                          "label": null,
+                          "value": "Nancy"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "TYPE",
+                          "label": null,
+                          "value": "physical"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "PHONE_NUMBER",
+                          "label": null,
+                          "value": "+3323432"
+                        }
+                      ],
+                      "booleanFields": [],
+                      "calendarFields": [],
+                      "bigDecimalFields": [],
+                      "groups": []
+                    }
+                  ]
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "SUITABILITY_DECLARATION",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "DUTY_ADVICE",
+                      "label": null,
+                      "value": true
+                    }
+                  ],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "groupId": "INVESTMENT_FEES",
+          "title": null,
+          "i18NTitleKey": null,
+          "type": null,
+          "textFields": [],
+          "booleanFields": [],
+          "calendarFields": [],
+          "bigDecimalFields": [],
+          "groups": [
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "PREMIUM_INVESTMENT",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [],
+              "booleanFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "SPECIALIZED_INVESTMENT_ACKNOWLEDGE",
+                  "label": null,
+                  "value": true
+                }
+              ],
+              "calendarFields": [],
+              "bigDecimalFields": [],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "PREMIUM_INFORMATION",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "POLICY_CONTRACT",
+                      "label": null,
+                      "value": "EUR"
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "PREMIUM_CURRENCY",
+                      "label": null,
+                      "value": "EUR"
+                    }
+                  ],
+                  "booleanFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "FOLDER_LINK_TO_REINVESTMENT",
+                      "label": null,
+                      "value": false
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "IS_FAMILY_CASE",
+                      "label": null,
+                      "value": false
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "IS_ASSET_TRANSFER",
+                      "label": null,
+                      "value": false
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "IS_REST_OF_PREMIUM",
+                      "label": null,
+                      "value": false
+                    }
+                  ],
+                  "calendarFields": [],
+                  "bigDecimalFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "GROSS_INITIAL_PREMIUM",
+                      "label": null,
+                      "value": 10000000000
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "NET_INITIAL_PREMIUM",
+                      "label": null,
+                      "value": 9900000000
+                    }
+                  ],
+                  "groups": []
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "SPECIALISED_ASSURANCE_FUNDS",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "groupId": "0",
+                      "title": null,
+                      "i18NTitleKey": null,
+                      "type": null,
+                      "textFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "FUND_ID",
+                          "label": null,
+                          "value": "SAF_0"
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "STRATEGY",
+                          "label": null,
+                          "value": "MODERATE"
+                        }
+                      ],
+                      "booleanFields": [],
+                      "calendarFields": [],
+                      "bigDecimalFields": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "RISK_LEVEL",
+                          "label": null,
+                          "value": 2
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "fieldId": "FUND_SRI",
+                          "label": null,
+                          "value": 2
+                        }
+                      ],
+                      "groups": [
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "BASICS",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "SAF_MANAGER",
+                              "label": null,
+                              "value": "BUY_AND_HOLD"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "CURRENCY",
+                              "label": null,
+                              "value": "EUR"
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "REFERENCE_CURRENCY",
+                              "label": null,
+                              "value": "EUR"
+                            }
+                          ],
+                          "booleanFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "IS_REINVESTMENT",
+                              "label": null,
+                              "value": false
+                            }
+                          ],
+                          "calendarFields": [],
+                          "bigDecimalFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "AMOUNT",
+                              "label": null,
+                              "value": 10000000000
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "TOTAL_UNIT_FEES",
+                              "label": null,
+                              "value": 0
+                            },
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "TOTAL_FUND_FEES",
+                              "label": null,
+                              "value": 2
+                            }
+                          ],
+                          "groups": []
+                        },
+                        {
+                          "officeLocation": null,
+                          "id": null,
+                          "shallow": false,
+                          "creationDate": null,
+                          "modificationDate": null,
+                          "creationUser": null,
+                          "modificationUser": null,
+                          "crud": null,
+                          "groupId": "CUSTODIAN_BANK_DESIGNATION",
+                          "title": null,
+                          "i18NTitleKey": null,
+                          "type": null,
+                          "textFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "COMPANY_NAME",
+                              "label": null,
+                              "value": "Quintet Private Bank(Europe) S.A."
+                            }
+                          ],
+                          "booleanFields": [],
+                          "calendarFields": [],
+                          "bigDecimalFields": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "fieldId": "CUSTODIAN_NUMBER",
+                              "label": null,
+                              "value": 150000000
+                            }
+                          ],
+                          "groups": [
+                            {
+                              "officeLocation": null,
+                              "id": null,
+                              "shallow": false,
+                              "creationDate": null,
+                              "modificationDate": null,
+                              "creationUser": null,
+                              "modificationUser": null,
+                              "crud": null,
+                              "groupId": "ADDRESS",
+                              "title": null,
+                              "i18NTitleKey": null,
+                              "type": null,
+                              "textFields": [
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "STREET_NUMBER",
+                                  "label": null,
+                                  "value": "341"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "STREET_NAME",
+                                  "label": null,
+                                  "value": "Rue Leval"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "TOWN",
+                                  "label": null,
+                                  "value": "Seloignes"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "POST_CODE",
+                                  "label": null,
+                                  "value": "6596"
+                                },
+                                {
+                                  "officeLocation": null,
+                                  "id": null,
+                                  "shallow": false,
+                                  "creationDate": null,
+                                  "modificationDate": null,
+                                  "creationUser": null,
+                                  "modificationUser": null,
+                                  "crud": null,
+                                  "fieldId": "COUNTRY",
+                                  "label": null,
+                                  "value": "LU"
+                                }
+                              ],
+                              "booleanFields": [],
+                              "calendarFields": [],
+                              "bigDecimalFields": [],
+                              "groups": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "SUITABILITY_CONTROL",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "ROUNDED_POLICY_RISK_LEVEL",
+                      "label": null,
+                      "value": 2
+                    }
+                  ],
+                  "groups": []
+                }
+              ]
+            },
+            {
+              "officeLocation": null,
+              "id": null,
+              "shallow": false,
+              "creationDate": null,
+              "modificationDate": null,
+              "creationUser": null,
+              "modificationUser": null,
+              "crud": null,
+              "groupId": "FEES",
+              "title": null,
+              "i18NTitleKey": null,
+              "type": null,
+              "textFields": [],
+              "booleanFields": [],
+              "calendarFields": [],
+              "bigDecimalFields": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "ENTRY_FEE",
+                  "label": null,
+                  "value": 1
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "fieldId": "TOTAL_FUND_FEES",
+                  "label": null,
+                  "value": 2
+                }
+              ],
+              "groups": [
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "OPPORTUNITY_FEES",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "HAS_EXISTING_OPPORTUNITY_REFERENCE",
+                      "label": null,
+                      "value": false
+                    }
+                  ],
+                  "calendarFields": [],
+                  "bigDecimalFields": [],
+                  "groups": []
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "THIRD_FEES",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "INITIAL_COMMISSION",
+                      "label": null,
+                      "value": 1
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "INTERMEDIATION_COMMISSION",
+                      "label": null,
+                      "value": 1
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "INTERMEDIATION_COMMISSION_QUARTERLY",
+                      "label": null,
+                      "value": 0.25
+                    }
+                  ],
+                  "groups": []
+                },
+                {
+                  "officeLocation": null,
+                  "id": null,
+                  "shallow": false,
+                  "creationDate": null,
+                  "modificationDate": null,
+                  "creationUser": null,
+                  "modificationUser": null,
+                  "crud": null,
+                  "groupId": "INSURANCE_FEES",
+                  "title": null,
+                  "i18NTitleKey": null,
+                  "type": null,
+                  "textFields": [],
+                  "booleanFields": [],
+                  "calendarFields": [],
+                  "bigDecimalFields": [
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "LIA_FEE",
+                      "label": null,
+                      "value": 0
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "ADMINISTRATIVE_FEE",
+                      "label": null,
+                      "value": 1
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "ADMINISTRATIVE_FEE_QUARTERLY",
+                      "label": null,
+                      "value": 0.25
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "POLICY_FEE",
+                      "label": null,
+                      "value": 0
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "POLICY_FEE_FOR_YEAR",
+                      "label": null,
+                      "value": 2026
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "POLICY_FEE_QUARTERLY",
+                      "label": null,
+                      "value": 0
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "SWITCH_OPERATION_NUMBER",
+                      "label": null,
+                      "value": 2
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "SWITCH_FEE",
+                      "label": null,
+                      "value": 0.5
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "MAXIMUM_SWITCH_FEE_AMOUNT",
+                      "label": null,
+                      "value": 500
+                    },
+                    {
+                      "officeLocation": null,
+                      "id": null,
+                      "shallow": false,
+                      "creationDate": null,
+                      "modificationDate": null,
+                      "creationUser": null,
+                      "modificationUser": null,
+                      "crud": null,
+                      "fieldId": "SURRENDER_FEES_WITHIN_YEARS",
+                      "label": null,
+                      "value": 1
+                    }
+                  ],
+                  "groups": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "officeLocation": null,
+      "id": null,
+      "shallow": false,
+      "creationDate": null,
+      "modificationDate": null,
+      "creationUser": null,
+      "modificationUser": null,
+      "crud": null,
+      "groupId": "ONBOARDING_ID",
+      "title": null,
+      "i18NTitleKey": null,
+      "type": null,
+      "textFields": [
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "CASE_ID",
+          "label": null,
+          "value": "NBD_55734_20260414"
+        }
+      ],
+      "booleanFields": [],
+      "calendarFields": [],
+      "bigDecimalFields": [],
+      "groups": []
+    },
+    {
+      "officeLocation": null,
+      "id": null,
+      "shallow": false,
+      "creationDate": null,
+      "modificationDate": null,
+      "creationUser": null,
+      "modificationUser": null,
+      "crud": null,
+      "groupId": "FORM_INITIATOR",
+      "title": null,
+      "i18NTitleKey": null,
+      "type": null,
+      "textFields": [
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "USER_LOGIN",
+          "label": null,
+          "value": "therveux@lia.int"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "DISPLAYED_NAME",
+          "label": null,
+          "value": "Thomas Herveux"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "COMPANY_NAME",
+          "label": null,
+          "value": "Demo Partner"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "PARTNER_TYPE",
+          "label": null,
+          "value": "OTHER"
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "INITIATOR_ROLE",
+          "label": null,
+          "value": "INTERNAL"
+        }
+      ],
+      "booleanFields": [],
+      "calendarFields": [],
+      "bigDecimalFields": [
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "USER_ID",
+          "label": null,
+          "value": 43845
+        },
+        {
+          "officeLocation": null,
+          "id": null,
+          "shallow": false,
+          "creationDate": null,
+          "modificationDate": null,
+          "creationUser": null,
+          "modificationUser": null,
+          "crud": null,
+          "fieldId": "COMPANY_ID",
+          "label": null,
+          "value": 1
+        }
+      ],
+      "groups": []
     }
-
-    @Test
-    void buildsDefaultOnboardingTaskList() {
-
-        var tasks = service.buildTaskList(null, null, screen());
-
-        assertIterableEquals(List.of("Compliance check", "IC-Asset", "Unquoted", "Strategy Monitoring", "Daily Operations Team", "Complex",
-                "eBAC escalation", "Physical BAC escalation", "Inadmissible Asset", "NTA Notification", "Free Task", "Free Sub-Task",
-                "AML sign-off"), tasks.stream().map(TaskDefinition::getMainTaskName).toList());
-
-        assertFalse(task(tasks, "Compliance check").isMandatory());
-        assertEquals("COMPLIANCE_NEW_BUSINESS", task(tasks, "Compliance check").getMainTaskDynamicScreenId());
-        assertFalse(task(tasks, "IC-Asset").isMandatory());
-        assertEquals("IC_NEW_BUSINESS", task(tasks, "IC-Asset").getMainTaskDynamicScreenId());
-        assertEquals(THIRTY_DAYS, task(tasks, "Unquoted").getMainTaskExpectedDurationSeconds());
-        assertTrue(task(tasks, "Strategy Monitoring").isMandatory());
-        assertEquals(List.of("This task is always mandatory"), task(tasks, "Strategy Monitoring").getDecisionReasons());
-        assertTrue(task(tasks, "Daily Operations Team").isReleasableFromSubTask());
-        assertTrue(task(tasks, "Complex").isReleasableFromSubTask());
-        assertEquals(THIRTY_DAYS, task(tasks, "Free Task").getMainTaskExpectedDurationSeconds());
-        assertTrue(task(tasks, "Free Sub-Task").isReleasableFromSubTask());
-        assertTrue(task(tasks, "AML sign-off").isMandatory());
-        assertEquals(60, task(tasks, "AML sign-off").getRulePriority());
-    }
-
-    @Test
-    void mergesComplianceEscalationReasonsIntoOneMandatoryTask() {
-
-        var tasks = service.buildTaskList(null, null, screen(select(BUSINESS_ORIGIN, "LU"),
-                select(PCS_REVIEW, "Senior sign-off"), textArea(RISK_REASON, "Risk reason one\nRisk reason two"),
-                select(INSIDER, "YES"), text(PH_RESIDENCE_COUNTRY_RISK, "UK"), text(PH_FISCAL_COUNTRY, "FR, IT"),
-                select(TCC_SIGNED, "NO")));
-
-        assertEquals(1, tasks.stream().filter(task -> "Compliance check".equals(task.getMainTaskName())).count());
-        var compliance = task(tasks, "Compliance check");
-        assertTrue(compliance.isMandatory());
-        assertEquals("COMPLIANCE_NEW_BUSINESS", compliance.getMainTaskDynamicScreenId());
-        assertTrue(compliance.getDecisionReasons().contains("Risk reason one"));
-        assertTrue(compliance.getDecisionReasons().contains("Risk reason two"));
-        assertTrue(compliance.getDecisionReasons().contains("Market abuse"));
-        assertTrue(compliance.getDecisionReasons().contains(
-                "Contact client to obtain explanation (Residence vs fiscal country) or correct information AND If not sensible explanation obtained - Escalation to Compliance"));
-        assertTrue(compliance.getDecisionReasons()
-                .contains("Check with client why no TCC signed AND Escalation to Tax Compliance - if refused again (No TCC)"));
-    }
-
-    @Test
-    void doesNotPromoteComplianceForPcsReviewEscalationWithoutRiskReason() {
-
-        var tasks = service.buildTaskList(null, null, screen(select(BUSINESS_ORIGIN, "LU"),
-                select(PCS_REVIEW, "Senior sign-off")));
-
-        var compliance = task(tasks, "Compliance check");
-        assertFalse(compliance.isMandatory());
-        assertTrue(compliance.getDecisionReasons().isEmpty());
-    }
-
-    @Test
-    void buildsItalianPepAndEboTaxCountryComplianceReasons() {
-
-        var tasks = service.buildTaskList(null, null, screen(select(BUSINESS_ORIGIN, "IT"), select(PEP, "YES"),
-                text(EBO_RESIDENCE_COUNTRY_RISK, "HIGH - AS TT")));
-
-        var compliance = task(tasks, "Compliance check");
-        assertTrue(compliance.isMandatory());
-        assertTrue(compliance.getDecisionReasons().contains("Italian branch PEP"));
-        assertTrue(compliance.getDecisionReasons()
-                .contains("TCC signed by fiscal adviser OR Tax return AND Escalation to Tax Compliance - if No TCC"));
-    }
-
-    @Test
-    void buildsMandatoryIcTaskWhenPremiumWithAssets() {
-
-        var tasks = service.buildTaskList(null, null, screen(select(PREMIUM_WITH_ASSETS, "YES")));
-
-        var icAsset = task(tasks, "IC-Asset");
-        assertTrue(icAsset.isMandatory());
-        assertEquals("IC_NEW_BUSINESS", icAsset.getMainTaskDynamicScreenId());
-        assertEquals(TWO_DAYS, icAsset.getMainTaskExpectedDurationSeconds());
-        assertEquals(ONE_DAY, icAsset.getSignoffTaskExpectedDurationSeconds());
-        assertEquals(List.of("Escalation to Investment Compliance - Premium with assets"), icAsset.getDecisionReasons());
-    }
-
-    private TaskDefinition task(final List<TaskDefinition> tasks, final String taskName) {
-
-        return tasks.stream().filter(task -> taskName.equals(task.getMainTaskName())).findFirst().orElseThrow();
-    }
-
-    private ScreenDescription screen(final Field... fields) {
-
-        return ScreenDescription.builder().tabs(List.of(Tab.builder()
-                .groups(List.of(Group.builder().groupId("CHECKLIST").fields(List.of(fields)).build())).build())).build();
-    }
-
-    private SelectInputField select(final String fieldId, final String value) {
-
-        return SelectInputField.builder().fieldId(fieldId).selectedValue(value).build();
-    }
-
-    private TextInputField text(final String fieldId, final String value) {
-
-        return TextInputField.builder().fieldId(fieldId).selectedValue(value).build();
-    }
-
-    private TextAreaField textArea(final String fieldId, final String value) {
-
-        return TextAreaField.builder().fieldId(fieldId).selectedValue(value).build();
-    }
+  ],
+  "formInitiator": {
+    "officeLocation": null,
+    "id": null,
+    "shallow": false,
+    "creationDate": null,
+    "modificationDate": null,
+    "creationUser": null,
+    "modificationUser": null,
+    "crud": null,
+    "userId": "43845",
+    "userLogin": "therveux@lia.int",
+    "displayedName": "Thomas Herveux",
+    "companyId": "1",
+    "companyName": "Demo Partner",
+    "initiatorRole": "INTERNAL",
+    "partnerType": "OTHER"
+  }
 }
