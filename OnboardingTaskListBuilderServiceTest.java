@@ -1,236 +1,79 @@
-@ExtendWith(MockitoExtension.class)
+ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class OnboardingThirdPartyFieldsBuilderServiceTest extends OnboardingFieldsBuilderTestSupport {
+class ThirdPartyAdditionFieldsBuilderServiceTest {
 
     @InjectMocks
-    private OnboardingThirdPartyFieldsBuilderService builderService;
+    private ThirdPartyAdditionFieldsBuilderService thirdPartyAdditionFieldsBuilderService;
 
-    @Test
-    void buildThirdPartyFieldsOK() {
-        var group = group(THIRD_PARTY_GROUP);
-        var transaction = transaction();
-        var order = new AtomicInteger(1);
+    @Mock
+    private ReferenceDataRepositoryService referenceDataRepositoryService;
 
-        builderService.buildField(
-                webForm(),
-                screenDescription(),
-                group,
-                policy(),
-                transaction,
-                overallCaseRisk()
-        );
+    @BeforeEach
+    void initMock() {
 
-        assertEquals(10, group.getFields().size());
-
-        FieldHelper.testFieldValueAndIncr(
-                THIRD_PARTY_NAME + "_1",
-                TextInputField.class,
-                group,
-                null,
-                order,
-                null,
-                true,
-                null
-        );
-
-        FieldHelper.testSelectFieldValue(
-                LINK_THIRD_PARTY_PH + "_1",
-                SelectInputField.class,
-                group,
-                null,
-                order.getAndIncrement(),
-                null,
-                true,
-                null,
-                0
-        );
-
-        FieldHelper.testFieldValueAndIncr(
-                REASON_THIRD_PARTY_PAYMENT + "_1",
-                TextInputField.class,
-                group,
-                null,
-                order,
-                null,
-                null,
-                true
-        );
-
-        FieldHelper.testSelectFieldValue(
-                THIRD_PARTY_COUNTRY + "_1",
-                SelectInputField.class,
-                group,
-                null,
-                order.getAndIncrement(),
-                null,
-                true,
-                null,
-                0
-        );
-
-        FieldHelper.testFieldValueAndIncr(
-                THIRD_PARTY_NAME + "_2",
-                TextInputField.class,
-                group,
-                null,
-                order,
-                null,
-                true,
-                null
-        );
-
-        FieldHelper.testSelectFieldValue(
-                LINK_THIRD_PARTY_PH + "_2",
-                SelectInputField.class,
-                group,
-                null,
-                order.getAndIncrement(),
-                null,
-                true,
-                null,
-                0
-        );
-
-        FieldHelper.testFieldValueAndIncr(
-                REASON_THIRD_PARTY_PAYMENT + "_2",
-                TextInputField.class,
-                group,
-                null,
-                order,
-                null,
-                null,
-                true
-        );
-
-        FieldHelper.testSelectFieldValue(
-                THIRD_PARTY_COUNTRY + "_2",
-                SelectInputField.class,
-                group,
-                null,
-                order.getAndIncrement(),
-                null,
-                true,
-                null,
-                0
-        );
-
-        FieldHelper.testFieldValueAndIncr(
-                THIRD_PARTY_COUNTRY_RISK,
-                TextInputField.class,
-                group,
-                RulesUtils.getRiskFactorLevel(transaction, INT_RF_016),
-                order,
-                null,
-                null,
-                null
-        );
-
-        FieldHelper.testFieldValueAndIncr(
-                ADDITIONAL_INFO_LINK,
-                TextAreaField.class,
-                group,
-                null,
-                order,
-                "#LINK_THIRD_PARTY_PH# == \"other\"",
-                false,
-                true
-        );
-
-        assertEquals(10, order.get() - 1);
+        Mockito.when(referenceDataRepositoryService.getReferenceDataOptionsByDomain(THIRD_PARTY_TYPE_DOMAIN))
+                .thenReturn(ReferenceServiceHelper.getThirdPartyTypeOptions());
+        Mockito.when(referenceDataRepositoryService.getReferenceDataOptionsByDomainAndSelectedValue(COUNTRY_DOMAIN, "BE"))
+                .thenReturn(List.of(new SelectInputFieldOption("BE", "Belgium")));
+        Mockito.when(referenceDataRepositoryService.getReferenceDataOptionsByDomainAndSelectedValue(COUNTRY_DOMAIN, "N/A"))
+                .thenReturn(List.of(new SelectInputFieldOption("N/A", "N/A")));
     }
 
     @Test
-    void buildThirdPartyFieldsShouldPopulatePaymentDetailsValues() {
-        var group = group(THIRD_PARTY_GROUP);
-        var transaction = transaction();
+    void builderAddedInfoFields_OK() {
 
-        builderService.buildField(
-                webForm(),
-                screenDescription(),
-                group,
-                policy(),
-                transaction,
-                overallCaseRisk()
-        );
+        Policy policy = PolicyBuilderServiceHelper.createPolicy();
+        Group addedInfo = Group.builder().groupId(RulesConstants.THIRD_PARTY_GROUP).build();
+        WebForm webForm = WebFormBuilderServiceHelper.createWebForm();
+        BusinessTransaction transaction = TransactionBuilderServiceHelper.createTransaction();
+        /* Used to automatically increment "order" by 1 for each individual field test. Makes adding/removing a field less painful */
+        AtomicInteger testOrder = new AtomicInteger(1);
+        int expectedNumberOfFields = 13;
 
-        var firstPayment = ChecklistUtils.getMoneyInTransactionPaymentDetails(transaction).getFirst();
+        thirdPartyAdditionFieldsBuilderService.buildField(webForm, new ScreenDescription(), addedInfo, policy, transaction,
+                Map.of("BLOCKED", new ArrayList<>()));
+        assertEquals(expectedNumberOfFields, addedInfo.getFields().size());
 
-        FieldHelper.testFieldValue(
-                THIRD_PARTY_NAME + "_1",
-                TextInputField.class,
-                group,
-                firstPayment.getPayerID(),
-                1,
-                null,
-                true,
-                null
-        );
+        FieldHelper.testFieldValueAndIncr(THIRD_PARTY_NAME + "_1", TextInputField.class, addedInfo, "909090", testOrder, null, true, false);
+        FieldHelper.testSelectFieldValueAndIncr(LINK_THIRD_PARTY_PH + "_1", SelectInputField.class, addedInfo, "originator", testOrder, null, true,
+                false, 0);
+        FieldHelper.testFieldValueAndIncr(REASON_THIRD_PARTY_PAYMENT + "_1", TextInputField.class, addedInfo, null, testOrder, null, false, true);
+        FieldHelper.testSelectFieldValueAndIncr(THIRD_PARTY_COUNTRY + "_1", SelectInputField.class, addedInfo, null, testOrder, null, true, false,
+                0);
+        FieldHelper.testFieldValueAndIncr(THIRD_PARTY_NAME + "_2", TextInputField.class, addedInfo, "123456789", testOrder, null, true, false);
+        FieldHelper.testSelectFieldValueAndIncr(LINK_THIRD_PARTY_PH + "_2", SelectInputField.class, addedInfo, "originator", testOrder, null, true,
+                false, 0);
+        FieldHelper.testFieldValueAndIncr(REASON_THIRD_PARTY_PAYMENT + "_2", TextInputField.class, addedInfo, null, testOrder, null, false, true);
+        FieldHelper.testSelectFieldValueAndIncr(THIRD_PARTY_COUNTRY + "_2", SelectInputField.class, addedInfo, null, testOrder, null, true, false,
+                0);
+        FieldHelper.testFieldValueAndIncr(THIRD_PARTY_NAME + "_3", TextInputField.class, addedInfo, "99118822", testOrder, null, true, false);
+        FieldHelper.testSelectFieldValueAndIncr(LINK_THIRD_PARTY_PH + "_3", SelectInputField.class, addedInfo, "originator", testOrder, null, true,
+                false, 0);
+        FieldHelper.testFieldValueAndIncr(REASON_THIRD_PARTY_PAYMENT + "_3", TextInputField.class, addedInfo, null, testOrder, null, false, true);
+        FieldHelper.testSelectFieldValueAndIncr(THIRD_PARTY_COUNTRY + "_3", SelectInputField.class, addedInfo, null, testOrder, null, true, false,
+                0);
+        FieldHelper.testFieldValueAndIncr(THIRD_PARTY_COUNTRY_RISK, TextInputField.class, addedInfo, "STANDARD", testOrder, null, false, false);
 
-        var link = (SelectInputField) ChecklistUtils.getFieldInGroup(group, LINK_THIRD_PARTY_PH + "_1");
-        var country = (SelectInputField) ChecklistUtils.getFieldInGroup(group, THIRD_PARTY_COUNTRY + "_1");
-
-        assertNotNull(link);
-        assertNotNull(country);
-
-        if (firstPayment.getOriginator() != null) {
-            assertEquals(firstPayment.getOriginator().getExternalId(), link.getSelectedValue());
-            assertEquals(1, link.getOptions().size());
-        }
-
-        if (firstPayment.getPayerLegalAddressCountry() != null) {
-            assertEquals(firstPayment.getPayerLegalAddressCountry().getIsoCountryCode(), country.getSelectedValue());
-            assertEquals(1, country.getOptions().size());
-        }
-
-        verify(referenceDataRepositoryService, atLeastOnce())
-                .getReferenceDataOptionsByDomainAndSelectedValue(eq(THIRD_PARTY_TYPE_DOMAIN), any());
-
-        verify(referenceDataRepositoryService, atLeastOnce())
-                .getReferenceDataOptionsByDomainAndSelectedValue(eq(COUNTRY_DOMAIN), any());
+        /* To make sure we accounted for all fields built in the group */
+        assertEquals(expectedNumberOfFields, testOrder.get() - 1);
     }
 
     @Test
-    void buildThirdPartyFieldsWithoutPaymentDetailsShouldOnlyBuildRiskAndAdditionalInfo() {
-        var group = group(THIRD_PARTY_GROUP);
-        var transaction = transaction();
-        transaction.setPaymentDetails(List.of());
+    void builderBankCountry_NA() {
 
-        builderService.buildField(
-                webForm(),
-                screenDescription(),
-                group,
-                policy(),
-                transaction,
-                overallCaseRisk()
-        );
+        Policy policy = PolicyBuilderServiceHelper.createPolicy();
+        Group generalDetails = Group.builder().groupId(RulesConstants.THIRD_PARTY_GROUP).build();
+        WebForm webForm = WebForm.builder()
+                .groups(Collections.singletonList(
+                        WebFormGroup.builder().textFields(List.of(TextWebFormField.builder().fieldId("BANK_COUNTRY").value("").build())).build()))
+                .build();
+        BusinessTransaction transaction = TransactionBuilderServiceHelper.createTransaction();
+        thirdPartyAdditionFieldsBuilderService.buildField(webForm, new ScreenDescription(), generalDetails, policy, transaction,
+                Map.of("BLOCKED", new ArrayList<>()));
+        assertEquals(13, generalDetails.getFields().size());
 
-        assertEquals(2, group.getFields().size());
-
-        FieldHelper.testMissingField(THIRD_PARTY_NAME + "_1", TextInputField.class, group);
-        FieldHelper.testMissingField(LINK_THIRD_PARTY_PH + "_1", SelectInputField.class, group);
-        FieldHelper.testMissingField(REASON_THIRD_PARTY_PAYMENT + "_1", TextInputField.class, group);
-        FieldHelper.testMissingField(THIRD_PARTY_COUNTRY + "_1", SelectInputField.class, group);
-
-        FieldHelper.testFieldValue(
-                THIRD_PARTY_COUNTRY_RISK,
-                TextInputField.class,
-                group,
-                RulesUtils.getRiskFactorLevel(transaction, INT_RF_016),
-                1,
-                null,
-                null,
-                null
-        );
-
-        FieldHelper.testFieldValue(
-                ADDITIONAL_INFO_LINK,
-                TextAreaField.class,
-                group,
-                null,
-                2,
-                "#LINK_THIRD_PARTY_PH# == \"other\"",
-                false,
-                true
-        );
+        FieldHelper.testSelectFieldValue(THIRD_PARTY_COUNTRY + "_1", SelectInputField.class, generalDetails, null, 4, null, true, false, 0);
+        FieldHelper.testSelectFieldValue(THIRD_PARTY_COUNTRY + "_2", SelectInputField.class, generalDetails, null, 8, null, true, false, 0);
+        FieldHelper.testFieldValue(THIRD_PARTY_COUNTRY_RISK, TextInputField.class, generalDetails, "STANDARD", 13, null, false, false);
     }
 }
