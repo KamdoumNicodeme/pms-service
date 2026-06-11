@@ -1,35 +1,33 @@
 private WebForm webFormWithIntermediate() {
-    var companyName = TextInputField.builder()
+    var companyName = TextWebFormField.builder()
             .fieldId("COMPANY_NAME")
             .selectedValue("My Partner")
             .build();
 
-    var country = SelectInputField.builder()
+    var country = TextWebFormField.builder()
             .fieldId("COUNTRY")
             .selectedValue("LU")
             .build();
 
     var address = WebFormGroup.builder()
             .groupId("ADDRESS")
-            .fields(List.of(country))
+            .textFields(List.of(country))
             .groups(new ArrayList<>())
             .build();
 
     var intermediate = WebFormGroup.builder()
             .groupId("INTERMEDIATE")
-            .fields(List.of(companyName))
+            .textFields(List.of(companyName))
             .groups(List.of(address))
             .build();
 
     var distributors = WebFormGroup.builder()
             .groupId("DISTRIBUTORS")
-            .fields(new ArrayList<>())
             .groups(List.of(intermediate))
             .build();
 
     var kyc = WebFormGroup.builder()
             .groupId("KYC")
-            .fields(new ArrayList<>())
             .groups(List.of(distributors))
             .build();
 
