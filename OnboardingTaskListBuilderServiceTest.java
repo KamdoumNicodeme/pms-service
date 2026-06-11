@@ -1,185 +1,226 @@
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-class OnboardingDueDiligenceFieldsBuilderServiceTest extends OnboardingFieldsBuilderTestSupport {
+@Service
+@RequiredArgsConstructor
+public class OnboardingPricingApprovalFieldsBuilderService extends OnboardingChecklistFieldsBuilderSupport implements FieldBuilderService {
 
-    @InjectMocks
-    private OnboardingDueDiligenceFieldsBuilderService builderService;
+    private final ReferenceDataRepositoryService referenceDataRepositoryService;
 
-    @Test
-    void buildDueDiligenceFields_NoEBO_OK() {
-        Policy policy = policy();
-        policy.setEconomicBeneficiaries(null);
+    @Override
+    public void buildField(final WebForm webForm, final ScreenDescription screenDescription, final Group group, final Policy policy,
+            final BusinessTransaction transaction, final Map<String,List<String>> overallCaseRisk) {
 
-        Group group = group(DUE_DILIGENCE_GROUP);
-        AtomicInteger order = new AtomicInteger(1);
-        int expectedNumberOfFields = 21;
+        Field.resetFieldId();
 
-        builderService.buildField(webForm(), screenDescription(), group, policy, transaction(), overallCaseRisk());
+        evaluateNtaMarkupException(group);
 
-        assertEquals(expectedNumberOfFields, group.getFields().size());
+        evaluateExplainException(group);
 
-        FieldHelper.testMissingField(INDUSTRY + "_1", SelectInputField.class, group);
-        FieldHelper.testMissingField(POSITION + "_1", SelectInputField.class, group);
-        FieldHelper.testMissingField(ANNUAL_INCOME + "_1", TextInputField.class, group);
-        FieldHelper.testMissingField(TOTAL_WEALTH + "_1", TextInputField.class, group);
+        evaluatePricingApprovalStage(group);
 
-        FieldHelper.testFieldValueAndIncr(BACKGROUND_DETAILS, TextAreaField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(RISK_ASSESSMENT, TextAreaField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(PEP, SelectInputField.class, group, NO, order, null, true, null);
-        FieldHelper.testFieldValueAndIncr(IS_PEP_PAYER, SelectInputField.class, group, null, order, "false", true, true);
-        FieldHelper.testFieldValueAndIncr(TCC_SIGNED, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(TCC_SIGNED_REFUSED, SelectInputField.class, group, null, order, "#TCC_SIGNED# == \"NO\"", true, true);
-        FieldHelper.testFieldValueAndIncr(INTRODUCING_PARTNER_SIGNED, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(INFO_PROVIDED_VERIFIED, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(NEGATIVE_FINDING, SelectInputField.class, group, NO, order, null, true, false);
-        FieldHelper.testFieldValueAndIncr(NEGATIVE_FINDING_THIRD_PARTY, TextInputField.class, group, null, order, "false", false, false);
-        FieldHelper.testFieldValueAndIncr(AT_LEAST_ONE_SOW_OF_KIND, SelectInputField.class, group, NO, order, "false", true, false);
-        FieldHelper.testFieldValueAndIncr(ORIGINATOR_WORLD_CHECK, SelectInputField.class, group, null, order, "false", true, true);
-        FieldHelper.testFieldValueAndIncr(IS_ON_SANCTION_LIST, SelectInputField.class, group, null, order, null, true, false);
-        FieldHelper.testFieldValueAndIncr(INSIDER, SelectInputField.class, group, NO, order, null, false, false);
-        FieldHelper.testFieldValueAndIncr(IS_PH_EBO_GOLDEN_VISA, SelectInputField.class, group, null, order, null, true, false);
-        FieldHelper.testFieldValueAndIncr(MINIMUM_WEALTH, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(WEALTH_ALLOCATION_OK, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(WEALTH_ALLOCATION, TextInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(KYC_SUPPORTING_DOCUMENTS, SelectInputField.class, group, null, order, null, true, true);
+        evaluateRationaleForException(group);
 
-        assertEquals(expectedNumberOfFields, order.get() - 1);
+        evaluateAdministrativeFee(group);
+
+        evaluateGac(group);
+
+        evaluatePolicyFee(group);
+
+        evaluateIsFamilyCase(group);
+
+        evaluateFamilyCasePolNbr(group);
+
+        evaluateFamilyCaseTotalAmount(group);
+
+        evaluatePricingApprovalChecked(group);
+
     }
 
-    @Test
-    void buildDueDiligenceFields_OK() {
-        Policy policy = PolicyBuilderServiceHelper.createPolicy();
-        Group group = group(DUE_DILIGENCE_GROUP);
-        AtomicInteger order = new AtomicInteger(1);
-        int expectedNumberOfFields = 37;
+    private void evaluateNtaMarkupException(Group group) {
 
-        builderService.buildField(webForm(), screenDescription(), group, policy, transaction(), overallCaseRisk());
-
-        assertEquals(expectedNumberOfFields, group.getFields().size());
-
-        FieldHelper.testSelectFieldValue(INDUSTRY + "_1", SelectInputField.class, group, "adult", order.getAndIncrement(), null, true, null, 1);
-        FieldHelper.testSelectFieldValue(POSITION + "_1", SelectInputField.class, group, null, order.getAndIncrement(), "false", null, null, 0);
-        FieldHelper.testSelectFieldValue(INDUSTRY + "_2", SelectInputField.class, group, "agri", order.getAndIncrement(), null, true, null, 1);
-        FieldHelper.testSelectFieldValue(POSITION + "_2", SelectInputField.class, group, null, order.getAndIncrement(), "false", null, null, 0);
-
-        FieldHelper.testFieldValueAndIncr(BACKGROUND_DETAILS, TextAreaField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(RISK_ASSESSMENT, TextAreaField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(PEP, SelectInputField.class, group, NO, order, null, true, null);
-        FieldHelper.testFieldValueAndIncr(IS_PEP_PAYER, SelectInputField.class, group, null, order, "false", true, true);
-        FieldHelper.testFieldValueAndIncr(TCC_SIGNED, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(TCC_SIGNED_REFUSED, SelectInputField.class, group, null, order, "#TCC_SIGNED# == \"NO\"", true, true);
-        FieldHelper.testFieldValueAndIncr(INTRODUCING_PARTNER_SIGNED, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(INFO_PROVIDED_VERIFIED, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(NEGATIVE_FINDING, SelectInputField.class, group, NO, order, null, true, false);
-        FieldHelper.testFieldValueAndIncr(NEGATIVE_FINDING_THIRD_PARTY, TextInputField.class, group, null, order, "false", false, false);
-        FieldHelper.testFieldValueAndIncr(AT_LEAST_ONE_SOW_OF_KIND, SelectInputField.class, group, NO, order, "false", true, false);
-        FieldHelper.testFieldValueAndIncr(ORIGINATOR_WORLD_CHECK, SelectInputField.class, group, null, order, "false", true, true);
-        FieldHelper.testFieldValueAndIncr(IS_ON_SANCTION_LIST, SelectInputField.class, group, null, order, null, true, false);
-        FieldHelper.testFieldValueAndIncr(INSIDER, SelectInputField.class, group, NO, order, null, false, false);
-        FieldHelper.testFieldValueAndIncr(IS_PH_EBO_GOLDEN_VISA, SelectInputField.class, group, null, order, null, true, false);
-
-        FieldHelper.testFieldValueAndIncr(ANNUAL_INCOME + "_1", TextInputField.class, group, "N/A", order, null, null, null);
-        FieldHelper.testFieldValueAndIncr(ANNUAL_INCOME + "_2", TextInputField.class, group, "N/A", order, null, null, null);
-        FieldHelper.testFieldValueAndIncr(SOURCE_OF_WEALTH, TextInputField.class, group, null, order, null, false, true);
-        FieldHelper.testFieldValueAndIncr(TWENTY_PERCENT_INCOME + "_1", SelectInputField.class, group, NO, order, null, null, null);
-        FieldHelper.testFieldValueAndIncr(TWENTY_PERCENT_INCOME + "_2", SelectInputField.class, group, NO, order, null, null, null);
-
-        FieldHelper.testFieldValueAndIncr(MINIMUM_WEALTH, SelectInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(WEALTH_ALLOCATION_OK, SelectInputField.class, group, null, order, null, true, true);
-
-        FieldHelper.testFieldValueAndIncr(WEALTH_ORIGINATING_COUNTRY_1_RISK + "_1", TextInputField.class, group, "", order, null, true, null);
-        FieldHelper.testFieldValueAndIncr(WEALTH_ORIGINATING_COUNTRY_2_RISK + "_1", TextInputField.class, group, "", order, null, null, null);
-        FieldHelper.testFieldValueAndIncr(WEALTH_ORIGINATING_COUNTRY_1_RISK + "_2", TextInputField.class, group, "", order, null, true, null);
-        FieldHelper.testFieldValueAndIncr(WEALTH_ORIGINATING_COUNTRY_2_RISK + "_2", TextInputField.class, group, "", order, null, null, null);
-
-        FieldHelper.testFieldValueAndIncr(WEALTH_ALLOCATION, TextInputField.class, group, null, order, null, true, true);
-        FieldHelper.testFieldValueAndIncr(TOTAL_WEALTH + "_1", TextInputField.class, group, "N/A", order, null, null, null);
-        FieldHelper.testFieldValueAndIncr(TOTAL_WEALTH + "_2", TextInputField.class, group, "N/A", order, null, null, null);
-        FieldHelper.testFieldValueAndIncr(KYC_SUPPORTING_DOCUMENTS, SelectInputField.class, group, null, order, null, true, true);
-
-        assertEquals(expectedNumberOfFields, order.get() - 1);
+        var ntaMarkupException = (SelectInputField) ChecklistUtils.getFieldInGroup(group, NTA_MARKUP_EXCEPTION);
+        if (ntaMarkupException == null) {
+            ntaMarkupException = SelectInputField.builder().fieldId(NTA_MARKUP_EXCEPTION).build();
+            group.getFields().add(ntaMarkupException);
+        }
+        ntaMarkupException.setIsActive(true);
+        ntaMarkupException.incrementOrder();
+        ntaMarkupException.setLabel("NTA Markup Exception?");
+        ntaMarkupException.setEnabled(false);
+        ntaMarkupException.setMandatory(false);
+        ntaMarkupException.setDisplayIf(null);
+        ntaMarkupException.setLabelBold(false);
+        ntaMarkupException.setSourceSystem(null);
     }
 
-    @Test
-    void buildDueDiligenceFields_MissingIndustrySector_ShouldBlock() {
-        Policy policy = PolicyBuilderServiceHelper.createPolicy();
-        policy.getEconomicBeneficiaries().getFirst()
-                .getThirdParties().getFirst()
-                .setProfessionIndustrySector(null);
+    private void evaluateExplainException(Group group) {
 
-        Group group = group(DUE_DILIGENCE_GROUP);
-        Map<String, List<String>> overallCaseRisk = overallCaseRisk();
-
-        builderService.buildField(webForm(), screenDescription(), group, policy, transaction(), overallCaseRisk);
-
-        var industry = (SelectInputField) ChecklistUtils.getFieldInGroup(group, INDUSTRY + "_1");
-
-        assertEquals(37, group.getFields().size());
-        assertNull(industry.getSelectedValue());
-        assertTrue(overallCaseRisk.get(BLOCKED).contains("Missing industry sector"));
+        var explainException = (TextAreaField) ChecklistUtils.getFieldInGroup(group, EXPLAIN_EXCEPTION);
+        if (explainException == null) {
+            explainException = TextAreaField.builder().fieldId(EXPLAIN_EXCEPTION).build();
+            group.getFields().add(explainException);
+        }
+        explainException.setIsActive(true);
+        explainException.incrementOrder();
+        explainException.setLabel("Explain Exception");
+        explainException.setEnabled(false);
+        explainException.setMandatory(false);
+        explainException.setDisplayIf(null);
+        explainException.setLabelBold(false);
+        explainException.setSourceSystem(null);
     }
 
-    @Test
-    void buildDueDiligenceFields_PepYes_OK() {
-        Policy policy = PolicyBuilderServiceHelper.createPolicy();
-        BusinessTransaction transaction = transaction();
-        transaction.getRiskFactorResults().stream()
-                .filter(rf -> INT_RF_005.equals(rf.getReference()))
-                .findFirst()
-                .orElseThrow()
-                .setAnswerDescription(YES);
+    private void evaluatePricingApprovalStage(Group group) {
 
-        Group group = group(DUE_DILIGENCE_GROUP);
-
-        builderService.buildField(webForm(), screenDescription(), group, policy, transaction, overallCaseRisk());
-
-        FieldHelper.testFieldValue(PEP, SelectInputField.class, group, YES, 7, null, true, null);
+        var pricingApprovalStage = (TextInputField) ChecklistUtils.getFieldInGroup(group, PRICING_APPROVAL_STAGE);
+        if (pricingApprovalStage == null) {
+            pricingApprovalStage = TextInputField.builder().fieldId(PRICING_APPROVAL_STAGE).build();
+            group.getFields().add(pricingApprovalStage);
+        }
+        pricingApprovalStage.setIsActive(true);
+        pricingApprovalStage.incrementOrder();
+        pricingApprovalStage.setLabel("Pricing Approval Stage");
+        pricingApprovalStage.setEnabled(false);
+        pricingApprovalStage.setMandatory(false);
+        pricingApprovalStage.setDisplayIf(null);
+        pricingApprovalStage.setLabelBold(false);
+        pricingApprovalStage.setSourceSystem(null);
     }
 
-    @Test
-    void buildDueDiligenceFields_MissingNegativeFinding_ShouldBlock() {
-        Policy policy = PolicyBuilderServiceHelper.createPolicy();
-        BusinessTransaction transaction = transaction();
-        transaction.getRiskFactorResults().stream()
-                .filter(rf -> INT_RF_006.equals(rf.getReference()))
-                .findFirst()
-                .orElseThrow()
-                .setData("Missing RF_006 data");
+    private void evaluateRationaleForException(Group group) {
 
-        Group group = group(DUE_DILIGENCE_GROUP);
-        Map<String, List<String>> overallCaseRisk = overallCaseRisk();
-
-        builderService.buildField(webForm(), screenDescription(), group, policy, transaction, overallCaseRisk);
-
-        FieldHelper.testFieldValue(NEGATIVE_FINDING, SelectInputField.class, group, null, 14, null, true, false);
-        assertTrue(overallCaseRisk.get(BLOCKED).contains("Missing RF_006 data"));
+        var rationaleForException = (TextInputField) ChecklistUtils.getFieldInGroup(group, RATIONALE_FOR_EXCEPTION);
+        if (rationaleForException == null) {
+            rationaleForException = TextInputField.builder().fieldId(RATIONALE_FOR_EXCEPTION).build();
+            group.getFields().add(rationaleForException);
+        }
+        rationaleForException.setIsActive(true);
+        rationaleForException.incrementOrder();
+        rationaleForException.setLabel("Rationale for Exception");
+        rationaleForException.setEnabled(false);
+        rationaleForException.setMandatory(false);
+        rationaleForException.setDisplayIf(null);
+        rationaleForException.setLabelBold(false);
+        rationaleForException.setSourceSystem(null);
     }
 
-    @Test
-    void buildDueDiligenceFields_HighNegativeFinding_ShouldDisplayThirdParty() {
-        Policy policy = PolicyBuilderServiceHelper.createPolicy();
-        BusinessTransaction transaction = transaction();
-        transaction.getRiskFactorResults().stream()
-                .filter(rf -> INT_RF_006.equals(rf.getReference()))
-                .findFirst()
-                .ifPresent(rf -> {
-                    rf.setRiskLevel(HIGH);
-                    rf.setData("INT_RF_006's data");
-                });
+    private void evaluateAdministrativeFee(Group group) {
 
-        Group group = group(DUE_DILIGENCE_GROUP);
+        var administrativeFee = (TextInputField) ChecklistUtils.getFieldInGroup(group, ADMINISTRATIVE_FEE);
+        if (administrativeFee == null) {
+            administrativeFee = TextInputField.builder().fieldId(ADMINISTRATIVE_FEE).build();
+            group.getFields().add(administrativeFee);
+        }
+        administrativeFee.setIsActive(true);
+        administrativeFee.incrementOrder();
+        administrativeFee.setLabel("Administrative Fee");
+        administrativeFee.setEnabled(false);
+        administrativeFee.setMandatory(false);
+        administrativeFee.setDisplayIf(null);
+        administrativeFee.setLabelBold(false);
+        administrativeFee.setSourceSystem(null);
+    }
 
-        builderService.buildField(webForm(), screenDescription(), group, policy, transaction, overallCaseRisk());
+    private void evaluateGac(Group group) {
 
-        FieldHelper.testFieldValue(
-                NEGATIVE_FINDING_THIRD_PARTY,
-                TextInputField.class,
-                group,
-                "INT_RF_006's data",
-                15,
-                "true",
-                false,
-                false
-        );
+        var gac = (TextInputField) ChecklistUtils.getFieldInGroup(group, GAC);
+        if (gac == null) {
+            gac = TextInputField.builder().fieldId(GAC).build();
+            group.getFields().add(gac);
+        }
+        gac.setIsActive(true);
+        gac.incrementOrder();
+        gac.setLabel("GAC (#Years)");
+        gac.setEnabled(false);
+        gac.setMandatory(false);
+        gac.setDisplayIf(null);
+        gac.setLabelBold(false);
+        gac.setSourceSystem(null);
+    }
+
+    private void evaluatePolicyFee(Group group) {
+
+        var policyFee = (TextInputField) ChecklistUtils.getFieldInGroup(group, POLICY_FEE);
+        if (policyFee == null) {
+            policyFee = TextInputField.builder().fieldId(POLICY_FEE).build();
+            group.getFields().add(policyFee);
+        }
+        policyFee.setIsActive(true);
+        policyFee.incrementOrder();
+        policyFee.setLabel("Policy Fee");
+        policyFee.setEnabled(false);
+        policyFee.setMandatory(false);
+        policyFee.setDisplayIf(null);
+        policyFee.setLabelBold(false);
+        policyFee.setSourceSystem(null);
+    }
+
+    private void evaluateIsFamilyCase(Group group) {
+
+        var isFamilyCase = (SelectInputField) ChecklistUtils.getFieldInGroup(group, IS_FAMILY_CASE);
+        if (isFamilyCase == null) {
+            isFamilyCase = SelectInputField.builder().fieldId(IS_FAMILY_CASE).build();
+            group.getFields().add(isFamilyCase);
+        }
+        isFamilyCase.setIsActive(true);
+        isFamilyCase.incrementOrder();
+        isFamilyCase.setLabel("It is a family case ?");
+        isFamilyCase.setEnabled(true);
+        isFamilyCase.setMandatory(false);
+        isFamilyCase.setDisplayIf(null);
+        isFamilyCase.setLabelBold(false);
+        isFamilyCase.setSourceSystem(null);
+        isFamilyCase.setOptions(referenceDataRepositoryService.getReferenceDataOptionsByDomain(YES_NO_DOMAIN));
+    }
+
+    private void evaluateFamilyCasePolNbr(Group group) {
+
+        var familyCasePolNbr = (NumberInputField) ChecklistUtils.getFieldInGroup(group, FAMILY_CASE_POL_NBR);
+        if (familyCasePolNbr == null) {
+            familyCasePolNbr = NumberInputField.builder().fieldId(FAMILY_CASE_POL_NBR).build();
+            group.getFields().add(familyCasePolNbr);
+        }
+        familyCasePolNbr.setIsActive(true);
+        familyCasePolNbr.incrementOrder();
+        familyCasePolNbr.setLabel("How many policies in the family case");
+        familyCasePolNbr.setEnabled(true);
+        familyCasePolNbr.setMandatory(false);
+        familyCasePolNbr.setDisplayIf(null);
+        familyCasePolNbr.setLabelBold(false);
+        familyCasePolNbr.setSourceSystem(null);
+    }
+
+    private void evaluateFamilyCaseTotalAmount(Group group) {
+
+        var familyCaseTotalAmount = (NumberInputField) ChecklistUtils.getFieldInGroup(group, FAMILY_CASE_TOTAL_AMOUNT);
+        if (familyCaseTotalAmount == null) {
+            familyCaseTotalAmount = NumberInputField.builder().fieldId(FAMILY_CASE_TOTAL_AMOUNT).build();
+            group.getFields().add(familyCaseTotalAmount);
+        }
+        familyCaseTotalAmount.setIsActive(true);
+        familyCaseTotalAmount.incrementOrder();
+        familyCaseTotalAmount.setLabel("Total amount invested in the family case");
+        familyCaseTotalAmount.setEnabled(true);
+        familyCaseTotalAmount.setMandatory(false);
+        familyCaseTotalAmount.setDisplayIf(null);
+        familyCaseTotalAmount.setLabelBold(false);
+        familyCaseTotalAmount.setSourceSystem(null);
+    }
+
+    private void evaluatePricingApprovalChecked(Group group) {
+
+        var pricingApprovalChecked = (SelectInputField) ChecklistUtils.getFieldInGroup(group, PRICING_APPROVAL_CHECKED);
+        if (pricingApprovalChecked == null) {
+            pricingApprovalChecked = SelectInputField.builder().fieldId(PRICING_APPROVAL_CHECKED).build();
+            group.getFields().add(pricingApprovalChecked);
+        }
+        pricingApprovalChecked.setIsActive(true);
+        pricingApprovalChecked.incrementOrder();
+        pricingApprovalChecked.setLabel(
+                "Pricing approval has been checked in CRM tab (Salesforce) and is in line with the charging structure signed by the PH in the Application form, and the premium received");
+        pricingApprovalChecked.setEnabled(true);
+        pricingApprovalChecked.setMandatory(true);
+        pricingApprovalChecked.setDisplayIf(null);
+        pricingApprovalChecked.setLabelBold(false);
+        pricingApprovalChecked.setSourceSystem(null);
+        pricingApprovalChecked.setOptions(referenceDataRepositoryService.getReferenceDataOptionsByDomain(YES_NO_DOMAIN));
     }
 }
