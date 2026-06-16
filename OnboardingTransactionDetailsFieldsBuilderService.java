@@ -1,150 +1,1666 @@
-package com.lombardinternational.casemanagement.service.decision.domain.utils;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import com.lombardinternational.casemanagement.service.decision.domain.model.rules.SelectInputFieldOption;
-
-public class ReferenceServiceHelper {
-
-    public static Map<String,List<String>> getCountryRiskLevel() {
-
-        return Map.of("PROHIBITED", Arrays.asList("AF", "CY"), "EXCEPTION", Arrays.asList("MK", "SZ"), "HIGH", Arrays.asList("AE", "AG"), "MEDIUM",
-                Arrays.asList("AD", "CL"), "STANDARD", Arrays.asList("FR", "BE", "LU"));
-    }
-
-    public static Map<String,List<String>> getIndustryRiskLevel() {
-
-        return Map.of("VERY_HIGH", Arrays.asList("animals", "adult", "armements"), "HIGH", Arrays.asList("chari_fnd", "art_deal", "civ_serv"),
-                "MEDIUM", Arrays.asList("chem_mrisk", "art_deal_m", "construct"), "STANDARD", Arrays.asList("agri", "aero_defen", "arme_lrisk"));
-    }
-
-    public static List<SelectInputFieldOption> getYesNoOptions() {
-
-        return List.of(new SelectInputFieldOption("YES", "Yes"), new SelectInputFieldOption("NO", "No"));
-    }
-
-    public static List<SelectInputFieldOption> getYesNoNaOptions() {
-
-        return List.of(new SelectInputFieldOption("YES", "Yes"), new SelectInputFieldOption("NO", "No"), new SelectInputFieldOption("NA", "N/A"));
-    }
-
-    public static List<SelectInputFieldOption> getComplianceLevelOptions() {
-
-        return List.of(new SelectInputFieldOption("L0", "L0"), new SelectInputFieldOption("L1", "L1"), new SelectInputFieldOption("L2", "L2"),
-                new SelectInputFieldOption("L3", "L3"), new SelectInputFieldOption("L4", "L4"), new SelectInputFieldOption("L5", "L5"),
-                new SelectInputFieldOption("L6", "L6"));
-    }
-
-    public static List<SelectInputFieldOption> getIndustrySectorOptions() {
-
-        return List.of(new SelectInputFieldOption("agri", "Agriculture"), new SelectInputFieldOption("construct", "Construction"),
-                new SelectInputFieldOption("art_deal", "Art dealer"));
-    }
-
-    public static List<SelectInputFieldOption> getProfessionOptions() {
-
-        return List.of(new SelectInputFieldOption("director", "Director"), new SelectInputFieldOption("lawyer", "Lawyer"),
-                new SelectInputFieldOption("retired", "Retired"));
-    }
-
-    public static List<SelectInputFieldOption> getPartnerTypeOptions() {
-
-        return List.of(new SelectInputFieldOption("AGENT_EMP", "Agent Employee"), new SelectInputFieldOption("AGENT_IND", "Agent Individual"),
-                new SelectInputFieldOption("AGENT_EXT", "Agent External"), new SelectInputFieldOption("REFERRER", "Referrer"));
-    }
-
-    public static List<SelectInputFieldOption> getTransactionFeedbackOptions() {
-
-        return List.of(new SelectInputFieldOption("ACCEPTED", "Accepted"), new SelectInputFieldOption("REJECTED", "Rejected"),
-                new SelectInputFieldOption("REJECTED_AML", "Rejected AML"));
-    }
-
-    public static List<SelectInputFieldOption> getPolicyTypeOptions() {
-
-        return List.of(new SelectInputFieldOption("A", "A"), new SelectInputFieldOption("B", "B"), new SelectInputFieldOption("C", "C"),
-                new SelectInputFieldOption("D", "D"), new SelectInputFieldOption("N", "N"));
-    }
-
-    public static List<SelectInputFieldOption> getManagerTypeOptions() {
-
-        return List.of(new SelectInputFieldOption("LIMITED", "Limited"), new SelectInputFieldOption("UNLIMITED", "Unlimited"),
-                new SelectInputFieldOption("ADVISORY", "Advisory"), new SelectInputFieldOption("SELF_MANAGED", "Self-managed"));
-    }
-
-    public static List<SelectInputFieldOption> getEligibilityPriorityOptions() {
-
-        return List.of(new SelectInputFieldOption("HIGH", "High (1 business day)"),
-                new SelectInputFieldOption("MEDIUM", "Medium (3 business days)"), new SelectInputFieldOption("LOW", "Medium (1 week)"),
-                new SelectInputFieldOption("NA", "N/A"));
-    }
-
-    public static List<SelectInputFieldOption> getComplianceSeniorStandardOptions() {
-
-        return List.of(new SelectInputFieldOption("Standard sign-off", "Standard sign-off"),
-                new SelectInputFieldOption("Senior sign-off", "Senior sign-off"),
-                new SelectInputFieldOption("None (Compliance escalation required)", "None (Compliance escalation required)"));
-    }
-
-    public static List<SelectInputFieldOption> getThirdPartyTypeOptions() {
-
-        return List.of(new SelectInputFieldOption("THIRD_PARTY", "ThirdParty"),
-                new SelectInputFieldOption("policyhold", "Policy holder (default)"),
-                new SelectInputFieldOption("3pt_family", "3rd party: family member of EBO"),
-                new SelectInputFieldOption("3pt_setebo", "3rd party: Settlor/EBO of legal entity acting as PH"));
-    }
-
-    public static List<SelectInputFieldOption> getRiskColorOptions() {
-
-        return List.of(new SelectInputFieldOption("GREEN", "Green"), new SelectInputFieldOption("YELLOW", "Yellow"),
-                new SelectInputFieldOption("AMBER", "Amber"), new SelectInputFieldOption("RED", "Red"));
-    }
-
-    public static List<SelectInputFieldOption> getCountryOptions() {
-
-        return List.of(new SelectInputFieldOption("FR", "France"), new SelectInputFieldOption("BE", "Belgium"),
-                new SelectInputFieldOption("LU", "Luxembourg"));
-    }
-
-    public static List<SelectInputFieldOption> getUnderWritingsOptions() {
-
-        return List.of(new SelectInputFieldOption("L0", "L0"), new SelectInputFieldOption("L1", "L1"), new SelectInputFieldOption("L2", "L2"),
-                new SelectInputFieldOption("L3", "L3"), new SelectInputFieldOption("L4", "L4"), new SelectInputFieldOption("L5", "L5"),
-                new SelectInputFieldOption("L6", "L6"));
-    }
-
-    public static List<SelectInputFieldOption> getValuationModelDomain() {
-
-        return List.of(new SelectInputFieldOption("STANDARD", "Standard"), new SelectInputFieldOption("EXTENDED", "Extended"));
-    }
-
-    public static List<SelectInputFieldOption> getWhereAreAssetsDomain() {
-
-        return List.of(new SelectInputFieldOption("PREMIUM", "Premium"), new SelectInputFieldOption("FUND", "Fund"),
-                new SelectInputFieldOption("ILF", "ILF"));
-    }
-
-    public static List<SelectInputFieldOption> getCurrencyDomain() {
-
-        return List.of(new SelectInputFieldOption("AED", "AED"), new SelectInputFieldOption("CRC", "CRC"),
-                new SelectInputFieldOption("CZK", "CZK"), new SelectInputFieldOption("DZD", "DZD"), new SelectInputFieldOption("EGP", "EGP"),
-                new SelectInputFieldOption("EUR", "EUR"), new SelectInputFieldOption("GBP", "GBP"), new SelectInputFieldOption("MRO", "MRO"),
-                new SelectInputFieldOption("NOK", "NOK"), new SelectInputFieldOption("OMR", "OMR"), new SelectInputFieldOption("QAR", "QAR"),
-                new SelectInputFieldOption("SAR", "SAR"), new SelectInputFieldOption("SDG", "SDG"), new SelectInputFieldOption("SEK", "SEK"),
-                new SelectInputFieldOption("USD", "USD"));
-    }
-
-    public static List<SelectInputFieldOption> getSignatureDomain() {
-
-        return List.of(new SelectInputFieldOption("ELECTRONIC", "Electronic"), new SelectInputFieldOption("WET", "Wet"),
-                new SelectInputFieldOption("MULTIPLE", "Multiple"));
-    }
-
-    public static List<SelectInputFieldOption> getProviderDomain() {
-
-        return List.of(new SelectInputFieldOption("INTERNAL_PROVIDER", "Internal provider"),
-                new SelectInputFieldOption("PARTNER_ESIGN_SERVICE", "Partner e-signature service"));
-    }
-
+{
+  "screenId": "SURRENDER_CHECKLIST",
+  "screenDescription": ["com.lombard.cdm.ScreenDescription", {
+		"officeLocation": null,
+		"id": null,
+		"shallow": false,
+		"creationDate": null,
+		"modificationDate": null,
+		"creationUser": null,
+		"modificationUser": null,
+		"crud": null,
+		"loadTimeStamp": null,
+		"screenId": "SURRENDER_CHECKLIST",
+		"inputedScreenDescription": null,
+		"tabs": ["java.util.ArrayList", [["com.lombard.cdm.Tab", {
+						"officeLocation": null,
+						"id": null,
+						"shallow": false,
+						"creationDate": null,
+						"modificationDate": null,
+						"creationUser": null,
+						"modificationUser": null,
+						"crud": null,
+						"tabId": "CHECKLIST",
+						"label": "Checklist",
+						"i18NLabelKey": null,
+						"order": 1,
+						"triggersRecomputeScreen": false,
+						"type": "FormTab",
+						"groups": ["java.util.ArrayList", [["com.lombard.cdm.Group", {
+										"officeLocation": null,
+										"id": null,
+										"shallow": false,
+										"creationDate": null,
+										"modificationDate": null,
+										"creationUser": null,
+										"modificationUser": null,
+										"crud": null,
+										"groupId": "CONNECT_COMMENTS",
+										"title": "Comments on Connect",
+										"i18NTitleKey": null,
+										"order": 1,
+										"fields": ["java.util.ArrayList", [["com.lombard.cdm.TextAreaField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "CONNECT_COMMENT",
+														"label": "Reason",
+														"i18NLabelKey": null,
+														"order": 1,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "OTHER\ne\n",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Transaction reason and comment on Connect",
+														"rows": null,
+														"cols": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextAreaField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "OTHER_INTRUCTIONS",
+														"label": "Other instructions",
+														"i18NLabelKey": null,
+														"order": 2,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "e\n",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Other instructions on Connect",
+														"rows": null,
+														"cols": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												]]],
+										"displayIf": null
+									}
+								], ["com.lombard.cdm.Group", {
+										"officeLocation": null,
+										"id": null,
+										"shallow": false,
+										"creationDate": null,
+										"modificationDate": null,
+										"creationUser": null,
+										"modificationUser": null,
+										"crud": null,
+										"groupId": "GENERAL_DETAILS",
+										"title": "General details - Withdrawal",
+										"i18NTitleKey": null,
+										"order": 2,
+										"fields": ["java.util.ArrayList", [["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "CONTRACT_TYPE",
+														"label": "Contract type",
+														"i18NLabelKey": null,
+														"order": 1,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "CAPITALISED_POLICY",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Policy type from CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "POLICY_NUMBER",
+														"label": "Policy number",
+														"i18NLabelKey": null,
+														"order": 2,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "1106-114990",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Policy number from CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "IS_BMF",
+														"label": "Contains a BMF product component?",
+														"i18NLabelKey": null,
+														"order": 2,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "YES",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": null,
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.NumberInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "TRANSACTION_AMOUNT",
+														"label": "NAV amount (in EUR)",
+														"i18NLabelKey": null,
+														"order": 3,
+														"enabled": false,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "27126636.92",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "NAV amount (in EUR) in EUR from CLASS",
+														"min": null,
+														"max": null,
+														"decimals": null,
+														"size": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "TRANSACTION_AMOUNT_CUR",
+														"label": "NAV amount",
+														"i18NLabelKey": null,
+														"order": 4,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": null,
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "NAV amount from CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "SURRENDER_LIQUID_VALUE",
+														"label": "Surrender liquid value",
+														"i18NLabelKey": null,
+														"order": 0,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": null,
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Surrender liquid value from CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "POLICY_CURRENCY",
+														"label": "Policy currency",
+														"i18NLabelKey": null,
+														"order": 5,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "EUR",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Policy currency from CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "COUNTRY_OF_APPLICABLE_LAW",
+														"label": "Country of applicable law",
+														"i18NLabelKey": null,
+														"order": 6,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "FR",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "Country of applicable law from CLASS",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "FR",
+																		"value": "FR - France"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "TRANSACTION_TYPE",
+														"label": "Transaction type",
+														"i18NLabelKey": null,
+														"order": 7,
+														"enabled": true,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "SURRENDER",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Static value",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "SURRENDER",
+																		"value": "Surrender"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "REINVESTED_SURRENDER",
+																		"value": "Reinvested Surrender"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "RESIDENCE_COUNTRY",
+														"label": "Riskiest / Missing country of residence",
+														"i18NLabelKey": null,
+														"order": 8,
+														"enabled": false,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "TP: 0003227177, HN",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "From CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "TAX_COUNTRY",
+														"label": "Tax country",
+														"i18NLabelKey": null,
+														"order": 9,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "FR",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Tax country of policyholder from CLASS",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "FR",
+																		"value": "FR - France"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "PAYING_BACK_TO_PH_EBO",
+														"label": "Paying back to PH/EBO",
+														"i18NLabelKey": null,
+														"order": 10,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "YES",
+														"displayIf": "#TAX_COUNTRY# == \"ES\"",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": null,
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "SEGMENT_OWNER_NAME",
+														"label": "Segment owner name",
+														"i18NLabelKey": null,
+														"order": 11,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "#TAX_COUNTRY# == \"GB\"",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Segment owner from Connect",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												]]],
+										"displayIf": null
+									}
+								], ["com.lombard.cdm.Group", {
+										"officeLocation": null,
+										"id": null,
+										"shallow": false,
+										"creationDate": null,
+										"modificationDate": null,
+										"creationUser": null,
+										"modificationUser": null,
+										"crud": null,
+										"groupId": "DETAILS_MARKETING",
+										"title": "",
+										"i18NTitleKey": null,
+										"order": 3,
+										"fields": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "POLICY_ASSIGNED_OR_PLEDGED",
+														"label": "Has the policy been assigned or pledged?",
+														"i18NLabelKey": null,
+														"order": 2,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "NO",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "From CLASS",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "PENALTIES_APPLIED",
+														"label": "Are the penalties to be applied?",
+														"i18NLabelKey": null,
+														"order": 3,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "NO",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": null,
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "PENALTIES_WAIVED",
+														"label": "Are penalties waived?",
+														"i18NLabelKey": null,
+														"order": 4,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "#PENALTIES_APPLIED# == \"YES\"",
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": null,
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextAreaField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "BLOCKS",
+														"label": "Blocks in CLASS",
+														"i18NLabelKey": null,
+														"order": 5,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": null,
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "From CLASS",
+														"rows": null,
+														"cols": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "IS_MADOFF",
+														"label": "Is this policy Madoff impacted?",
+														"i18NLabelKey": null,
+														"order": 6,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "NO",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": null,
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "BUSINESS_ORIGIN",
+														"label": "Business origin",
+														"i18NLabelKey": null,
+														"order": 7,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "LU",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "Business origin from CLASS",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "LU",
+																		"value": "LU - Luxembourg"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "TAX_RESERVE_BEHAVIOUR",
+														"label": "Tax reserve behaviour",
+														"i18NLabelKey": null,
+														"order": 8,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": null,
+														"displayIf": "#TAX_COUNTRY# == \"IT\"",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "from CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "PH_RESIDENCE_COUNTRY",
+														"label": "PH(s) residence country",
+														"i18NLabelKey": null,
+														"order": 10,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "ES",
+														"displayIf": "true",
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "Country of address for holders from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "PH_TYPE_ASSESSMENT",
+														"label": "PH type assessment",
+														"i18NLabelKey": null,
+														"order": 11,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": null,
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "From CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "POLICY_REMEDIATED",
+														"label": "(Belgian Branch) Is Policy Remediated ?",
+														"i18NLabelKey": null,
+														"order": 11,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "From CLASS and converted",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "POLICY_CUSTODY_SWITZERLAND",
+														"label": "Policy custodied in Switzerland?",
+														"i18NLabelKey": null,
+														"order": 11,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "NO",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": null,
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "THIRD_PARTY_SUB_TYPE_FOR_PH",
+														"label": "Third party sub type for PH",
+														"i18NLabelKey": null,
+														"order": 12,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "Company",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "From CLASS and converted",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "MRL_TRUSTEE",
+														"label": "MRL Trustee in a participating juridiction",
+														"i18NLabelKey": null,
+														"order": 14,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "#THIRD_PARTY_SUB_TYPE_FOR_PH# == \"Trust\"",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": null,
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "SIGNATORY_MAX_RISK",
+														"label": "Director/auth sign/shareholder residence country",
+														"i18NLabelKey": null,
+														"order": 15,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "HN MT ES",
+														"displayIf": "true",
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "From CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "PROXY_COUNTRY",
+														"label": "Proxy residence country",
+														"i18NLabelKey": null,
+														"order": 26,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for proxies from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "IRREVOCABLE_BEN",
+														"label": "Irrevocable BEN",
+														"i18NLabelKey": null,
+														"order": 27,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "NO",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "From CLASS",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "IRREVOCABLE_BEN_COUNTRY",
+														"label": "Irrevocable BEN residence country",
+														"i18NLabelKey": null,
+														"order": 28,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for irrevocable beneficiary from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "BENEFICIARY_RESIDENCE_COUNTRY_RISK",
+														"label": "Beneficiary residence country",
+														"i18NLabelKey": null,
+														"order": 30,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for Beneficiary from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "PH_DIFFERENT_TO_EBO",
+														"label": "PH different to EBO",
+														"i18NLabelKey": null,
+														"order": 31,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "YES",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "From CLASS",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "EBO_COUNTRY",
+														"label": "EBO residence country",
+														"i18NLabelKey": null,
+														"order": 32,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "HN",
+														"displayIf": "true",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for EBO from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "TRUST_RESIDENCE_COUNTRY_RISK",
+														"label": "Trust residence country",
+														"i18NLabelKey": null,
+														"order": 34,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for Trust from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "TRUSTEE_RESIDENCE_COUNTRY_RISK",
+														"label": "Trustee residence country",
+														"i18NLabelKey": null,
+														"order": 36,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for Trustee from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "SETTLOR_RESIDENCE_COUNTRY_RISK",
+														"label": "Settlor residence country",
+														"i18NLabelKey": null,
+														"order": 38,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for Settlor from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "CESSION_HOLDER",
+														"label": "Cession Holder",
+														"i18NLabelKey": null,
+														"order": 39,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "NO",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "From CLASS",
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "CESSION_HOLDER_RESIDENCE_COUNTRY_RISK",
+														"label": "Cession Holder residence country",
+														"i18NLabelKey": null,
+														"order": 40,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "",
+														"displayIf": "false",
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": "Country of address for Cession Holder from CLASS compared to country rating",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.TextInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "FATCA_STATUS",
+														"label": "What is the current FATCA status",
+														"i18NLabelKey": null,
+														"order": 41,
+														"enabled": false,
+														"mandatory": false,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "Others - PNFFE-without US contr.Pers. ",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": true,
+														"sourceSystem": "From CLASS",
+														"size": null,
+														"minChars": null,
+														"maxChars": null
+													}
+												], ["com.lombard.cdm.SelectInputField", {
+														"officeLocation": null,
+														"id": null,
+														"shallow": false,
+														"creationDate": null,
+														"modificationDate": null,
+														"creationUser": null,
+														"modificationUser": null,
+														"crud": null,
+														"fieldId": "NEW_US_INDICIA",
+														"label": "New US indicia detected",
+														"i18NLabelKey": null,
+														"order": 42,
+														"enabled": true,
+														"mandatory": true,
+														"multiple": null,
+														"maxMultiple": null,
+														"selectedValue": "NO",
+														"displayIf": null,
+														"enableIf": null,
+														"labelBold": false,
+														"sourceSystem": null,
+														"minWidthPct": null,
+														"minWidthPx": null,
+														"options": ["java.util.ArrayList", [["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "",
+																		"value": ""
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "YES",
+																		"value": "Yes"
+																	}
+																], ["com.lombard.cdm.SelectInputFieldOption", {
+																		"officeLocation": null,
+																		"id": null,
+																		"shallow": false,
+																		"creationDate": null,
+																		"modificationDate": null,
+																		"creationUser": null,
+																		"modificationUser": null,
+																		"crud": null,
+																		"key": "NO",
+																		"value": "No"
+																	}
+																]]]]
+, 
+  "policyNumber": "0912-107255",
+  "businessTransaction": "15315191",
+  "caseRef": "ADN_4912_20260609"
 }
