@@ -1,53 +1,31 @@
-private Optional<String> resolveCommonSignatoryCountry() {
-    List<WebFormGroup> generalConsentGroups = new ArrayList<>();
+private List<WebFormGroup> getInternalDedicatedFunds(final WebForm webForm) {
+    List<WebFormGroup> result = new ArrayList<>();
 
+    List<WebFormGroup> investmentFees = new ArrayList<>();
     WebformUtils.getWebFormObjectsById(
-            GENERAL_CONSENT,
+            INVESTMENT_FEES,
             webForm,
             null,
             null,
-            generalConsentGroups,
+            investmentFees,
             null
     );
 
-    if (generalConsentGroups.isEmpty()) {
-        return Optional.empty();
-    }
+    for (WebFormGroup investmentFee : investmentFees) {
+        WebFormGroup premiumInvestment =
+                WebformUtils.getGroupInGroup(investmentFee, PREMIUM_INVESTMENT);
 
-    WebFormGroup signatories = WebformUtils.getGroupInGroup(
-            generalConsentGroups.getFirst(),
-            SIGNATORIES
-    );
-
-    if (signatories == null || signatories.getGroups() == null) {
-        return Optional.empty();
-    }
-
-    String country = null;
-
-    for (WebFormGroup signatory : signatories.getGroups()) {
-        String type = WebformUtils.getValueForWebFormField(
-                WebformUtils.getFieldInGroup(signatory, TYPE)
-        );
-
-        if (!"physical".equals(type) && !"administrator".equals(type)) {
+        if (premiumInvestment == null) {
             continue;
         }
 
-        String currentCountry = WebformUtils.getValueForWebFormField(
-                WebformUtils.getFieldInGroup(signatory, COUNTRY)
-        );
+        WebFormGroup internalDedicatedFunds =
+                WebformUtils.getGroupInGroup(premiumInvestment, INTERNAL_DEDICATED_FUNDS);
 
-        if (StringUtils.isBlank(currentCountry) || "N/A".equals(currentCountry)) {
-            continue;
-        }
-
-        if (country == null) {
-            country = currentCountry;
-        } else if (!country.equals(currentCountry)) {
-            return Optional.empty();
+        if (internalDedicatedFunds != null && internalDedicatedFunds.getGroups() != null) {
+            result.addAll(internalDedicatedFunds.getGroups());
         }
     }
 
-    return Optional.ofNullable(country);
+    return result;
 }
