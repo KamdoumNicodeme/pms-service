@@ -1,7 +1,16 @@
-private String resolveCustodianBankName(final WebFormGroup fund) {
-    return Optional.ofNullable(getGroupInGroup(fund, CUSTODIAN_BANK_DESIGNATION))
-            .map(custodian -> getFieldInGroup(custodian, COMPANY_NAME))
-            .map(WebformUtils::getValueForWebFormField)
-            .filter(StringUtils::isNotBlank)
-            .orElse("N/A");
+private String resolveAccountOpenedInEea(
+        final ScreenDescription sd,
+        final Map<String, List<String>> overallCaseRisk,
+        final int position) {
+
+    List<String> eeaCountries = overallCaseRisk != null
+            ? overallCaseRisk.getOrDefault("EEA", Collections.emptyList())
+            : Collections.emptyList();
+
+    String accountOpenedCountry = ChecklistUtils
+            .getFieldById(sd, ACCOUNT_OPENED_COUNTRY + "_" + position)
+            .map(ChecklistUtils::getFieldValue)
+            .orElse("");
+
+    return eeaCountries.contains(accountOpenedCountry) ? "YES" : "NO";
 }
