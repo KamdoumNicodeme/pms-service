@@ -1,160 +1,223 @@
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-class NbdPaymentOutsideTaxCountryRiskTest {
 
-    private static final MockedStatic<ChecklistUtils> checklistUtils =
-            Mockito.mockStatic(ChecklistUtils.class);
+    public static WebForm createWebForm() {
 
-    private static final MockedStatic<WebformUtils> webformUtils =
-            Mockito.mockStatic(WebformUtils.class);
+        return WebForm.builder().webFormId("ADDITION")
+                .groups(Arrays.asList(
+                        WebFormGroup.builder().groupId("GROUP_1")
+                                .textFields(Arrays.asList(TextWebFormField.builder().fieldId(IS_MULTISUPPORT_WF).value("Y").build(),
+                                        TextWebFormField.builder().fieldId(UNQUOTED_INSTRUCTION_WF).value("UNQUOTED_INSTRUCTION").build(),
+                                        TextWebFormField.builder().fieldId(BROKER_IDENTIFIER_WF).value("BROKER_IDENTIFIER_VALUE").build(),
+                                        TextWebFormField.builder().fieldId(BANK_COUNTRY_WF).value("BE").build(),
+                                        TextWebFormField.builder().fieldId(POLICY_NUMBER_WF).value("1234-147852").build()))
+                                .booleanFields(Arrays.asList(BooleanWebFormField.builder().fieldId(CONTAINS_UNQUOTED_WF).value(true).build(),
+                                        BooleanWebFormField.builder().fieldId(IS_ASSET_TRANSFER_WF).value(true).build(),
+                                        BooleanWebFormField.builder().fieldId(ASSET_TRANSFER_WF).value(true).build()))
+                                .build(),
+                        WebFormGroup.builder().groupId(POLICY_WF)
+                                .textFields(Collections.singletonList(TextWebFormField.builder().fieldId(COUNTRY_OF_LAW_WF).value("DE").build()))
+                                .build(),
+                        WebFormGroup.builder().groupId(KYC_WF)
+                                .booleanFields(
+                                    Collections.singletonList(
+                                        BooleanWebFormField.builder().fieldId(IS_KYC_REQUIRED_WF).value(true).build()))
+                                .groups(Collections.singletonList(WebFormGroup.builder().groupId(DETAILS_WF)
+                                        .groups(Collections.singletonList(WebFormGroup.builder().groupId(EBO_KYCS_WF).groups(Arrays.asList(
+                                                WebFormGroup.builder().groupId("0")
+                                                        .textFields(Arrays.asList(
+                                                                TextWebFormField.builder().fieldId(EBO_ID_WF).value("0123456789").build(),
+                                                                TextWebFormField.builder().fieldId(EBO_NAME_WF).value("John Doe").build(),
+                                                                TextWebFormField.builder().fieldId(EBO_TYPE_WF).value(EBO_TYPE_PHYSICAL).build()))
+                                                        .groups(Collections
+                                                                .singletonList(WebFormGroup.builder().groupId(BENEFICIARY_WEALTH_WF)
+                                                                        .groups(Arrays.asList(
+                                                                                WebFormGroup.builder().groupId(OTHER_WF).booleanFields(
+                                                                                        Collections.singletonList(BooleanWebFormField.builder()
+                                                                                                .fieldId(HAS_OTHER_WF).value(true).build()))
+                                                                                        .groups(Collections.singletonList(WebFormGroup.builder()
+                                                                                                .groupId(DETAILS_WF)
+                                                                                                .textFields(
+                                                                                                        Collections.singletonList(TextWebFormField
+                                                                                                                .builder().fieldId(DETAILS_WF)
+                                                                                                                .value("SALE_LIQ").build()))
+                                                                                                .build()))
+                                                                                        .build(),
+                                                                                WebFormGroup.builder().groupId(PROFESSIONAL_ACTIVITY_WF)
+                                                                                        .booleanFields(
+                                                                                                Collections.singletonList(BooleanWebFormField
+                                                                                                        .builder()
+                                                                                                        .fieldId(HAS_PROFESSIONAL_ACTIVITY_WF)
+                                                                                                        .value(true).build()))
+                                                                                        .build(),
+                                                                                WebFormGroup.builder().groupId(BUSINESS_SALE_WF)
+                                                                                        .booleanFields(
+                                                                                                Collections.singletonList(BooleanWebFormField
+                                                                                                        .builder().fieldId(HAS_BUSINESS_SALE_WF)
+                                                                                                        .value(true).build()))
+                                                                                        .build(),
+                                                                                WebFormGroup.builder().groupId(DONATION_WF)
+                                                                                        .booleanFields(Collections
+                                                                                                .singletonList(BooleanWebFormField.builder()
+                                                                                                        .fieldId(HAS_DONATION_WF).value(true)
+                                                                                                        .build()))
+                                                                                        .build(),
+                                                                                WebFormGroup.builder().groupId(DIVORCE_WF)
+                                                                                        .booleanFields(Collections
+                                                                                                .singletonList(BooleanWebFormField.builder()
+                                                                                                        .fieldId(HAS_DIVORCE_WF).value(true)
+                                                                                                        .build()))
+                                                                                        .build(),
+                                                                                WebFormGroup.builder().groupId(HERITAGE_WF).booleanFields(
+                                                                                        Collections.singletonList(BooleanWebFormField.builder()
+                                                                                                .fieldId(HAS_HERITAGE_WF).value(true).build()))
+                                                                                        .build()))
+                                                                        .build()))
+                                                        .build(),
 
-    private Map<String, List<String>> overallCaseRisk;
-
-    @BeforeEach
-    void resetBeforeTest() {
-        checklistUtils.reset();
-        checklistUtils.when(() -> ChecklistUtils.getFieldById(any(ScreenDescription.class), anyString()))
-                .thenCallRealMethod();
-        checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class)))
-                .thenCallRealMethod();
-
-        webformUtils.reset();
-
-        overallCaseRisk = new HashMap<>();
-        overallCaseRisk.put(HIGH, new ArrayList<>());
-        overallCaseRisk.put(BLOCKED, new ArrayList<>());
-    }
-
-    @AfterAll
-    static void closeStaticMocks() {
-        checklistUtils.close();
-        webformUtils.close();
-    }
-
-    @Test
-    void paymentOutsideTaxCountry_High_OK() {
-        ScreenDescription sd = createScreenDescription(null, "FR", "2", List.of("LU", "DE"), "BE");
-        WebForm webForm = new WebForm();
-
-        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
-                .thenReturn("FOE");
-
-        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
-
-        assertEquals(CaseRisk.CASE_RISK_HIGH, result);
-        assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals("Payment outside of the tax country", overallCaseRisk.get(HIGH).getFirst());
-        assertEquals(0, overallCaseRisk.get(BLOCKED).size());
-    }
-
-    @Test
-    void paymentOutsideTaxCountry_Standard_WhenCountryInsideTaxCountry_OK() {
-        ScreenDescription sd = createScreenDescription(null, "FR|LU", "2", List.of("LU", "FR"), "BE");
-        WebForm webForm = new WebForm();
-
-        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
-                .thenReturn("FOE");
-
-        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-        assertEquals(0, overallCaseRisk.get(BLOCKED).size());
-    }
-
-    @Test
-    void paymentOutsideTaxCountry_Standard_WhenNotBranchFoe_OK() {
-        ScreenDescription sd = createScreenDescription(null, "FR", "1", List.of("LU"), "BE");
-        WebForm webForm = new WebForm();
-
-        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
-                .thenReturn("OTHER");
-
-        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void paymentOutsideTaxCountry_Standard_WhenBusinessOriginNotBE_OK() {
-        ScreenDescription sd = createScreenDescription(null, "FR", "1", List.of("LU"), "LU");
-        WebForm webForm = new WebForm();
-
-        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
-                .thenReturn("FOE");
-
-        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
-    void paymentOutsideTaxCountry_ForcedRiskFromRiskValue_OK(String caseValue) {
-        ScreenDescription sd = createScreenDescription(caseValue, "FR", "1", List.of("LU"), "BE");
-        WebForm webForm = new WebForm();
-
-        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
-                .thenReturn("FOE");
-
-        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
-
-        assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-        assertEquals(0, overallCaseRisk.get(BLOCKED).size());
-    }
-
-    private ScreenDescription createScreenDescription(
-            String riskValue,
-            String phFiscalCountry,
-            String numberOfOriginatingAccounts,
-            List<String> bankCountries,
-            String businessOrigin
-    ) {
-        List<Field> fields = new ArrayList<>();
-
-        fields.add(TextInputField.builder()
-                .fieldId(RISK_VALUE)
-                .selectedValue(riskValue)
-                .build());
-
-        fields.add(TextInputField.builder()
-                .fieldId(PH_FISCAL_COUNTRY)
-                .selectedValue(phFiscalCountry)
-                .build());
-
-        fields.add(TextInputField.builder()
-                .fieldId(NUMBER_OF_ORIGINATING_ACCOUNTS)
-                .selectedValue(numberOfOriginatingAccounts)
-                .build());
-
-        fields.add(SelectInputField.builder()
-                .fieldId(BUSINESS_ORIGIN)
-                .selectedValue(businessOrigin)
-                .build());
-
-        for (int i = 0; i < bankCountries.size(); i++) {
-            fields.add(TextInputField.builder()
-                    .fieldId(COUNTRY_OF_ORIGINATING_ACCOUNT + "_" + (i + 1))
-                    .selectedValue(bankCountries.get(i))
-                    .build());
-        }
-
-        Group group = Group.builder()
-                .groupId("CASE_RISK")
-                .fields(fields)
+                                                WebFormGroup.builder().groupId("1")
+                                                    .textFields(Arrays.asList(
+                                                        TextWebFormField.builder().fieldId(EBO_ID_WF).value("0123456790").build(),
+                                                        TextWebFormField.builder().fieldId(EBO_TYPE_WF).value(EBO_TYPE_MORAL).build()))
+                                                            .groups(Collections
+                                                                .singletonList(WebFormGroup.builder().groupId(BENEFICIARY_WEALTH_WF)
+                                                        .groups(Arrays.asList(
+                                                                WebFormGroup.builder().groupId(OTHER_WF)
+                                                                        .booleanFields(Collections.singletonList(BooleanWebFormField.builder()
+                                                                                .fieldId(HAS_OTHER_WF).value(true).build()))
+                                                                        .groups(Collections.singletonList(WebFormGroup.builder()
+                                                                                .groupId(DETAILS_WF)
+                                                                                .textFields(Collections.singletonList(TextWebFormField.builder()
+                                                                                        .fieldId(DETAILS_WF).value("SALE_LIQ").build()))
+                                                                                .build()))
+                                                                        .build(),
+                                                                WebFormGroup.builder().groupId(PROFESSIONAL_ACTIVITY_WF)
+                                                                        .booleanFields(Collections.singletonList(BooleanWebFormField.builder()
+                                                                                .fieldId(HAS_PROFESSIONAL_ACTIVITY_WF).value(true).build()))
+                                                                        .build(),
+                                                                WebFormGroup.builder().groupId(BUSINESS_SALE_WF)
+                                                                        .booleanFields(Collections.singletonList(BooleanWebFormField.builder()
+                                                                                .fieldId(HAS_BUSINESS_SALE_WF).value(true).build()))
+                                                                        .build(),
+                                                                WebFormGroup.builder().groupId(DONATION_WF)
+                                                                        .booleanFields(Collections.singletonList(BooleanWebFormField.builder()
+                                                                                .fieldId(HAS_DONATION_WF).value(true).build()))
+                                                                        .build(),
+                                                                WebFormGroup.builder().groupId(DIVORCE_WF)
+                                                                        .booleanFields(Collections.singletonList(BooleanWebFormField.builder()
+                                                                                .fieldId(HAS_DIVORCE_WF).value(true).build()))
+                                                                        .build(),
+                                                                WebFormGroup.builder().groupId(HERITAGE_WF)
+                                                                        .booleanFields(Collections.singletonList(BooleanWebFormField.builder()
+                                                                                .fieldId(HAS_HERITAGE_WF).value(true).build()))
+                                                                        .build()))
+                                                        .build())).build(),
+                                              WebFormGroup.builder().groupId("2")
+                                                  .textFields(Arrays.asList(
+                                                      TextWebFormField.builder().fieldId(EBO_ID_WF).value("9876543220").build(),
+                                                      TextWebFormField.builder().fieldId(EBO_TYPE_WF).value(EBO_TYPE_ENTITY).build()))
+                                                  .groups(Collections.singletonList(WebFormGroup.builder().groupId(WEALTH_ENTITY_WF)
+                                                    .groups(Collections.singletonList(WebFormGroup.builder().groupId(OTHER_WEALTH_WF)
+                                                                                                  .booleanFields(
+                                                                                                      Collections.singletonList(
+                                                                                                          BooleanWebFormField.builder().fieldId(
+                                                                                                                                 HAS_OTHER_WEALTH_WF).value(true)
+                                                                                                                             .build()))
+                                                                                                  .groups(Collections.singletonList(
+                                                                                                      WebFormGroup.builder().groupId(DETAILS_WF)
+                                                                                                                  .textFields(
+                                                                                                                      Collections.singletonList(
+                                                                                                                          TextWebFormField
+                                                                                                                              .builder()
+                                                                                                                              .fieldId(DETAILS_WF)
+                                                                                                                              .value("CESSION")
+                                                                                                                              .build()))
+                                                                                                                  .build()))
+                                                                                                  .build()))
+                                                   .build()))
+                                              .build()))
+                                            .build()))
+                                        .build()))
+                                .build(),
+                        WebFormGroup.builder().groupId(ASSET_TRANSFER_WF)
+                                .booleanFields(Collections.singletonList(
+                                        BooleanWebFormField.builder().fieldId(HAVE_UNQUOTED_PRODUCT_WF).value(true).build()))
+                                .build(),
+                        WebFormGroup.builder().groupId(INTERNAL_DEDICATED_FUNDS_WF)
+                                .groups(Arrays.asList(
+                                        WebFormGroup
+                                                .builder().groupId("0")
+                                                .booleanFields(Collections
+                                                        .singletonList(BooleanWebFormField.builder().fieldId(IS_NEW_WF).value(true).build()))
+                                                .textFields(Collections
+                                                        .singletonList(TextWebFormField.builder().fieldId(FUND_ID_WF).value("FUND_1").build()))
+                                                .groups(Collections.singletonList(WebFormGroup.builder().groupId(INVESTMENT_STRATEGY_WF)
+                                                        .textFields(Collections.singletonList(
+                                                                TextWebFormField.builder().fieldId(TYPE_WF).value("DIFFERENT").build()))
+                                                        .build()))
+                                                .build(),
+                                        WebFormGroup.builder().groupId("1")
+                                                .booleanFields(Collections
+                                                        .singletonList(BooleanWebFormField.builder().fieldId(IS_NEW_WF).value(true).build()))
+                                                .textFields(Collections
+                                                        .singletonList(TextWebFormField.builder().fieldId(FUND_ID_WF).value("FUND_2").build()))
+                                                .groups(Collections.singletonList(WebFormGroup.builder().groupId(INVESTMENT_STRATEGY_WF)
+                                                        .textFields(Collections.singletonList(
+                                                                TextWebFormField.builder().fieldId(TYPE_WF).value("DIFFERENT").build()))
+                                                        .build()))
+                                                .build()))
+                                .build(),
+                        WebFormGroup
+                                .builder().groupId(SPECIALISED_ASSURANCE_FUNDS_WF).groups(
+                                        Arrays.asList(
+                                                WebFormGroup.builder().groupId("0")
+                                                        .booleanFields(Collections.singletonList(
+                                                                BooleanWebFormField.builder().fieldId(IS_NEW_WF).value(true).build()))
+                                                        .textFields(
+                                                                Collections.singletonList(
+                                                                        TextWebFormField.builder().fieldId(FUND_ID_WF).value("FUND_1").build()))
+                                                        .build(),
+                                                WebFormGroup.builder().groupId("1")
+                                                        .booleanFields(Collections.singletonList(
+                                                                BooleanWebFormField.builder().fieldId(IS_NEW_WF).value(true).build()))
+                                                        .textFields(List.of(
+                                                            TextWebFormField.builder().fieldId(FUND_ID_WF).value("FUND_2").build(),
+                                                            TextWebFormField.builder().fieldId(FAS_MANAGER).value(PREMIUM_INVESTMENT_SAF_MANAGER_MANAGEMENT_ADVISED).build()
+                                                        ))
+                                                        .build()))
+                                .build(),
+                        WebFormGroup.builder().groupId(SIGNING_WF)
+                                .groups(Collections.singletonList(WebFormGroup.builder().groupId(SIGNATORIES_WF).groups(Arrays.asList(
+                                        WebFormGroup.builder().groupId("0")
+                                                .textFields(Arrays.asList(
+                                                        TextWebFormField.builder().fieldId(CONTACT_TYPE_WF).value("POLICY_HOLDER").build(),
+                                                        TextWebFormField.builder().fieldId(ID_WF).value("000000").build(),
+                                                        TextWebFormField.builder().fieldId(FIRST_NAME_WF).value("FIRST_NAME").build(),
+                                                        TextWebFormField.builder().fieldId(LAST_NAME_WF).value("LAST_NAME").build()))
+                                                .build(),
+                                        WebFormGroup.builder().groupId("1")
+                                                .textFields(
+                                                        Arrays.asList(TextWebFormField.builder().fieldId(CONTACT_TYPE_WF).value("BROKER").build(),
+                                                                TextWebFormField.builder().fieldId(ID_WF).value("111111").build(),
+                                                                TextWebFormField.builder().fieldId(FIRST_NAME_WF).value("FIRST_NAME1").build(),
+                                                                TextWebFormField.builder().fieldId(LAST_NAME_WF).value("LAST_NAME1").build()))
+                                                .build(),
+                                        WebFormGroup.builder().groupId("2")
+                                                .textFields(Arrays.asList(
+                                                        TextWebFormField.builder().fieldId(CONTACT_TYPE_WF).value("POLICY_HOLDER").build(),
+                                                        TextWebFormField.builder().fieldId(ID_WF).value("222222").build(),
+                                                        TextWebFormField.builder().fieldId(FIRST_NAME_WF).value("FIRST_NAME2").build(),
+                                                        TextWebFormField.builder().fieldId(LAST_NAME_WF).value("LAST_NAME2").build()))
+                                                .build()))
+                                        .build()))
+                                .booleanFields(
+                                        Arrays.asList(BooleanWebFormField.builder().fieldId(IS_STILL_IN_LINE_WF).value(true).build(),
+                                                BooleanWebFormField.builder().fieldId(IS_STILL_VALID_WF).value(true).build()))
+                                .build(),
+                        WebFormGroup.builder().groupId(POLICY_HOLDER_WF)
+                                .textFields(Collections.singletonList(TextWebFormField.builder().fieldId(TYPE_WF).value("physical").build()))
+                                .build(),
+                        WebFormGroup.builder().groupId(ROP_DETAILS_POLICY_WF)
+                                .textFields(Collections
+                                        .singletonList(TextWebFormField.builder().fieldId(IS_IT_THE_LAST_INSTALLMENT).value("true").build()))
+                                .build()))
                 .build();
-
-        Tab tab = Tab.builder()
-                .tabId("CHECKLIST")
-                .groups(new ArrayList<>(List.of(group)))
-                .build();
-
-        return ScreenDescription.builder()
-                .screenId("TEST")
-                .tabs(new ArrayList<>(List.of(tab)))
-                .build();
     }
-}
