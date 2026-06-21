@@ -1,24 +1,23 @@
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class NbCountryOfWealthRiskTest {
+class NbdPaymentOutsideTaxCountryRiskTest {
 
     private static final MockedStatic<ChecklistUtils> checklistUtils =
             Mockito.mockStatic(ChecklistUtils.class);
 
     private Map<String, List<String>> overallCaseRisk;
-    private BusinessTransaction transaction;
 
     @BeforeEach
     void resetBeforeTest() {
-        transaction = TransactionBuilderServiceHelper.createTransaction();
-
         checklistUtils.reset();
         checklistUtils.when(() -> ChecklistUtils.getFieldById(any(ScreenDescription.class), anyString()))
                 .thenCallRealMethod();
+        checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class)))
+                .thenCallRealMethod();
 
         overallCaseRisk = new HashMap<>();
-        overallCaseRisk.put(BLOCKED, new ArrayList<>());
         overallCaseRisk.put(HIGH, new ArrayList<>());
+        overallCaseRisk.put(BLOCKED, new ArrayList<>());
     }
 
     @AfterAll
@@ -26,49 +25,46 @@ class NbCountryOfWealthRiskTest {
         checklistUtils.close();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { HIGH, VERY_HIGH })
-    void countryOfWealth_High_OK(String riskLevel) {
-        updateEscRf001(riskLevel, "ESC_RF_001 data");
+    @Test
+    void paymentOutsideTaxCountry_High_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "FR",
+                "2",
+                List.of("LU", "DE"),
+                "BE"
+        );
 
-        CaseRisk result = NbdCountryOfWealthRisk.countryOfWealth(
-                createFakeScreenDescription(null),
-                transaction,
-                overallCaseRisk
+        WebForm webForm = createWebForm("BANCH");
+
+        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(
+                sd,
+                overallCaseRisk,
+                webForm
         );
 
         assertEquals(CaseRisk.CASE_RISK_HIGH, result);
         assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals(0, overallCaseRisk.get(BLOCKED).size());
-        assertEquals(
-                "EBO/Originator country of wealth generation : ESC_RF_001 data",
-                overallCaseRisk.get(HIGH).getFirst()
-        );
-    }
-
-    @Test
-    void countryOfWealth_Medium_OK() {
-        updateEscRf001(MEDIUM, "ESC_RF_001 data");
-
-        CaseRisk result = NbdCountryOfWealthRisk.countryOfWealth(
-                createFakeScreenDescription(null),
-                transaction,
-                overallCaseRisk
-        );
-
-        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
+        assertEquals("Payment outside of the tax country", overallCaseRisk.get(HIGH).getFirst());
         assertEquals(0, overallCaseRisk.get(BLOCKED).size());
     }
 
     @Test
-    void countryOfWealth_Standard_OK() {
-        updateEscRf001(STANDARD, "ESC_RF_001 data");
+    void paymentOutsideTaxCountry_Standard_WhenCountryInsideTaxCountry_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "FR|LU",
+                "2",
+                List.of("LU", "FR"),
+                "BE"
+        );
 
-        CaseRisk result = NbdCountryOfWealthRisk.countryOfWealth(
-                createFakeScreenDescription(null),
-                transaction,
-                overallCaseRisk
+        WebForm webForm = createWebForm("BANCH");
+
+        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(
+                sd,
+                overallCaseRisk,
+                webForm
         );
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
@@ -77,30 +73,66 @@ class NbCountryOfWealthRiskTest {
     }
 
     @Test
-    void countryOfWealth_MissingRiskFactorData_Blocked_OK() {
-        updateEscRf001(HIGH, "Missing ESC_RF_001 data");
+    void paymentOutsideTaxCountry_Standard_WhenNotBanch_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "FR",
+                "1",
+                List.of("LU"),
+                "BE"
+        );
 
-        CaseRisk result = NbdCountryOfWealthRisk.countryOfWealth(
-                createFakeScreenDescription(null),
-                transaction,
-                overallCaseRisk
+        WebForm webForm = createWebForm("OTHER");
+
+        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(
+                sd,
+                overallCaseRisk,
+                webForm
         );
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
-        assertEquals(1, overallCaseRisk.get(BLOCKED).size());
-        assertEquals("Missing ESC_RF_001 data", overallCaseRisk.get(BLOCKED).getFirst());
+    }
+
+    @Test
+    void paymentOutsideTaxCountry_Standard_WhenBusinessOriginNotBE_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "FR",
+                "1",
+                List.of("LU"),
+                "LU"
+        );
+
+        WebForm webForm = createWebForm("BANCH");
+
+        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(
+                sd,
+                overallCaseRisk,
+                webForm
+        );
+
+        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
     @ParameterizedTest
     @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
-    void countryOfWealth_ForcedRiskFromRiskValue_OK(String caseValue) {
-        updateEscRf001(HIGH, "ESC_RF_001 data");
+    void paymentOutsideTaxCountry_ForcedRiskFromRiskValue_OK(String caseValue) {
+        ScreenDescription sd = createScreenDescription(
+                caseValue,
+                "FR",
+                "1",
+                List.of("LU"),
+                "BE"
+        );
 
-        CaseRisk result = NbdCountryOfWealthRisk.countryOfWealth(
-                createFakeScreenDescription(caseValue),
-                transaction,
-                overallCaseRisk
+        WebForm webForm = createWebForm("BANCH");
+
+        CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(
+                sd,
+                overallCaseRisk,
+                webForm
         );
 
         assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
@@ -108,24 +140,45 @@ class NbCountryOfWealthRiskTest {
         assertEquals(0, overallCaseRisk.get(BLOCKED).size());
     }
 
-    private void updateEscRf001(String riskLevel, String data) {
-        transaction.getRiskFactorResults().forEach(risk -> {
-            if (ESC_RF_001.equals(risk.getReference())) {
-                risk.setRiskLevel(riskLevel);
-                risk.setData(data);
-            }
-        });
-    }
+    private ScreenDescription createScreenDescription(
+            String riskValue,
+            String phFiscalCountry,
+            String numberOfOriginatingAccounts,
+            List<String> bankCountries,
+            String businessOrigin
+    ) {
+        List<Field> fields = new ArrayList<>();
 
-    private ScreenDescription createFakeScreenDescription(String riskValue) {
-        TextInputField riskField = TextInputField.builder()
+        fields.add(TextInputField.builder()
                 .fieldId(RISK_VALUE)
                 .selectedValue(riskValue)
-                .build();
+                .build());
+
+        fields.add(TextInputField.builder()
+                .fieldId(PH_FISCAL_COUNTRY)
+                .selectedValue(phFiscalCountry)
+                .build());
+
+        fields.add(TextInputField.builder()
+                .fieldId(NUMBER_OF_ORIGINATING_ACCOUNTS)
+                .selectedValue(numberOfOriginatingAccounts)
+                .build());
+
+        fields.add(SelectInputField.builder()
+                .fieldId(BUSINESS_ORIGIN)
+                .selectedValue(businessOrigin)
+                .build());
+
+        for (int i = 0; i < bankCountries.size(); i++) {
+            fields.add(TextInputField.builder()
+                    .fieldId(COUNTRY_OF_ORIGINATING_ACCOUNT + "_" + (i + 1))
+                    .selectedValue(bankCountries.get(i))
+                    .build());
+        }
 
         Group group = Group.builder()
                 .groupId("CASE_RISK")
-                .fields(new ArrayList<>(List.of(riskField)))
+                .fields(fields)
                 .build();
 
         Tab tab = Tab.builder()
@@ -136,6 +189,17 @@ class NbCountryOfWealthRiskTest {
         return ScreenDescription.builder()
                 .screenId("TEST")
                 .tabs(new ArrayList<>(List.of(tab)))
+                .build();
+    }
+
+    private WebForm createWebForm(String banchValue) {
+        return WebForm.builder()
+                .booleanFields(new ArrayList<>(List.of(
+                        BooleanWebFormField.builder()
+                                .fieldId("BANCH")
+                                .value("BANCH".equals(banchValue))
+                                .build()
+                )))
                 .build();
     }
 }
