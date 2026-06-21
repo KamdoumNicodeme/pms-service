@@ -1,117 +1,208 @@
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class NbdPremiumThresholdRisk {
-    
-    public static CaseRisk premiumThreshold(final ScreenDescription screenDescription, final Map<String,List<String>> overallCaseRisk) {
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class NbdPremiumThresholdRiskTest {
 
-        CaseRisk forcedValue;
+    private static final MockedStatic<ChecklistUtils> checklistUtils =
+            Mockito.mockStatic(ChecklistUtils.class);
 
-        final BigDecimal transactionAmount = getBigDecimal(screenDescription, EXPECTED_PREM_EUR);
-        final BigDecimal policiesAmount = getBigDecimal(screenDescription, TOTAL_NAV_POLICY_EUR);
-        final BigDecimal bePoliciesAmount = getBigDecimal(screenDescription, TOTAL_BE_NAV_POLICY_EUR);
+    private Map<String, List<String>> overallCaseRisk;
 
-        final String businessOrigin = getValue(screenDescription, BUSINESS_ORIGIN);
-        final String contractType = getValue(screenDescription, CONTRACT_TYPE);
+    @BeforeEach
+    void resetBeforeTest() {
+        checklistUtils.reset();
+        checklistUtils.when(() -> ChecklistUtils.getFieldById(any(ScreenDescription.class), anyString()))
+                .thenCallRealMethod();
+        checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class)))
+                .thenCallRealMethod();
 
-        if (!"BE".equals(businessOrigin)) {
-            forcedValue = evaluateNonBePremiumThreshold(transactionAmount, policiesAmount, overallCaseRisk);
-        } else {
-            forcedValue = evaluateBePremiumThreshold(transactionAmount, bePoliciesAmount, contractType, overallCaseRisk);
-        }
-
-        return forcedValue;
+        overallCaseRisk = new HashMap<>();
+        overallCaseRisk.put(HIGH, new ArrayList<>());
+        overallCaseRisk.put(BLOCKED, new ArrayList<>());
     }
 
-    private static CaseRisk evaluateNonBePremiumThreshold(final BigDecimal transactionAmount, final BigDecimal policiesAmount,
-            final Map<String,List<String>> overallCaseRisk) {
-
-        final BigDecimal firstSlice = new BigDecimal("2500000.0");
-        final BigDecimal secondSlice = new BigDecimal("10000000.0");
-
-        if (isSecondSliceThresholdReached(transactionAmount, policiesAmount, secondSlice)) {
-            addRiskReason(overallCaseRisk, HIGH, "Premium amount threshold met");
-            return CaseRisk.CASE_RISK_HIGH;
-        }
-
-        if (isFirstSliceThresholdReached(transactionAmount, policiesAmount, firstSlice)) {
-            return CaseRisk.CASE_RISK_MEDIUM;
-        }
-
-        return CaseRisk.CASE_RISK_STANDARD;
+    @AfterAll
+    static void closeStaticMocks() {
+        checklistUtils.close();
     }
 
-    private static CaseRisk evaluateBePremiumThreshold(final BigDecimal transactionAmount, final BigDecimal bePoliciesAmount,
-            final String contractType, final Map<String,List<String>> overallCaseRisk) {
+    @Test
+    void premiumThreshold_NonBe_High_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "8000000",
+                "3000000",
+                "0",
+                "LU",
+                "Investment policy"
+        );
 
-        final ThresholdConfig thresholdConfig = getBeThresholdConfig(contractType);
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
 
-        if (thresholdConfig == null) {
-            return CaseRisk.CASE_RISK_STANDARD;
-        }
-
-        final BigDecimal sum = transactionAmount.add(bePoliciesAmount);
-
-        if (sum.compareTo(thresholdConfig.firstSlice()) < 0) {
-            return CaseRisk.CASE_RISK_STANDARD;
-        }
-
-        if (sum.compareTo(thresholdConfig.maxSlice()) >= 0
-                && isSecondSliceThresholdReached(transactionAmount, bePoliciesAmount, thresholdConfig.secondSlice())) {
-
-            addRiskReason(overallCaseRisk, HIGH, thresholdConfig.reason());
-            return CaseRisk.CASE_RISK_HIGH;
-        }
-
-        if (isFirstSliceThresholdReached(transactionAmount, bePoliciesAmount, thresholdConfig.firstSlice())) {
-            return CaseRisk.CASE_RISK_MEDIUM;
-        }
-
-        return CaseRisk.CASE_RISK_STANDARD;
+        assertEquals(CaseRisk.CASE_RISK_HIGH, result);
+        assertEquals(1, overallCaseRisk.get(HIGH).size());
+        assertEquals("Premium amount threshold met", overallCaseRisk.get(HIGH).getFirst());
     }
 
-    private static ThresholdConfig getBeThresholdConfig(final String contractType) {
+    @Test
+    void premiumThreshold_NonBe_Medium_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "2000000",
+                "1000000",
+                "0",
+                "LU",
+                "Investment policy"
+        );
 
-        if ("Investment policy".equals(contractType)) {
-            return new ThresholdConfig(new BigDecimal("1000000.0"), new BigDecimal("5000000.0"), new BigDecimal("5000000.0"),
-                    "Premium amount threshold met (BE investment)");
-        }
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
 
-        if ("Capitalised policy".equals(contractType)) {
-            return new ThresholdConfig(new BigDecimal("2500000.0"), new BigDecimal("5000000.0"), new BigDecimal("10000000.0"),
-                    "Premium amount threshold met (BE capitalized)");
-        }
-
-        return null;
+        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
-    private static boolean isSecondSliceThresholdReached(final BigDecimal transactionAmount, final BigDecimal policiesAmount,
-            final BigDecimal secondSlice) {
+    @Test
+    void premiumThreshold_NonBe_Standard_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "1000000",
+                "1000000",
+                "0",
+                "LU",
+                "Investment policy"
+        );
 
-        return transactionAmount.add(policiesAmount.remainder(secondSlice)).divide(secondSlice).compareTo(BigDecimal.ONE) >= 0;
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+
+        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
-    private static boolean isFirstSliceThresholdReached(final BigDecimal transactionAmount, final BigDecimal policiesAmount,
-            final BigDecimal firstSlice) {
+    @Test
+    void premiumThreshold_BeInvestment_High_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "4000000",
+                "0",
+                "2000000",
+                "BE",
+                "Investment policy"
+        );
 
-        return transactionAmount.compareTo(firstSlice) >= 0
-                || transactionAmount.compareTo(firstSlice) < 0 && transactionAmount.add(policiesAmount).compareTo(firstSlice) >= 0;
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+
+        assertEquals(CaseRisk.CASE_RISK_HIGH, result);
+        assertEquals(1, overallCaseRisk.get(HIGH).size());
+        assertEquals("Premium amount threshold met (BE investment)", overallCaseRisk.get(HIGH).getFirst());
     }
 
-    private static BigDecimal getBigDecimal(final ScreenDescription screenDescription, final String fieldId) {
+    @Test
+    void premiumThreshold_BeInvestment_Medium_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "800000",
+                "0",
+                "300000",
+                "BE",
+                "Investment policy"
+        );
 
-        return ChecklistUtils.getFieldById(screenDescription, fieldId).map(ChecklistUtils::getFieldValue).filter(value -> !value.isBlank())
-                .map(BigDecimal::new).orElse(BigDecimal.ZERO);
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+
+        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
-    private static String getValue(final ScreenDescription screenDescription, final String fieldId) {
+    @Test
+    void premiumThreshold_BeCapitalised_High_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "4000000",
+                "0",
+                "2000000",
+                "BE",
+                "Capitalised policy"
+        );
 
-        return ChecklistUtils.getFieldById(screenDescription, fieldId).map(ChecklistUtils::getFieldValue).orElse(null);
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+
+        assertEquals(CaseRisk.CASE_RISK_HIGH, result);
+        assertEquals(1, overallCaseRisk.get(HIGH).size());
+        assertEquals("Premium amount threshold met (BE capitalized)", overallCaseRisk.get(HIGH).getFirst());
     }
 
-    private static void addRiskReason(final Map<String,List<String>> overallCaseRisk, final String risk, final String reason) {
+    @Test
+    void premiumThreshold_BeCapitalised_Medium_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "2000000",
+                "0",
+                "1000000",
+                "BE",
+                "Capitalised policy"
+        );
 
-        overallCaseRisk.computeIfAbsent(risk, key -> new ArrayList<>()).add(reason);
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+
+        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
-    private record ThresholdConfig(BigDecimal firstSlice, BigDecimal secondSlice, BigDecimal maxSlice, String reason) {
+    @Test
+    void premiumThreshold_BeUnknownContractType_Standard_OK() {
+        ScreenDescription sd = createScreenDescription(
+                "10000000",
+                "0",
+                "10000000",
+                "BE",
+                "Unknown"
+        );
+
+        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+
+        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
+    }
+
+    private ScreenDescription createScreenDescription(
+            String expectedPremEur,
+            String totalNavPolicyEur,
+            String totalBeNavPolicyEur,
+            String businessOrigin,
+            String contractType
+    ) {
+        List<Field> fields = new ArrayList<>();
+
+        fields.add(TextInputField.builder()
+                .fieldId(EXPECTED_PREM_EUR)
+                .selectedValue(expectedPremEur)
+                .build());
+
+        fields.add(TextInputField.builder()
+                .fieldId(TOTAL_NAV_POLICY_EUR)
+                .selectedValue(totalNavPolicyEur)
+                .build());
+
+        fields.add(TextInputField.builder()
+                .fieldId(TOTAL_BE_NAV_POLICY_EUR)
+                .selectedValue(totalBeNavPolicyEur)
+                .build());
+
+        fields.add(SelectInputField.builder()
+                .fieldId(BUSINESS_ORIGIN)
+                .selectedValue(businessOrigin)
+                .build());
+
+        fields.add(SelectInputField.builder()
+                .fieldId(CONTRACT_TYPE)
+                .selectedValue(contractType)
+                .build());
+
+        Group group = Group.builder()
+                .groupId("CASE_RISK")
+                .fields(fields)
+                .build();
+
+        Tab tab = Tab.builder()
+                .tabId("CHECKLIST")
+                .groups(new ArrayList<>(List.of(group)))
+                .build();
+
+        return ScreenDescription.builder()
+                .screenId("TEST")
+                .tabs(new ArrayList<>(List.of(tab)))
+                .build();
     }
 }
