@@ -1,31 +1,38 @@
-private List<WebFormGroup> getInternalDedicatedFunds(final WebForm webForm) {
-    List<WebFormGroup> result = new ArrayList<>();
+private String resolveEsgMandateStatus(
+        WebFormGroup internalDedicatedFund) {
 
-    List<WebFormGroup> investmentFees = new ArrayList<>();
-    WebformUtils.getWebFormObjectsById(
-            INVESTMENT_FEES,
-            webForm,
-            null,
-            null,
-            investmentFees,
-            null
-    );
+    var regularIma = Optional.ofNullable(
+            getGroupInGroup(
+                    getGroupInGroup(
+                            internalDedicatedFund,
+                            INVESTMENT_STRATEGY),
+                    REGULAR_IMA))
+            .orElse(null);
 
-    for (WebFormGroup investmentFee : investmentFees) {
-        WebFormGroup premiumInvestment =
-                WebformUtils.getGroupInGroup(investmentFee, PREMIUM_INVESTMENT);
-
-        if (premiumInvestment == null) {
-            continue;
-        }
-
-        WebFormGroup internalDedicatedFunds =
-                WebformUtils.getGroupInGroup(premiumInvestment, INTERNAL_DEDICATED_FUNDS);
-
-        if (internalDedicatedFunds != null && internalDedicatedFunds.getGroups() != null) {
-            result.addAll(internalDedicatedFunds.getGroups());
-        }
+    if (regularIma == null) {
+        return "NO";
     }
 
-    return result;
+    String investmentStrategy =
+            getValueForWebFormField(
+                    getFieldInGroup(
+                            regularIma,
+                            INVESTMENT_STRATEGY));
+
+    String promoted =
+            getValueForWebFormField(
+                    getFieldInGroup(
+                            regularIma,
+                            IS_STRATEGY_PROMOTED));
+
+    if ("MANDATE".equals(investmentStrategy)) {
+        return "YES_PRE_VALIDATED";
+    }
+
+    if ("DIFFERENT".equals(investmentStrategy)
+            && Boolean.parseBoolean(promoted)) {
+        return "YES_TO_BE_REVIEWED";
+    }
+
+    return "NO";
 }
