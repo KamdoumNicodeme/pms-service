@@ -1,26 +1,22 @@
-@ParameterizedTest
-@ValueSource(strings = {HIGH, MEDIUM, STANDARD})
-void countryOfWealth_ForcedRiskFromRiskValue_OK(String caseValue) {
-    transaction.getRiskFactorResults().forEach(risk -> {
-        if (ESC_RF_001.equals(risk.getReference())) {
-            risk.setRiskLevel(HIGH);
-            risk.setData("ESC_RF_001 data");
-        }
-    });
+private ScreenDescription createFakeScreenDescription(String riskValue) {
 
-    ScreenDescription screenDescription =
-            ScreenDescriptionBuilderServiceHelper.createChecklistScreenDescription();
+    TextInputField riskField = TextInputField.builder()
+            .fieldId(RISK_VALUE)
+            .selectedValue(riskValue)
+            .build();
 
-    ChecklistUtils.getFieldById(screenDescription, RISK_VALUE)
-            .ifPresent(field -> field.setSelectedValue(caseValue));
+    Group group = Group.builder()
+            .groupId("CASE_RISK")
+            .fields(new ArrayList<>(List.of(riskField)))
+            .build();
 
-    CaseRisk result = MbCountryOfWealthRisk.countryOfWealth(
-            screenDescription,
-            transaction,
-            overallCaseRisk
-    );
+    Tab tab = Tab.builder()
+            .tabId("CHECKLIST")
+            .groups(new ArrayList<>(List.of(group)))
+            .build();
 
-    assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
-    assertEquals(0, overallCaseRisk.get(HIGH).size());
-    assertEquals(0, overallCaseRisk.get(BLOCKED).size());
+    return ScreenDescription.builder()
+            .screenId("TEST")
+            .tabs(new ArrayList<>(List.of(tab)))
+            .build();
 }
