@@ -2,17 +2,23 @@
 @MockitoSettings(strictness = Strictness.LENIENT)
 class NbdPaymentOutsideTaxCountryRiskTest {
 
-    private static final MockedStatic<ChecklistUtils> checklistUtils = Mockito.mockStatic(ChecklistUtils.class);
+    private static final MockedStatic<ChecklistUtils> checklistUtils =
+            Mockito.mockStatic(ChecklistUtils.class);
 
-    private Map<String,List<String>> overallCaseRisk;
+    private static final MockedStatic<WebformUtils> webformUtils =
+            Mockito.mockStatic(WebformUtils.class);
+
+    private Map<String, List<String>> overallCaseRisk;
 
     @BeforeEach
     void resetBeforeTest() {
+        checklistUtils.reset();
+        checklistUtils.when(() -> ChecklistUtils.getFieldById(any(ScreenDescription.class), anyString()))
+                .thenCallRealMethod();
+        checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class)))
+                .thenCallRealMethod();
 
-        checklistUtils.reset();
-        checklistUtils.reset();
-        checklistUtils.when(() -> ChecklistUtils.getFieldById(any(ScreenDescription.class), anyString())).thenCallRealMethod();
-        checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class))).thenCallRealMethod();
+        webformUtils.reset();
 
         overallCaseRisk = new HashMap<>();
         overallCaseRisk.put(HIGH, new ArrayList<>());
@@ -21,18 +27,18 @@ class NbdPaymentOutsideTaxCountryRiskTest {
 
     @AfterAll
     static void closeStaticMocks() {
-
         checklistUtils.close();
+        webformUtils.close();
     }
 
     @Test
     void paymentOutsideTaxCountry_High_OK() {
+        ScreenDescription sd = createScreenDescription(null, "FR", "2", List.of("LU", "DE"), "BE");
+        WebForm webForm = new WebForm();
 
-        ScreenDescription sd = createScreenDescription(RISK_VALUE, "FR", "2", List.of("LU", "DE"), "BE");
+        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
+                .thenReturn("FOE");
 
-        WebForm webForm = createWebForm("FOE");
-
-        checklistUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BRANCH"))).thenCallRealMethod();
         CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
 
         assertEquals(CaseRisk.CASE_RISK_HIGH, result);
@@ -43,10 +49,11 @@ class NbdPaymentOutsideTaxCountryRiskTest {
 
     @Test
     void paymentOutsideTaxCountry_Standard_WhenCountryInsideTaxCountry_OK() {
-
         ScreenDescription sd = createScreenDescription(null, "FR|LU", "2", List.of("LU", "FR"), "BE");
+        WebForm webForm = new WebForm();
 
-        WebForm webForm = createWebForm("FOE");
+        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
+                .thenReturn("FOE");
 
         CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
 
@@ -56,11 +63,12 @@ class NbdPaymentOutsideTaxCountryRiskTest {
     }
 
     @Test
-    void paymentOutsideTaxCountry_Standard_WhenNotBanch_OK() {
-
+    void paymentOutsideTaxCountry_Standard_WhenNotBranchFoe_OK() {
         ScreenDescription sd = createScreenDescription(null, "FR", "1", List.of("LU"), "BE");
+        WebForm webForm = new WebForm();
 
-        WebForm webForm = createWebForm("FOE");
+        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
+                .thenReturn("OTHER");
 
         CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
 
@@ -70,10 +78,11 @@ class NbdPaymentOutsideTaxCountryRiskTest {
 
     @Test
     void paymentOutsideTaxCountry_Standard_WhenBusinessOriginNotBE_OK() {
-
         ScreenDescription sd = createScreenDescription(null, "FR", "1", List.of("LU"), "LU");
+        WebForm webForm = new WebForm();
 
-        WebForm webForm = createWebForm("FOE");
+        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
+                .thenReturn("FOE");
 
         CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
 
@@ -84,10 +93,11 @@ class NbdPaymentOutsideTaxCountryRiskTest {
     @ParameterizedTest
     @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
     void paymentOutsideTaxCountry_ForcedRiskFromRiskValue_OK(String caseValue) {
-
         ScreenDescription sd = createScreenDescription(caseValue, "FR", "1", List.of("LU"), "BE");
+        WebForm webForm = new WebForm();
 
-        WebForm webForm = createWebForm("FOE");
+        webformUtils.when(() -> WebformUtils.getWebFormFieldValueById(any(WebForm.class), eq("BANCH")))
+                .thenReturn("FOE");
 
         CaseRisk result = NbdPaymentOutsideTaxCountryRisk.paymentOutsideTaxCountry(sd, overallCaseRisk, webForm);
 
@@ -96,37 +106,55 @@ class NbdPaymentOutsideTaxCountryRiskTest {
         assertEquals(0, overallCaseRisk.get(BLOCKED).size());
     }
 
-    private ScreenDescription createScreenDescription(String riskValue, String phFiscalCountry, String numberOfOriginatingAccounts,
-            List<String> bankCountries, String businessOrigin) {
-
+    private ScreenDescription createScreenDescription(
+            String riskValue,
+            String phFiscalCountry,
+            String numberOfOriginatingAccounts,
+            List<String> bankCountries,
+            String businessOrigin
+    ) {
         List<Field> fields = new ArrayList<>();
 
-        fields.add(TextInputField.builder().fieldId(RISK_VALUE).selectedValue(riskValue).build());
+        fields.add(TextInputField.builder()
+                .fieldId(RISK_VALUE)
+                .selectedValue(riskValue)
+                .build());
 
-        fields.add(TextInputField.builder().fieldId(PH_FISCAL_COUNTRY).selectedValue(phFiscalCountry).build());
+        fields.add(TextInputField.builder()
+                .fieldId(PH_FISCAL_COUNTRY)
+                .selectedValue(phFiscalCountry)
+                .build());
 
-        fields.add(TextInputField.builder().fieldId(NUMBER_OF_ORIGINATING_ACCOUNTS).selectedValue(numberOfOriginatingAccounts).build());
+        fields.add(TextInputField.builder()
+                .fieldId(NUMBER_OF_ORIGINATING_ACCOUNTS)
+                .selectedValue(numberOfOriginatingAccounts)
+                .build());
 
-        fields.add(SelectInputField.builder().fieldId(BUSINESS_ORIGIN).selectedValue(businessOrigin).build());
+        fields.add(SelectInputField.builder()
+                .fieldId(BUSINESS_ORIGIN)
+                .selectedValue(businessOrigin)
+                .build());
 
         for (int i = 0; i < bankCountries.size(); i++) {
-            fields.add(
-                    TextInputField.builder().fieldId(COUNTRY_OF_ORIGINATING_ACCOUNT + "_" + (i + 1)).selectedValue(bankCountries.get(i)).build());
+            fields.add(TextInputField.builder()
+                    .fieldId(COUNTRY_OF_ORIGINATING_ACCOUNT + "_" + (i + 1))
+                    .selectedValue(bankCountries.get(i))
+                    .build());
         }
 
-        Group group = Group.builder().groupId("CASE_RISK").fields(fields).build();
+        Group group = Group.builder()
+                .groupId("CASE_RISK")
+                .fields(fields)
+                .build();
 
-        Tab tab = Tab.builder().tabId("CHECKLIST").groups(new ArrayList<>(List.of(group))).build();
+        Tab tab = Tab.builder()
+                .tabId("CHECKLIST")
+                .groups(new ArrayList<>(List.of(group)))
+                .build();
 
-        return ScreenDescription.builder().screenId("TEST").tabs(new ArrayList<>(List.of(tab))).build();
-    }
-
-    private WebForm createWebForm(String banchValue) {
-
-        var banchField = TextWebFormField.builder().fieldId("BANCH").value(banchValue).build();
-
-        WebFormGroup group = WebFormGroup.builder().groupId("TEST_GROUP").textFields(new ArrayList<>(List.of(banchField))).build();
-
-        return WebForm.builder().groups(new ArrayList<>(List.of(group))).build();
+        return ScreenDescription.builder()
+                .screenId("TEST")
+                .tabs(new ArrayList<>(List.of(tab)))
+                .build();
     }
 }
