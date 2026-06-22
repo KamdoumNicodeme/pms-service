@@ -1,6 +1,6 @@
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class PhIndividualNotEboRiskTest {
+class PremiumNaturalPersonRiskOnboardingTest {
 
     private static final MockedStatic<ChecklistUtils> checklistUtils =
             Mockito.mockStatic(ChecklistUtils.class);
@@ -26,31 +26,61 @@ class PhIndividualNotEboRiskTest {
     }
 
     @Test
-    void individualNotEbo_High_OK() {
-        ScreenDescription sd = createScreenDescription(null, "PH Type=Physical", YES);
+    void premiumNaturalPerson_High_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "PH Type=Physical",
+                YES,
+                YES
+        );
 
-        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
+        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_HIGH, result);
         assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals("PH is an individual and is not the EBO", overallCaseRisk.get(HIGH).getFirst());
+        assertEquals("Premium is paid from a natural person", overallCaseRisk.get(HIGH).getFirst());
     }
 
     @Test
-    void individualNotEbo_Standard_WhenPhNotPhysical_OK() {
-        ScreenDescription sd = createScreenDescription(null, "PH Type=Moral", YES);
+    void premiumNaturalPerson_Standard_WhenPhNotPhysical_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "PH Type=Moral",
+                YES,
+                YES
+        );
 
-        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
+        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
     @Test
-    void individualNotEbo_Standard_WhenPhDifferentToEboNo_OK() {
-        ScreenDescription sd = createScreenDescription(null, "PH Type=Physical", NO);
+    void premiumNaturalPerson_Standard_WhenPhLegalEntityNo_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "PH Type=Physical",
+                NO,
+                YES
+        );
 
-        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
+        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
+
+        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
+    }
+
+    @Test
+    void premiumNaturalPerson_Standard_WhenPaidFromAppointedNo_OK() {
+        ScreenDescription sd = createScreenDescription(
+                null,
+                "PH Type=Physical",
+                YES,
+                NO
+        );
+
+        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
@@ -58,10 +88,15 @@ class PhIndividualNotEboRiskTest {
 
     @ParameterizedTest
     @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
-    void individualNotEbo_ForcedRiskFromRiskValue_OK(String caseValue) {
-        ScreenDescription sd = createScreenDescription(caseValue, "PH Type=Physical", YES);
+    void premiumNaturalPerson_ForcedRiskFromRiskValue_OK(String caseValue) {
+        ScreenDescription sd = createScreenDescription(
+                caseValue,
+                "PH Type=Physical",
+                YES,
+                YES
+        );
 
-        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
+        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
 
         assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
@@ -71,7 +106,8 @@ class PhIndividualNotEboRiskTest {
     private ScreenDescription createScreenDescription(
             String riskValue,
             String phType,
-            String phDifferentToEbo
+            String phLegalEntity,
+            String paidFromAppointed
     ) {
         List<Field> fields = new ArrayList<>();
 
@@ -86,8 +122,13 @@ class PhIndividualNotEboRiskTest {
                 .build());
 
         fields.add(SelectInputField.builder()
-                .fieldId(PH_DIFFERENT_TO_EBO)
-                .selectedValue(phDifferentToEbo)
+                .fieldId(PH_LEGAL_ENTITY)
+                .selectedValue(phLegalEntity)
+                .build());
+
+        fields.add(SelectInputField.builder()
+                .fieldId(PAID_FROM_APPOINTED)
+                .selectedValue(paidFromAppointed)
                 .build());
 
         Group group = Group.builder()
