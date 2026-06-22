@@ -1,6 +1,6 @@
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class NbdPremiumThresholdRiskTest {
+class PhIndividualNotEboRiskTest {
 
     private static final MockedStatic<ChecklistUtils> checklistUtils =
             Mockito.mockStatic(ChecklistUtils.class);
@@ -26,168 +26,68 @@ class NbdPremiumThresholdRiskTest {
     }
 
     @Test
-    void premiumThreshold_NonBe_High_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "8000000",
-                "3000000",
-                "0",
-                "LU",
-                "Investment policy"
-        );
+    void individualNotEbo_High_OK() {
+        ScreenDescription sd = createScreenDescription(null, "PH Type=Physical", YES);
 
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_HIGH, result);
         assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals("Premium amount threshold met", overallCaseRisk.get(HIGH).getFirst());
+        assertEquals("PH is an individual and is not the EBO", overallCaseRisk.get(HIGH).getFirst());
     }
 
     @Test
-    void premiumThreshold_NonBe_Medium_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "2000000",
-                "1000000",
-                "0",
-                "LU",
-                "Investment policy"
-        );
+    void individualNotEbo_Standard_WhenPhNotPhysical_OK() {
+        ScreenDescription sd = createScreenDescription(null, "PH Type=Moral", YES);
 
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void premiumThreshold_NonBe_Standard_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "1000000",
-                "1000000",
-                "0",
-                "LU",
-                "Investment policy"
-        );
-
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
     @Test
-    void premiumThreshold_BeInvestment_High_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "4000000",
-                "0",
-                "2000000",
-                "BE",
-                "Investment policy"
-        );
+    void individualNotEbo_Standard_WhenPhDifferentToEboNo_OK() {
+        ScreenDescription sd = createScreenDescription(null, "PH Type=Physical", NO);
 
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_HIGH, result);
-        assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals("Premium amount threshold met (BE investment)", overallCaseRisk.get(HIGH).getFirst());
-    }
-
-    @Test
-    void premiumThreshold_BeInvestment_Medium_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "800000",
-                "0",
-                "300000",
-                "BE",
-                "Investment policy"
-        );
-
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void premiumThreshold_BeCapitalised_High_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "4000000",
-                "0",
-                "2000000",
-                "BE",
-                "Capitalised policy"
-        );
-
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_HIGH, result);
-        assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals("Premium amount threshold met (BE capitalized)", overallCaseRisk.get(HIGH).getFirst());
-    }
-
-    @Test
-    void premiumThreshold_BeCapitalised_Medium_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "2000000",
-                "0",
-                "1000000",
-                "BE",
-                "Capitalised policy"
-        );
-
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void premiumThreshold_BeUnknownContractType_Standard_OK() {
-        ScreenDescription sd = createScreenDescription(
-                "10000000",
-                "0",
-                "10000000",
-                "BE",
-                "Unknown"
-        );
-
-        CaseRisk result = NbdPremiumThresholdRisk.premiumThreshold(sd, overallCaseRisk);
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
+    void individualNotEbo_ForcedRiskFromRiskValue_OK(String caseValue) {
+        ScreenDescription sd = createScreenDescription(caseValue, "PH Type=Physical", YES);
+
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
+
+        assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
+        assertEquals(0, overallCaseRisk.get(BLOCKED).size());
     }
 
     private ScreenDescription createScreenDescription(
-            String expectedPremEur,
-            String totalNavPolicyEur,
-            String totalBeNavPolicyEur,
-            String businessOrigin,
-            String contractType
+            String riskValue,
+            String phType,
+            String phDifferentToEbo
     ) {
         List<Field> fields = new ArrayList<>();
 
         fields.add(TextInputField.builder()
-                .fieldId(EXPECTED_PREM_EUR)
-                .selectedValue(expectedPremEur)
+                .fieldId(RISK_VALUE)
+                .selectedValue(riskValue)
                 .build());
 
         fields.add(TextInputField.builder()
-                .fieldId(TOTAL_NAV_POLICY_EUR)
-                .selectedValue(totalNavPolicyEur)
-                .build());
-
-        fields.add(TextInputField.builder()
-                .fieldId(TOTAL_BE_NAV_POLICY_EUR)
-                .selectedValue(totalBeNavPolicyEur)
+                .fieldId(PH_TYPE_ASSESSMENT)
+                .selectedValue(phType)
                 .build());
 
         fields.add(SelectInputField.builder()
-                .fieldId(BUSINESS_ORIGIN)
-                .selectedValue(businessOrigin)
-                .build());
-
-        fields.add(SelectInputField.builder()
-                .fieldId(CONTRACT_TYPE)
-                .selectedValue(contractType)
+                .fieldId(PH_DIFFERENT_TO_EBO)
+                .selectedValue(phDifferentToEbo)
                 .build());
 
         Group group = Group.builder()
