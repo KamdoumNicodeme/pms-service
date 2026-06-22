@@ -1,12 +1,11 @@
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class PayerPayeeBankCountryRiskTest {
+class PhIndividualNotEboRiskTest {
 
     private static final MockedStatic<ChecklistUtils> checklistUtils =
             Mockito.mockStatic(ChecklistUtils.class);
 
     private Map<String, List<String>> overallCaseRisk;
-    private BusinessTransaction transaction;
 
     @BeforeEach
     void resetBeforeTest() {
@@ -15,8 +14,6 @@ class PayerPayeeBankCountryRiskTest {
                 .thenCallRealMethod();
         checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class)))
                 .thenCallRealMethod();
-
-        transaction = TransactionBuilderServiceHelper.createTransaction();
 
         overallCaseRisk = new HashMap<>();
         overallCaseRisk.put(HIGH, new ArrayList<>());
@@ -29,65 +26,31 @@ class PayerPayeeBankCountryRiskTest {
     }
 
     @Test
-    void payerPayee_High_OK() {
-        setRiskFactorLevel(INT_RF_012, HIGH);
+    void individualNotEbo_High_OK() {
+        ScreenDescription sd = createScreenDescription(null, "PH Type=Physical", YES);
 
-        ScreenDescription sd = createScreenDescription(null, "SOME_VALUE");
-
-        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
-                sd,
-                transaction,
-                overallCaseRisk
-        );
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_HIGH, result);
         assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals("Payer / Payee bank country", overallCaseRisk.get(HIGH).getFirst());
+        assertEquals("PH is an individual and is not the EBO", overallCaseRisk.get(HIGH).getFirst());
     }
 
     @Test
-    void payerPayee_Medium_OK() {
-        setRiskFactorLevel(INT_RF_012, MEDIUM);
+    void individualNotEbo_Standard_WhenPhNotPhysical_OK() {
+        ScreenDescription sd = createScreenDescription(null, "PH Type=Moral", YES);
 
-        ScreenDescription sd = createScreenDescription(null, "SOME_VALUE");
-
-        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
-                sd,
-                transaction,
-                overallCaseRisk
-        );
-
-        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void payerPayee_Standard_WhenRiskLevelStandard_OK() {
-        setRiskFactorLevel(INT_RF_012, STANDARD);
-
-        ScreenDescription sd = createScreenDescription(null, "SOME_VALUE");
-
-        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
-                sd,
-                transaction,
-                overallCaseRisk
-        );
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
     @Test
-    void payerPayee_Standard_WhenOriginatingBankCountryRiskEmpty_OK() {
-        setRiskFactorLevel(INT_RF_012, HIGH);
+    void individualNotEbo_Standard_WhenPhDifferentToEboNo_OK() {
+        ScreenDescription sd = createScreenDescription(null, "PH Type=Physical", NO);
 
-        ScreenDescription sd = createScreenDescription(null, null);
-
-        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
-                sd,
-                transaction,
-                overallCaseRisk
-        );
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
@@ -95,33 +58,20 @@ class PayerPayeeBankCountryRiskTest {
 
     @ParameterizedTest
     @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
-    void payerPayee_ForcedRiskFromRiskValue_OK(String caseValue) {
-        setRiskFactorLevel(INT_RF_012, HIGH);
+    void individualNotEbo_ForcedRiskFromRiskValue_OK(String caseValue) {
+        ScreenDescription sd = createScreenDescription(caseValue, "PH Type=Physical", YES);
 
-        ScreenDescription sd = createScreenDescription(caseValue, "SOME_VALUE");
-
-        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
-                sd,
-                transaction,
-                overallCaseRisk
-        );
+        CaseRisk result = PhIndividualNotEboRisk.individualNotEbo(sd, overallCaseRisk);
 
         assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
         assertEquals(0, overallCaseRisk.get(BLOCKED).size());
     }
 
-    private void setRiskFactorLevel(String reference, String riskLevel) {
-        transaction.getRiskFactorResults().forEach(risk -> {
-            if (reference.equals(risk.getReference())) {
-                risk.setRiskLevel(riskLevel);
-            }
-        });
-    }
-
     private ScreenDescription createScreenDescription(
             String riskValue,
-            String originatingBankCountryRiskValue
+            String phType,
+            String phDifferentToEbo
     ) {
         List<Field> fields = new ArrayList<>();
 
@@ -131,8 +81,13 @@ class PayerPayeeBankCountryRiskTest {
                 .build());
 
         fields.add(TextInputField.builder()
-                .fieldId(ORIGINATING_BANK_COUNTRY_RISK)
-                .selectedValue(originatingBankCountryRiskValue)
+                .fieldId(PH_TYPE_ASSESSMENT)
+                .selectedValue(phType)
+                .build());
+
+        fields.add(SelectInputField.builder()
+                .fieldId(PH_DIFFERENT_TO_EBO)
+                .selectedValue(phDifferentToEbo)
                 .build());
 
         Group group = Group.builder()
