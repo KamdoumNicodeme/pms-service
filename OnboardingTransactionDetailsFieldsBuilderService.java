@@ -1,11 +1,12 @@
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class NoEvidenceEntityRiskTest {
+class PayerPayeeBankCountryRiskTest {
 
     private static final MockedStatic<ChecklistUtils> checklistUtils =
             Mockito.mockStatic(ChecklistUtils.class);
 
     private Map<String, List<String>> overallCaseRisk;
+    private BusinessTransaction transaction;
 
     @BeforeEach
     void resetBeforeTest() {
@@ -14,6 +15,8 @@ class NoEvidenceEntityRiskTest {
                 .thenCallRealMethod();
         checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class)))
                 .thenCallRealMethod();
+
+        transaction = TransactionBuilderServiceHelper.createTransaction();
 
         overallCaseRisk = new HashMap<>();
         overallCaseRisk.put(HIGH, new ArrayList<>());
@@ -26,84 +29,65 @@ class NoEvidenceEntityRiskTest {
     }
 
     @Test
-    void noEvidence_High_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "true",
-                "PH Type=Moral",
-                YES,
-                NO
-        );
+    void payerPayee_High_OK() {
+        setRiskFactorLevel(INT_RF_012, HIGH);
 
-        CaseRisk result = NoEvidenceEntityRisk.noEvidence(sd, overallCaseRisk);
+        ScreenDescription sd = createScreenDescription(null, "SOME_VALUE");
+
+        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
+                sd,
+                transaction,
+                overallCaseRisk
+        );
 
         assertEquals(CaseRisk.CASE_RISK_HIGH, result);
         assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals(
-                "No evidence that the legal entity is known by tax authorities - moral person",
-                overallCaseRisk.get(HIGH).getFirst()
-        );
+        assertEquals("Payer / Payee bank country", overallCaseRisk.get(HIGH).getFirst());
     }
 
     @Test
-    void noEvidence_Standard_WhenPhLegalEntityArrangementNotDisplayed_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "false",
-                "PH Type=Moral",
-                YES,
-                NO
+    void payerPayee_Medium_OK() {
+        setRiskFactorLevel(INT_RF_012, MEDIUM);
+
+        ScreenDescription sd = createScreenDescription(null, "SOME_VALUE");
+
+        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
+                sd,
+                transaction,
+                overallCaseRisk
         );
 
-        CaseRisk result = NoEvidenceEntityRisk.noEvidence(sd, overallCaseRisk);
+        assertEquals(CaseRisk.CASE_RISK_MEDIUM, result);
+        assertEquals(0, overallCaseRisk.get(HIGH).size());
+    }
+
+    @Test
+    void payerPayee_Standard_WhenRiskLevelStandard_OK() {
+        setRiskFactorLevel(INT_RF_012, STANDARD);
+
+        ScreenDescription sd = createScreenDescription(null, "SOME_VALUE");
+
+        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
+                sd,
+                transaction,
+                overallCaseRisk
+        );
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
     }
 
     @Test
-    void noEvidence_Standard_WhenPhTypePhysical_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "true",
-                "PH Type=Physical",
-                YES,
-                NO
+    void payerPayee_Standard_WhenOriginatingBankCountryRiskEmpty_OK() {
+        setRiskFactorLevel(INT_RF_012, HIGH);
+
+        ScreenDescription sd = createScreenDescription(null, null);
+
+        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
+                sd,
+                transaction,
+                overallCaseRisk
         );
-
-        CaseRisk result = NoEvidenceEntityRisk.noEvidence(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void noEvidence_Standard_WhenArrangementNo_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "true",
-                "PH Type=Moral",
-                NO,
-                NO
-        );
-
-        CaseRisk result = NoEvidenceEntityRisk.noEvidence(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void noEvidence_Standard_WhenEvidenceYes_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "true",
-                "PH Type=Moral",
-                YES,
-                YES
-        );
-
-        CaseRisk result = NoEvidenceEntityRisk.noEvidence(sd, overallCaseRisk);
 
         assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
@@ -111,28 +95,33 @@ class NoEvidenceEntityRiskTest {
 
     @ParameterizedTest
     @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
-    void noEvidence_ForcedRiskFromRiskValue_OK(String caseValue) {
-        ScreenDescription sd = createScreenDescription(
-                caseValue,
-                "true",
-                "PH Type=Moral",
-                YES,
-                NO
-        );
+    void payerPayee_ForcedRiskFromRiskValue_OK(String caseValue) {
+        setRiskFactorLevel(INT_RF_012, HIGH);
 
-        CaseRisk result = NoEvidenceEntityRisk.noEvidence(sd, overallCaseRisk);
+        ScreenDescription sd = createScreenDescription(caseValue, "SOME_VALUE");
+
+        CaseRisk result = PayerPayeeBankCountryRisk.payerPayee(
+                sd,
+                transaction,
+                overallCaseRisk
+        );
 
         assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
         assertEquals(0, overallCaseRisk.get(HIGH).size());
         assertEquals(0, overallCaseRisk.get(BLOCKED).size());
     }
 
+    private void setRiskFactorLevel(String reference, String riskLevel) {
+        transaction.getRiskFactorResults().forEach(risk -> {
+            if (reference.equals(risk.getReference())) {
+                risk.setRiskLevel(riskLevel);
+            }
+        });
+    }
+
     private ScreenDescription createScreenDescription(
             String riskValue,
-            String phLegalEntityArrangementDisplayIf,
-            String phType,
-            String phLegalEntityArrangement,
-            String evidence
+            String originatingBankCountryRiskValue
     ) {
         List<Field> fields = new ArrayList<>();
 
@@ -141,20 +130,9 @@ class NoEvidenceEntityRiskTest {
                 .selectedValue(riskValue)
                 .build());
 
-        fields.add(SelectInputField.builder()
-                .fieldId(PH_LEGAL_ENTITY_ARRANGEMENT)
-                .displayIf(phLegalEntityArrangementDisplayIf)
-                .selectedValue(phLegalEntityArrangement)
-                .build());
-
         fields.add(TextInputField.builder()
-                .fieldId(PH_TYPE_ASSESSMENT)
-                .selectedValue(phType)
-                .build());
-
-        fields.add(SelectInputField.builder()
-                .fieldId(EVIDENCE_KNOWN_LEGAL_ENTITY)
-                .selectedValue(evidence)
+                .fieldId(ORIGINATING_BANK_COUNTRY_RISK)
+                .selectedValue(originatingBankCountryRiskValue)
                 .build());
 
         Group group = Group.builder()
