@@ -1,80 +1,37 @@
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AdditionInvestmentsWebForm implements IConnectWebFormGroup {
-
-    @Valid
-    private List<AdditionFasWebForm> specialisedAssuranceFunds;
-    @Valid
-    private List<AdditionIdfWebForm> internalDedicatedFunds;
-    @Valid
-    private List<AdditionFdfWebForm> familyDedicatedFunds;
-    @Valid
-    private AdditionExternalCollectiveFundWebForm externalCollectiveFund;
-    @Valid
-    private AdditionInternalCollectiveFundWebForm internalCollectiveFunds;
-}
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@AdditionInternalCollectiveFundIsValid
-public class AdditionInternalCollectiveFundWebForm implements IConnectWebFormGroup {
-
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private AdditionBasicsWebForm basics;
-    @Valid
-    private List<AdditionInternalFundWebForm> internalFunds = new ArrayList<AdditionInternalFundWebForm>();
-}
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AdditionInternalFundPositionWebForm implements IConnectWebFormGroup {
-
-    @Valid
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private AdditionInternalFundIdWebForm id;
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private String fundName;
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private String fundMnemonic;
-    private String countryOfApplicableLaw; // Contrary to ECF, we don't have this information for ICF
-    private String fundStatus; // Contrary to ECF, we don't have this information for ICF (might default to IN_FORCE ?)
-    private String fundIssuer; // Contrary to ECF, we don't have this information fo ICF (might default to LIA ?)
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private String lastPriceDate;
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private String lastPriceValue;
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private Integer levelRisk;
-    private Integer fundSrri; // Contrary to ECF, we don't have this information for ICF
-    private BigDecimal currentEstimatedFundCCY;
-    private BigDecimal currentEstimatedFundEUR;
-    private BigDecimal estimatedFundCCY;
-    private BigDecimal estimatedFundEUR;
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    @ReferenceDataExists(domain = DOMAIN_ADDITION_CURRENCY, emptyAllowed = false)
-    private String currency;
-    private BigDecimal rateChangeFundCcy;
-}
-
-public class AdditionInternalFundWebForm implements IConnectWebFormGroup {
-
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    private AdditionBasicsWebForm basics;
-    private String fundsGroupId;
-    private String fundName;
-    private String productComponentNumber;
-    @NotNull(message = MANDATORY_FIELD_VALUE_MISSING)
-    @Min(value = 0, message = PERCENTAGE_UNDER_0)
-    @Max(value = 100, message = PERCENTAGE_OVER_100)
-    private BigDecimal percent;
-    @Valid
-    private AdditionInternalFundPositionWebForm internalFundPosition;
-
-}
+    private List<AdditionRegisterExistingPc> fromIcfWebForm(final WebFormGroup icfGroup){
+        if (icfGroup == null){
+            return Collections.emptyList();
+        }
+        final WebFormGroup internalFundsGroup = webFormService.findWebFormGroup(icfGroup,GROUP_INTERNAL_FUNDS);
+        if (internalFundsGroup == null || CollectionUtils.isEmpty(internalFundsGroup.getGroups())){
+            return Collections.emptyList();
+        }
+        final List<AdditionRegisterExistingPc> additionRegisterExistingPcs = new ArrayList<>();
+        internalFundsGroup.getGroups().forEach(fundGroup -> {
+            final String pcNumber = webFormService.findTextFieldValue(fundGroup, FIELD_PC_NUMBER);
+            if (StringUtils.isBlank(pcNumber)) {
+                return;
+            }
+            final WebFormGroup positionGroup = webFormService.findWebFormGroup(fundGroup, GROUP_INTERNAL_FUND_POSITION);
+            final BigDecimal percent = webFormService.findBigDecimalFieldValue(positionGroup, FIELD_PERCENT);
+            if (percent == null || percent.compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
+            final BigDecimal estimatedFundEur = webFormService.findBigDecimalFieldValue(positionGroup, FIELD_ESTIMATED_FUND_EUR);
+            if (estimatedFundEur == null || estimatedFundEur.compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
+            final String currency = webFormService.findTextFieldValue(positionGroup, FIELD_CURRENCY);
+            additionRegisterExistingPcs.add(buildFund(pcNumber, estimatedFundEur, currency));
+        });
+        return additionRegisterExistingPcs;
+    }
+    private AdditionRegisterExistingPc buildFund(final String pcNumber, BigDecimal total, final String currency){
+        AdditionRegisterExistingPc fund = new AdditionRegisterExistingPc();
+        fund.setKeyId(pcNumber);
+        fund.setProductComponentNumber(pcNumber);
+        fund.setPaymentMode(PAYMENT_MODE);
+        fund.setExpectedPremiumCurrency(StringUtils.isNotBlank(currency) ? currency: DEFAULT_CURRENCY);
+        fund.setExpectedPremiumQuantity(total);
+        return fund;
+    }
