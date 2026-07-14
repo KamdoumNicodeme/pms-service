@@ -1061,7 +1061,7 @@
               "crud": null,
               "fieldId": "TOTAL_EXPECTED_AMOUNT",
               "label": null,
-              "value": 115273.78
+              "value": 246516.68
             }
           ],
           "groups": []
@@ -1312,19 +1312,6 @@
                       "fieldId": "CURRENCY",
                       "label": null,
                       "value": "EUR"
-                    },
-                    {
-                      "officeLocation": null,
-                      "id": null,
-                      "shallow": false,
-                      "creationDate": null,
-                      "modificationDate": null,
-                      "creationUser": null,
-                      "modificationUser": null,
-                      "crud": null,
-                      "fieldId": "REFERENCE_CURRENCY",
-                      "label": null,
-                      "value": "EUR"
                     }
                   ],
                   "booleanFields": [],
@@ -1341,7 +1328,7 @@
                       "crud": null,
                       "fieldId": "AMOUNT",
                       "label": null,
-                      "value": 115273.78
+                      "value": 246516.68
                     }
                   ],
                   "groups": []
@@ -1402,7 +1389,7 @@
                           "crud": null,
                           "fieldId": "FUND_NAME",
                           "label": null,
-                          "value": "Global Dynamics Investment Fund"
+                          "value": "Private Equity GC2020"
                         },
                         {
                           "officeLocation": null,
@@ -1432,7 +1419,7 @@
                           "crud": null,
                           "fieldId": "PERCENT",
                           "label": null,
-                          "value": 60
+                          "value": 100
                         }
                       ],
                       "groups": [
@@ -1461,7 +1448,7 @@
                               "crud": null,
                               "fieldId": "CURRENCY",
                               "label": null,
-                              "value": "GBP"
+                              "value": "EUR"
                             },
                             {
                               "officeLocation": null,
@@ -1491,7 +1478,7 @@
                               "crud": null,
                               "fieldId": "AMOUNT",
                               "label": null,
-                              "value": 100000
+                              "value": 246516.68
                             }
                           ],
                           "groups": []
@@ -1521,7 +1508,7 @@
                               "crud": null,
                               "fieldId": "FUND_NAME",
                               "label": null,
-                              "value": "Global Dynamics Investment Fund"
+                              "value": "Private Equity GC2020"
                             },
                             {
                               "officeLocation": null,
@@ -1534,7 +1521,7 @@
                               "crud": null,
                               "fieldId": "FUND_MNEMONIC",
                               "label": null,
-                              "value": "GLODYN"
+                              "value": "PEGC20"
                             },
                             {
                               "officeLocation": null,
@@ -1560,7 +1547,7 @@
                               "crud": null,
                               "fieldId": "LAST_PRICE_VALUE",
                               "label": null,
-                              "value": "1002.978681024"
+                              "value": "1061.00"
                             },
                             {
                               "officeLocation": null,
@@ -1590,7 +1577,7 @@
                               "crud": null,
                               "fieldId": "LEVEL_RISK",
                               "label": null,
-                              "value": 3
+                              "value": 5
                             },
                             {
                               "officeLocation": null,
@@ -1603,7 +1590,7 @@
                               "crud": null,
                               "fieldId": "FUND_SRRI",
                               "label": null,
-                              "value": 3
+                              "value": 5
                             },
                             {
                               "officeLocation": null,
@@ -1616,7 +1603,7 @@
                               "crud": null,
                               "fieldId": "CURRENT_ESTIMATED_FUND_CCY",
                               "label": null,
-                              "value": 491610.8
+                              "value": 246516.68
                             },
                             {
                               "officeLocation": null,
@@ -1629,7 +1616,7 @@
                               "crud": null,
                               "fieldId": "CURRENT_ESTIMATED_FUND_EUR",
                               "label": null,
-                              "value": 491610.8
+                              "value": 246516.68
                             },
                             {
                               "officeLocation": null,
@@ -1642,7 +1629,7 @@
                               "crud": null,
                               "fieldId": "ESTIMATED_FUND_CCY",
                               "label": null,
-                              "value": 100000
+                              "value": 246516.68
                             },
                             {
                               "officeLocation": null,
@@ -1655,7 +1642,7 @@
                               "crud": null,
                               "fieldId": "ESTIMATED_FUND_EUR",
                               "label": null,
-                              "value": 100000
+                              "value": 246516.68
                             },
                             {
                               "officeLocation": null,
@@ -1728,378 +1715,6 @@
                                   "fieldId": "JOB_ID",
                                   "label": null,
                                   "value": 4755
-                                }
-                              ],
-                              "groups": []
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "officeLocation": null,
-                      "id": null,
-                      "shallow": false,
-                      "creationDate": null,
-                      "modificationDate": null,
-                      "creationUser": null,
-                      "modificationUser": null,
-                      "crud": null,
-                      "groupId": "1",
-                      "title": null,
-                      "i18NTitleKey": null,
-                      "type": null,
-                      "textFields": [
-                        {
-                          "officeLocation": null,
-                          "id": null,
-                          "shallow": false,
-                          "creationDate": null,
-                          "modificationDate": null,
-                          "creationUser": null,
-                          "modificationUser": null,
-                          "crud": null,
-                          "fieldId": "FUNDS_GROUP_ID",
-                          "label": null,
-                          "value": "6000000005818434482"
-                        },
-                        {
-                          "officeLocation": null,
-                          "id": null,
-                          "shallow": false,
-                          "creationDate": null,
-                          "modificationDate": null,
-                          "creationUser": null,
-                          "modificationUser": null,
-                          "crud": null,
-                          "fieldId": "FUND_NAME",
-                          "label": null,
-                          "value": "Euro Stability Fund"
-                        },
-                        {
-                          "officeLocation": null,
-                          "id": null,
-                          "shallow": false,
-                          "creationDate": null,
-                          "modificationDate": null,
-                          "creationUser": null,
-                          "modificationUser": null,
-                          "crud": null,
-                          "fieldId": "PRODUCT_COMPONENT_NUMBER",
-                          "label": null,
-                          "value": "11-763-13853"
-                        }
-                      ],
-                      "booleanFields": [],
-                      "calendarFields": [],
-                      "bigDecimalFields": [
-                        {
-                          "officeLocation": null,
-                          "id": null,
-                          "shallow": false,
-                          "creationDate": null,
-                          "modificationDate": null,
-                          "creationUser": null,
-                          "modificationUser": null,
-                          "crud": null,
-                          "fieldId": "PERCENT",
-                          "label": null,
-                          "value": 40
-                        }
-                      ],
-                      "groups": [
-                        {
-                          "officeLocation": null,
-                          "id": null,
-                          "shallow": false,
-                          "creationDate": null,
-                          "modificationDate": null,
-                          "creationUser": null,
-                          "modificationUser": null,
-                          "crud": null,
-                          "groupId": "BASICS",
-                          "title": null,
-                          "i18NTitleKey": null,
-                          "type": null,
-                          "textFields": [
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "CURRENCY",
-                              "label": null,
-                              "value": "EUR"
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "REFERENCE_CURRENCY",
-                              "label": null,
-                              "value": "EUR"
-                            }
-                          ],
-                          "booleanFields": [],
-                          "calendarFields": [],
-                          "bigDecimalFields": [
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "AMOUNT",
-                              "label": null,
-                              "value": 15273.78
-                            }
-                          ],
-                          "groups": []
-                        },
-                        {
-                          "officeLocation": null,
-                          "id": null,
-                          "shallow": false,
-                          "creationDate": null,
-                          "modificationDate": null,
-                          "creationUser": null,
-                          "modificationUser": null,
-                          "crud": null,
-                          "groupId": "INTERNAL_FUND_POSITION",
-                          "title": null,
-                          "i18NTitleKey": null,
-                          "type": null,
-                          "textFields": [
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "FUND_NAME",
-                              "label": null,
-                              "value": "Euro Stability Fund"
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "FUND_MNEMONIC",
-                              "label": null,
-                              "value": "EURSTB"
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "LAST_PRICE_DATE",
-                              "label": null,
-                              "value": "2025-06-13"
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "LAST_PRICE_VALUE",
-                              "label": null,
-                              "value": "512.440000000"
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "CURRENCY",
-                              "label": null,
-                              "value": "EUR"
-                            }
-                          ],
-                          "booleanFields": [],
-                          "calendarFields": [],
-                          "bigDecimalFields": [
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "LEVEL_RISK",
-                              "label": null,
-                              "value": 2
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "FUND_SRRI",
-                              "label": null,
-                              "value": 2
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "CURRENT_ESTIMATED_FUND_CCY",
-                              "label": null,
-                              "value": 15273.78
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "CURRENT_ESTIMATED_FUND_EUR",
-                              "label": null,
-                              "value": 15273.78
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "ESTIMATED_FUND_CCY",
-                              "label": null,
-                              "value": 15273.78
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "ESTIMATED_FUND_EUR",
-                              "label": null,
-                              "value": 15273.78
-                            },
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "fieldId": "RATE_CHANGE_FUND_CCY",
-                              "label": null,
-                              "value": 1
-                            }
-                          ],
-                          "groups": [
-                            {
-                              "officeLocation": null,
-                              "id": null,
-                              "shallow": false,
-                              "creationDate": null,
-                              "modificationDate": null,
-                              "creationUser": null,
-                              "modificationUser": null,
-                              "crud": null,
-                              "groupId": "ID",
-                              "title": null,
-                              "i18NTitleKey": null,
-                              "type": null,
-                              "textFields": [
-                                {
-                                  "officeLocation": null,
-                                  "id": null,
-                                  "shallow": false,
-                                  "creationDate": null,
-                                  "modificationDate": null,
-                                  "creationUser": null,
-                                  "modificationUser": null,
-                                  "crud": null,
-                                  "fieldId": "ISIN",
-                                  "label": null,
-                                  "value": "XFCS00X4PX21"
-                                },
-                                {
-                                  "officeLocation": null,
-                                  "id": null,
-                                  "shallow": false,
-                                  "creationDate": null,
-                                  "modificationDate": null,
-                                  "creationUser": null,
-                                  "modificationUser": null,
-                                  "crud": null,
-                                  "fieldId": "FUND_NUMBER",
-                                  "label": null,
-                                  "value": "F/ICF/037/EUR"
-                                }
-                              ],
-                              "booleanFields": [],
-                              "calendarFields": [],
-                              "bigDecimalFields": [
-                                {
-                                  "officeLocation": null,
-                                  "id": null,
-                                  "shallow": false,
-                                  "creationDate": null,
-                                  "modificationDate": null,
-                                  "creationUser": null,
-                                  "modificationUser": null,
-                                  "crud": null,
-                                  "fieldId": "JOB_ID",
-                                  "label": null,
-                                  "value": 4756
                                 }
                               ],
                               "groups": []
