@@ -1,42 +1,99 @@
-Camunda - Change Client Information - Add “Change of Client Information” task
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+        xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+        xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+        xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+        xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+        xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+        id="Definitions_ChangeClientInformation"
+        targetNamespace="http://utmost.com/case-management/cci">
 
-⸻
+    <bpmn:process
+            id="change-client-information-process"
+            name="Change of Client Information"
+            isExecutable="true">
 
-Context
+        <bpmn:startEvent
+                id="StartEvent_Cci"
+                name="CCI case initiated">
+            <bpmn:outgoing>Flow_Start_To_Initialize</bpmn:outgoing>
+        </bpmn:startEvent>
 
-As part of the replacement of the Case Management Tool (CMT), the Change of Client Information (CCI) workflow must be implemented on the new Camunda platform.
+        <bpmn:serviceTask
+                id="Task_InitializeCciCase"
+                name="Initialize CCI case">
+            <bpmn:extensionElements>
+                <zeebe:taskDefinition
+                        type="initialize-change-client-information"
+                        retries="3"/>
+            </bpmn:extensionElements>
 
-A dedicated Change of Client Information User Task must be introduced into the workflow to allow PSA or PCS users to review and update the client information before continuing the process.
+            <bpmn:incoming>Flow_Start_To_Initialize</bpmn:incoming>
+            <bpmn:outgoing>Flow_Initialize_To_CciTask</bpmn:outgoing>
+        </bpmn:serviceTask>
 
-⸻
+        <bpmn:userTask
+                id="UserTask_ChangeClientInformation"
+                name="Change of Client Information">
+            <bpmn:extensionElements>
 
-Description
+                <!-- Used by the worker/API handling the user task -->
+                <zeebe:taskDefinition
+                        type="change-client-information"
+                        retries="3"/>
 
-Update the Camunda BPMN model to introduce the Change of Client Information User Task.
+                <!-- Assignment expression to be configured by the routing ticket -->
+                <zeebe:assignmentDefinition
+                        candidateGroups="=cciAssignedGroup"/>
 
-The task shall be created after the case has been initialized and the required client information has been loaded.
+                <!-- Optional reference to the CLIP screen -->
+                <zeebe:formDefinition
+                        formKey="camunda-forms:bpmn:change-client-information-form"/>
 
-The task will allow users to:
+            </bpmn:extensionElements>
 
-* review the current information retrieved from CLASS;
-* compare it with the information submitted during the Digital Fact Find;
-* update editable information;
-* complete the task to continue the workflow.
+            <bpmn:incoming>Flow_Initialize_To_CciTask</bpmn:incoming>
+            <bpmn:outgoing>Flow_CciTask_To_DocumentManagement</bpmn:outgoing>
+        </bpmn:userTask>
 
-The assignment of the task is handled in a dedicated story.
+        <bpmn:serviceTask
+                id="Task_DocumentManagement"
+                name="Document Management">
+            <bpmn:extensionElements>
+                <zeebe:taskDefinition
+                        type="cci-document-management"
+                        retries="3"/>
+            </bpmn:extensionElements>
 
-The implementation of the task APIs is handled in dedicated Worker stories.
+            <bpmn:incoming>Flow_CciTask_To_DocumentManagement</bpmn:incoming>
+            <bpmn:outgoing>Flow_DocumentManagement_To_End</bpmn:outgoing>
+        </bpmn:serviceTask>
 
-The update of CLASS is handled in dedicated backend stories.
+        <bpmn:endEvent
+                id="EndEvent_CciTaskCompleted"
+                name="CCI task completed">
+            <bpmn:incoming>Flow_DocumentManagement_To_End</bpmn:incoming>
+        </bpmn:endEvent>
 
-⸻
+        <bpmn:sequenceFlow
+                id="Flow_Start_To_Initialize"
+                sourceRef="StartEvent_Cci"
+                targetRef="Task_InitializeCciCase"/>
 
-CoAs
+        <bpmn:sequenceFlow
+                id="Flow_Initialize_To_CciTask"
+                sourceRef="Task_InitializeCciCase"
+                targetRef="UserTask_ChangeClientInformation"/>
 
-* A Change of Client Information User Task is added to the Camunda workflow.
-* A process instance reaching this step creates the corresponding User Task.
-* The task is linked to the dedicated CLIP screen.
-* The task can only be completed through the dedicated Worker API.
-* Completing the task continues the workflow to the next BPMN step.
-* The task is configured with the expected process variables.
-* The BPMN model is successfully deployed.
+        <bpmn:sequenceFlow
+                id="Flow_CciTask_To_DocumentManagement"
+                sourceRef="UserTask_ChangeClientInformation"
+                targetRef="Task_DocumentManagement"/>
+
+        <bpmn:sequenceFlow
+                id="Flow_DocumentManagement_To_End"
+                sourceRef="Task_DocumentManagement"
+                targetRef="EndEvent_CciTaskCompleted"/>
+
+    </bpmn:process>
+</bpmn:definitions>
