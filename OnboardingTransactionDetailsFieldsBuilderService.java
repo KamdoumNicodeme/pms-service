@@ -1,17 +1,52 @@
 Context
 
-As part of the Change of Client Information (CCI) workflow, users must be able to review the current information stored in CLASS before validating or updating the client information.
+The Change of Client Information (CCI) workflow requires the Client Profiling Application to display the current policy correspondence information stored in CLASS.
 
-The current information must be displayed in read-only mode and compared with the information submitted during the Digital Fact Find.
+The “Change of Client Information” task allows users to compare the current policy correspondence stored in CLASS with the information submitted during the Digital Fact Find.
 
-The CLIP frontend shall consume the backend API and render the comparison screen.
+To support this functionality, the CLIP backend must expose the current policy correspondence information retrieved from CLASS.
 
 ⸻
 
 Description
 
-The frontend shall display the current client information returned by the CLIP backend.
+The backend shall expose the current policy correspondence information required by the Change of Client Information task.
 
-The current information must be displayed in the left section of the comparison screen and must remain read-only.
+The exposed data will populate the read-only (left) section of the comparison screen.
 
-The information entered by the Broker/Agent during the Digital Fact Find will be displayed on the right section, where editable fields are allowed according to the business rules.
+The following information must be provided.
+
+⸻
+
+Sending Address & Communication Preferences
+
+The backend shall expose:
+
+Correspondence Address
+
+* Street
+* Number
+* House Name
+* Apartment Number
+* City
+* Postcode
+* County
+* Area
+* Country
+
+⸻
+
+Communication Preferences
+
+The backend shall expose:
+
+* Language
+* Consent to receive electronic communication
+
+⸻
+
+Policy Communication
+
+The backend shall expose:
+
+* Policy Opt In / Out
