@@ -1,64 +1,42 @@
-Camunda - Change Client Information - Assign task to PCS Germany or PSA
+Camunda - Change Client Information - Add “Change of Client Information” task
 
 ⸻
 
 Context
 
-As part of the Change of Client Information (CCI) workflow, the new Change of Client Information task must be routed to the appropriate operational team.
+As part of the replacement of the Case Management Tool (CMT), the Change of Client Information (CCI) workflow must be implemented on the new Camunda platform.
 
-The assignment depends on the target market of the broker linked to the policy.
+A dedicated Change of Client Information User Task must be introduced into the workflow to allow PSA or PCS users to review and update the client information before continuing the process.
 
 ⸻
 
 Description
 
-The Change of Client Information task must be assigned according to the following business rule:
+Update the Camunda BPMN model to introduce the Change of Client Information User Task.
 
-* If the target market of the policy broker is DE, the task must be assigned to the PCS Germany team.
-* Otherwise, the task must be assigned to the PSA - Policy Servicing Administration team.
+The task shall be created after the case has been initialized and the required client information has been loaded.
 
-The routing must be performed when the Camunda User Task is created.
+The task will allow users to:
 
-The target market used for the routing must be retrieved from the policy/broker information available in the case or from the relevant backend service.
+* review the current information retrieved from CLASS;
+* compare it with the information submitted during the Digital Fact Find;
+* update editable information;
+* complete the task to continue the workflow.
+
+The assignment of the task is handled in a dedicated story.
+
+The implementation of the task APIs is handled in dedicated Worker stories.
+
+The update of CLASS is handled in dedicated backend stories.
 
 ⸻
 
 CoAs
 
-* When the broker target market is DE, the Change of Client Information task is assigned to the PCS Germany team.
-* When the broker target market is different from DE, the task is assigned to the PSA team.
-* When the broker target market is missing or cannot be resolved, the task is assigned to the configured default team.
-* The routing result is persisted and available in the task information.
-* The assigned team is authorized to claim and process the task.
-* A user who is not part of the assigned team cannot claim or complete the task.
-* The routing is executed only once when the task is created, unless the task is explicitly reassigned.
-* Routing failures are logged with the case business identifier and the policy number.
-
-⸻
-
-Dev Notes
-
-* The routing logic must be implemented in the CCI worker or through the existing user-task assignment mechanism.
-* The assignment must be triggered during the creation of the Camunda User Task.
-* The routing configuration must not be hardcoded.
-* The configuration should define at least:
-
-routing:
-  change-client-information:
-    target-markets:
-      DE: PCS_GERMANY
-    default-group: PSA
-
- * The implementation should reuse the existing assignment/routing library if one already exists in the Case Management platform.
-* The target market must preferably be read from an existing process variable or case data. An additional CLASS call should only be introduced if the information is not already available.
-* The assigned group must be stored using the technical group identifier expected by the authorization system.
-* Technical errors must follow the standard Camunda retry and incident-management mechanism.
-
-⸻
-
-Dependencies
-
-* Creation of the Change of Client Information Camunda User Task.
-* Availability of the broker target market.
-* Existing user-task assignment and authorization mechanism.
-* Availability of PCS Germany and PSA group identifiers.   
+* A Change of Client Information User Task is added to the Camunda workflow.
+* A process instance reaching this step creates the corresponding User Task.
+* The task is linked to the dedicated CLIP screen.
+* The task can only be completed through the dedicated Worker API.
+* Completing the task continues the workflow to the next BPMN step.
+* The task is configured with the expected process variables.
+* The BPMN model is successfully deployed.
