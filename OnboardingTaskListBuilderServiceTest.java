@@ -357,48 +357,49 @@ when completion is rejected because of a rejected document.
 
 ------------------------------------------------------------------------
 
-## Optional Ticket 6 --- Camunda Integration
+icket 6 — Camunda - CCI - Add CCI Sign Off task
 
-**Summary**\
-`[CAMUNDA] - Change Client Information - Integrate document validation with task completion`
+Summary
+[Camunda] - Change Client Information - Add CCI Sign Off task
 
-> **Note:** Create this ticket only if task completion and the
-> rejected-document rule are orchestrated or validated by the Camunda
-> process rather than being fully handled by the CLIP backend.
+Context
 
-### Context
+As part of the Change of Client Information (CCI) workflow, the information entered and reviewed during the “Change of Client Information” task must go through a Sign Off validation before being propagated to the downstream systems.
 
-The Change of Client Information workflow is orchestrated in Camunda.
+The CCI workflow is orchestrated by Camunda.
 
-Document Management introduces a business constraint on the completion
-of the Change of Client Information task: the process must not continue
-while at least one document remains rejected.
+Description
 
-### Description
+In Camunda Modeler, adapt the Change of Client Information workflow in order to add the “CCI Sign off” user task after the “Change of Client Information” task.
 
-Adapt the CCI workflow/task completion integration so that the process
-can only continue when the document completion rules are satisfied.
+The workflow must follow the defined business process:
 
-Before completing the Change of Client Information user task, the
-application/process integration shall ensure that no associated document
-has status `Rejected`.
+Change of Client Information → CCI Sign off → Sign off OK?
 
-If the validation succeeds, the task can be completed and the process
-continues according to the existing BPMN flow.
+The Sign Off task allows the assigned user/team to review and approve or reject the changes made during the Change of Client Information task.
 
-If the validation fails, the user task remains active.
+Depending on the Sign Off decision:
 
-### CoAs
+* Sign off OK = Yes → continue the workflow to Integration with DMA.
+* Sign off OK = No → return to the Change of Client Information task for correction/review.
 
--   The CCI user task is available according to the existing BPMN
-    workflow.
--   Completion does not advance the process when at least one document
-    is `Rejected`.
--   The user task remains active when completion is refused.
--   When no document is rejected, completion follows the normal BPMN
-    flow.
--   Existing workflow behavior outside Document Management is not
-    impacted.
+The assignment information selected when completing the Change of Client Information task must be used to determine the assignee/team of the CCI Sign Off task.
+
+CoAs
+
+* The CCI Sign off User Task exists in the CCI BPMN.
+* It is created after completion of Change of Client Information.
+* The task is assigned according to the Sign Off assignment selected during the previous task.
+* A Sign off OK? decision/gateway is evaluated after completion of the Sign Off task.
+* When Sign Off is approved, the process continues to Integration with DMA.
+* When Sign Off is rejected, the process returns to Change of Client Information.
+* The BPMN is valid and deployable on the project’s Camunda environment.
+
+Il y a cependant une distinction importante avec ce que je t’avais proposé avant : la popup “Sign Off Assignment” et la User Task “CCI Sign off” ne devraient pas forcément être dans le même ticket.
+
+Je garderais donc Ticket 6 = création/intégration de la User Task CCI Sign Off dans Camunda, et la gestion de la popup/assignment côté frontend peut rester dans un ticket Front séparé si elle n’est pas déjà couverte.
+
+Et ton workflow révèle également qu’il faudra probablement prévoir plus tard des tickets séparés pour Integration with DMA, Update CLASS fields, et éventuellement la logique Manual action to do?, mais ils ne font pas partie du ticket 6.
 
 ------------------------------------------------------------------------
 
