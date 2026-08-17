@@ -1,48 +1,101 @@
-[Client Profiling Frontend] - Change Client Information - Complete task with Sign Off Assignment
+Field
 
-Context
+Type
 
-As part of the Change of Client Information (CCI) workflow, once the user has reviewed and updated the client information, the task must be completed.
+Display / Prefill rule
 
-Before completing the “Change of Client Information” task, the user must select the assignee responsible for the following CCI Sign Off task.
+Request signed by the client received?
 
-Description
+Checkbox / DONE
 
-When the user clicks on the “Complete” button of the “Change of Client Information” task, the frontend shall display a Sign Off Assignment pop-up.
+Auto-ticked for external request
 
-The pop-up shall allow the user to select the assignee responsible for the next CCI Sign Off task.
+Signature of the client
 
-The pop-up contains:
+Dropdown: Wet / Electronic / Multiple
 
-* Sign Off Assignment
-    * Selection of a Physical assignee / Team assignee
-* Cancel button
-* Complete button
+External request: pre-filled from Connect. Internal request: no pre-fill
 
-Cancel
+Check signatures are in line with ID documents?
 
-When the user clicks Cancel:
+DONE
 
-* The pop-up is closed.
-* The current Change of Client Information task remains open.
-* No task completion request is sent.
+Only Wet signature
 
-Complete
+Multiple PH/Trustees signed?
 
-When the user clicks Complete:
+YES / NO / N/A
 
-* The selected Sign Off assignment is sent as part of the task completion request.
-* The current Change of Client Information task is completed.
-* The workflow can continue to the CCI Sign off task.
+Only Wet signature
 
-The assignment selected in this pop-up will be used by the workflow/backend to assign the following CCI Sign Off task.
+Date of Signature
 
-CoAs
+Date
 
-* Clicking Complete on the Change of Client Information screen opens the Sign Off Assignment pop-up.
-* The user can select the required Physical/Team assignee.
-* Clicking Cancel closes the pop-up without completing the task.
-* Clicking Complete sends the selected Sign Off assignment.
-* The Change of Client Information task is completed only after confirmation from the pop-up.
-* The selected assignment is made available for the following CCI Sign off task.
-* Error handling is displayed if task completion fails.
+Only Wet signature
+
+Place of Signature
+
+Free text
+
+Only Wet signature
+
+Provider
+
+Dropdown
+
+Electronic or Multiple; pre-filled from Connect
+
+Client identification and Validation?
+
+DONE
+
+Electronic or Multiple
+
+Original Signed Doc + Audit Log linked to case?
+
+DONE
+
+Electronic or Multiple
+
+Multifactor authentication?
+
+DONE
+
+Provider = Partner e-signature service
+
+EU authorized Provider?
+
+DONE
+
+Provider = Partner e-signature service
+
+Has any new indicia (FATCA/AEOI) been detected?
+
+YES / NO
+
+Always available
+
+Initiate AEOI/FATCA status investigation
+
+DONE
+
+Only if previous answer = YES
+
+Certified copy of Proof of address received?
+
+DONE
+
+Only if legal address has been modified
+
+If Moving country – Check Tax Country?
+
+DONE
+
+Only if country has been modified
+
+I validate all data can be stored in CLASS
+
+DONE
+
+Always available
