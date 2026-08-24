@@ -1,101 +1,275 @@
-Field
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-Type
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
-Display / Prefill rule
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ClientProfilingInitialBusinessData {
 
-Request signed by the client received?
+    private Policy policy;
 
-Checkbox / DONE
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Policy {
 
-Auto-ticked for external request
+        private String policyNumber;
+        private String type;
+        private String currency;
 
-Signature of the client
+        private String broker;
+        private String brokerName;
+        private String brokerTargetMarket;
 
-Dropdown: Wet / Electronic / Multiple
+        private String countryOfLaw;
+        private String countryOfBusinessOrigin;
+        private String taxCountry;
 
-External request: pre-filled from Connect. Internal request: no pre-fill
+        private Amount latestNetAssetValue;
 
-Check signatures are in line with ID documents?
+        private String internalLevelRiskScoring;
+        private Boolean taxComplianceCertificateReceived;
 
-DONE
+        private Correspondence correspondence;
+        private CommunicationPreferences communicationPreferences;
+        private PolicyOptInOut optInOut;
 
-Only Wet signature
+        private List<Pledge> pledges;
+        private List<ThirdParty> clients;
+        private List<PolicyPenalty> policyPenalties;
+        private List<ProductComponentPenalty> productComponentPenalties;
+    }
 
-Multiple PH/Trustees signed?
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Correspondence {
 
-YES / NO / N/A
+        private String street;
+        private String number;
+        private String houseName;
+        private String apartmentNumber;
 
-Only Wet signature
+        private String city;
+        private String postcode;
+        private String county;
+        private String area;
 
-Date of Signature
+        private String country;
+    }
 
-Date
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CommunicationPreferences {
 
-Only Wet signature
+        private String language;
+        private Boolean consentToReceiveElectronicCommunication;
+    }
 
-Place of Signature
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class PolicyOptInOut {
 
-Free text
+        private String policyType;
+    }
 
-Only Wet signature
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Pledge {
 
-Provider
+        private String pledgeBankName;
+        private Instant pledgeReceivedDate;
+        private String pledgeInFavourOf;
+    }
 
-Dropdown
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ThirdParty {
 
-Electronic or Multiple; pre-filled from Connect
+        // Common fields
+        private String type;
+        private String thirdPartyId;
 
-Client identification and Validation?
+        private String aeoiStatus;
+        private String fatcaStatus;
 
-DONE
+        private List<String> roleTypes;
 
-Electronic or Multiple
+        // General tax information
+        private List<TaxInformation> taxInformation;
 
-Original Signed Doc + Audit Log linked to case?
+        // Contact information
+        private ContactDetails contactDetails;
 
-DONE
+        // Identity
+        private List<IdentityDocument> identityDocuments;
 
-Electronic or Multiple
+        // Controlling persons, mainly for moral persons
+        private List<ThirdParty> controllingPersons;
 
-Multifactor authentication?
+        // Moral person specific fields
+        private String name;
+        private String companyLegalForm;
+        private LocalDate dateOfRegistration;
+        private String commercialRegisterNumber;
+        private String countryOfIncorporation;
+        private String companyPurpose;
 
-DONE
+        // Physical person specific fields
+        private String title;
+        private String lastName;
+        private String firstName;
+        private LocalDate birthDate;
+        private String countryOfBirth;
+        private List<String> nationalities;
+        private String gender;
+        private String maritalStatus;
 
-Provider = Partner e-signature service
+        private String profession;
+        private String professionStatus;
+        private String employerName;
+        private String employerCountry;
+        private String industrySector;
 
-EU authorized Provider?
+        // Specific information used for controlling person
+        private String trusteeIfMoralPerson;
 
-DONE
+        // Legacy / compatibility fields already present
+        private String taxCountry;
+        private String taxNumber;
+        private String countryOfResidence;
+        private Instant idDocumentExpirationDate;
+    }
 
-Provider = Partner e-signature service
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ContactDetails {
 
-Has any new indicia (FATCA/AEOI) been detected?
+        private Address address;
 
-YES / NO
+        private List<String> mobileNumbers;
+        private List<String> emails;
+    }
 
-Always available
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Address {
 
-Initiate AEOI/FATCA status investigation
+        private String street;
+        private String number;
+        private String houseName;
+        private String apartmentNumber;
 
-DONE
+        private String city;
+        private String postcode;
+        private String county;
+        private String area;
 
-Only if previous answer = YES
+        private String country;
+    }
 
-Certified copy of Proof of address received?
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class IdentityDocument {
 
-DONE
+        private String documentId;
+        private String idType;
+        private String idNumber;
+        private LocalDate expirationDate;
 
-Only if legal address has been modified
+        private Boolean approved;
+    }
 
-If Moving country – Check Tax Country?
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class TaxInformation {
 
-DONE
+        private String taxCountry;
+        private String tin;
+        private String reasonIfTinUnavailable;
 
-Only if country has been modified
+        private Boolean usPerson;
 
-I validate all data can be stored in CLASS
+        private String aeoiStatus;
+        private String fatcaStatus;
+        private String crsStatus;
+        private String giin;
+    }
 
-DONE
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class PolicyPenalty {
 
-Always available
+        private Instant startDate;
+        private Instant endDate;
+        private String type;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ProductComponentPenalty {
+
+        private String productComponentNumber;
+        private String fundNumber;
+
+        private Instant startDate;
+        private Instant endDate;
+
+        private String type;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Amount {
+
+        private String currency;
+        private Double value;
+    }
+}
