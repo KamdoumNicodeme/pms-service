@@ -1,100 +1,71 @@
 @Injectable()
-export class ApiComparisonDataService
+export class CoreComparisonDataService
   implements ComparisonDataService {
 
-  private readonly thirdPartyService = inject(ThirdPartyService);
-
-  getHolders(
-    policyNumber: string
-  ): Observable<readonly ClientHolder[]> {
-
-    return this.thirdPartyService
-      .findAll(policyNumber, {})
-      .pipe(
-        map(thirdParties =>
-          thirdParties.map(thirdParty =>
-            this.toClientHolder(thirdParty)
-          )
-        )
-      );
-  }
-
   getSection(
-    policyNumber: string,
-    holderId: string,
+    context: ComparisonContext,
     sectionId: string
   ): Observable<ComparisonSectionDto> {
 
-    return this.thirdPartyService
-      .findAll(policyNumber, {})
-      .pipe(
-        map(thirdParties => {
-          const holder = thirdParties.find(
-            thirdParty =>
-              this.getHolderId(thirdParty) === holderId
-          );
-
-          if (!holder) {
-            throw new Error(
-              `Holder ${holderId} not found`
-            );
-          }
-
-          return this.toComparisonSection(
-            holder,
-            sectionId
-          );
-        })
-      );
-  }
-
-  private toClientHolder(
-    thirdParty: IThirdParty
-  ): ClientHolder {
-
-    return {
-      id: this.getHolderId(thirdParty),
-      name: this.getHolderName(thirdParty)
-    };
-  }
-
-  private getHolderId(
-    thirdParty: IThirdParty
-  ): string {
-    // À adapter avec ton vrai modèle IThirdParty
-    return thirdParty.id;
-  }
-
-  private getHolderName(
-    thirdParty: IThirdParty
-  ): string {
-    // À adapter au vrai DTO
-    return `${thirdParty.firstName ?? ''} ${thirdParty.lastName ?? ''}`.trim();
-  }
-
-  private toComparisonSection(
-    thirdParty: IThirdParty,
-    sectionId: string
-  ): ComparisonSectionDto {
+    const holder = context.holder;
 
     switch (sectionId) {
 
       case 'general-information':
-        return this.mapGeneralInformation(thirdParty);
+        return of(
+          this.generalInformation(holder)
+        );
 
       case 'contact-details':
-        return this.mapContactDetails(thirdParty);
+        return of(
+          this.emptySection(
+            'contact-details',
+            'Contact details'
+          )
+        );
 
       case 'identity-documents':
-        return this.mapIdentityDocuments(thirdParty);
+        return of(
+          this.emptySection(
+            'identity-documents',
+            'Identity documents'
+          )
+        );
 
       case 'tax-information':
-        return this.mapTaxInformation(thirdParty);
+        return of(
+          this.emptySection(
+            'tax-information',
+            'Tax information'
+          )
+        );
 
       default:
-        throw new Error(
-          `Unsupported section: ${sectionId}`
+        return throwError(
+          () => new Error(
+            `Unknown section "${sectionId}"`
+          )
         );
     }
+  }
+
+  private generalInformation(
+    holder: IThirdParty
+  ): ComparisonSectionDto {
+
+    // Ici on va mapper ton IThirdParty
+    // vers TON ComparisonSectionDto existant.
+
+    // À compléter avec la vraie structure du DTO.
+    throw new Error('Mapping to implement');
+  }
+
+  private emptySection(
+    id: string,
+    title: string
+  ): ComparisonSectionDto {
+
+    // À adapter également au ComparisonSectionDto existant.
+    throw new Error('Mapping to implement');
   }
 }
