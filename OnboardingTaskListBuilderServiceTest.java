@@ -1,43 +1,49 @@
-private contactDetails(
-  holder: IThirdParty
-): ComparisonSectionDto {
+private addressGroup(
+  key: string,
+  label: string,
+  address: IAddress | null | undefined
+): ComparisonGroupFieldDto {
 
   return {
-    id: 'contact-details',
-    title: 'Contact details',
-    sources: [this.coreSource],
+    key,
+    label,
+    kind: 'group',
+
+    lines: [
+      ['no', 'address'],
+      ['postCode', 'town'],
+      ['country'],
+    ],
 
     fields: [
-      this.listField(
-        'emails',
-        'Emails',
-        'email',
-        holder.emails.map(email => email.email)
-      ),
-
-      this.listField(
-        'phone-numbers',
-        'Phone numbers',
-        'phone number',
-        holder.phoneNumbers.map(phone => phone.phoneNumber)
+      this.scalarField(
+        'no',
+        'Number',
+        address?.no
       ),
 
       this.scalarField(
-        'preferred-channel',
-        'Preferred channel',
-        holder.preferredChannel
+        'address',
+        'Street',
+        address?.address
       ),
 
-      this.addressGroup(
-        'legal-address',
-        'Legal address',
-        holder.legalAddress
+      this.scalarField(
+        'postCode',
+        'Post code',
+        address?.postCode
       ),
 
-      this.addressGroup(
-        'sending-address',
-        'Sending address',
-        holder.sendingAddress
+      this.scalarField(
+        'town',
+        'Town',
+        address?.town
+      ),
+
+      this.scalarField(
+        'country',
+        'Country',
+        this.normalizeCountry(address?.country)
       ),
     ],
   };
