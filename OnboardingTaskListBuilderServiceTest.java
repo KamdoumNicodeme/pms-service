@@ -2,54 +2,49 @@ private professionalFields(
   holder: IPhysicalPerson
 ): readonly ComparisonFieldDto[] {
 
-  const professionalDetails = holder.professionalDetails;
+  const details = holder.professionalDetails;
 
-  if (!professionalDetails) {
+  if (!details) {
     return [];
   }
 
   const fields: ComparisonFieldDto[] = [
-    this.selectField(
+    this.scalarField(
       'profession',
       'Profession',
-      professionalDetails.profession,
-      professionOptions
-    ),
+      details.profession
+    )
   ];
 
-  const unemployed =
-    professionalDetails.profession === 'UNEMPLOYED';
-
-  if (!unemployed) {
-    fields.push(
-      this.selectField(
-        'profession-status',
-        'Profession status',
-        professionalDetails.status,
-        professionStatusOptions
-      ),
-
-      this.scalarField(
-        'employer-name',
-        'Employer Name',
-        professionalDetails.companyName
-      ),
-
-      this.selectField(
-        'employer-country',
-        'Employer Country',
-        professionalDetails.companyCountry,
-        countryOptions
-      ),
-
-      this.selectField(
-        'industry-sector',
-        'Industry Sector',
-        professionalDetails.sector,
-        industrySectorOptions
-      )
-    );
+  if (details.profession?.toLowerCase() === 'unemployed') {
+    return fields;
   }
+
+  fields.push(
+    this.scalarField(
+      'profession-status',
+      'Profession status',
+      details.status
+    ),
+
+    this.scalarField(
+      'employer-name',
+      'Employer Name',
+      details.companyName
+    ),
+
+    this.scalarField(
+      'employer-country',
+      'Employer Country',
+      this.normalizeCountry(details.companyCountry)
+    ),
+
+    this.scalarField(
+      'industry-sector',
+      'Industry Sector',
+      details.sector
+    )
+  );
 
   return fields;
 }
