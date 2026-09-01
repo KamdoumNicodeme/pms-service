@@ -12,10 +12,16 @@ private taxInformationList(
       digital: [],
       kyc: [],
 
-      core: values.map(tax => ({
-        key: `${tax.taxCountry}-${tax.tin}`,
-        label: this.normalizeCountry(tax.taxCountry) ?? tax.taxCountry,
-        value: tax.tin
+      core: values.map((tax: ITaxInformation, index: number) => ({
+        key: `${tax.taxCountry}-${tax.taxNumber}-${index}`,
+
+        label:
+          `Tax Country: ${
+            this.normalizeCountry(tax.taxCountry) ?? tax.taxCountry
+          }`,
+
+        value:
+          `TIN: ${tax.taxNumber ?? ''}`
       }))
     }
   };
