@@ -1,50 +1,22 @@
-private professionalFields(
-  holder: IPhysicalPerson
-): readonly ComparisonFieldDto[] {
+private taxInformationList(
+  values: readonly ITaxInformation[]
+): ComparisonListFieldDto {
 
-  const details = holder.professionalDetails;
+  return {
+    key: 'tax-information',
+    label: 'Tax Information',
+    kind: 'list',
+    entryNoun: 'tax information',
 
-  if (!details) {
-    return [];
-  }
+    values: {
+      digital: [],
+      kyc: [],
 
-  const fields: ComparisonFieldDto[] = [
-    this.scalarField(
-      'profession',
-      'Profession',
-      details.profession
-    )
-  ];
-
-  if (details.profession?.toLowerCase() === 'unemployed') {
-    return fields;
-  }
-
-  fields.push(
-    this.scalarField(
-      'profession-status',
-      'Profession status',
-      details.status
-    ),
-
-    this.scalarField(
-      'employer-name',
-      'Employer Name',
-      details.companyName
-    ),
-
-    this.scalarField(
-      'employer-country',
-      'Employer Country',
-      this.normalizeCountry(details.companyCountry)
-    ),
-
-    this.scalarField(
-      'industry-sector',
-      'Industry Sector',
-      details.sector
-    )
-  );
-
-  return fields;
+      core: values.map(tax => ({
+        key: `${tax.taxCountry}-${tax.tin}`,
+        label: this.normalizeCountry(tax.taxCountry) ?? tax.taxCountry,
+        value: tax.tin
+      }))
+    }
+  };
 }
