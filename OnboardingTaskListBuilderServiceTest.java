@@ -1,34 +1,27 @@
-function entryFallback(
-  values: Record<ComparisonSourceId, string | null>,
-  status: ComparisonStatus
-): Resolution {
+export function computeEntryStatus(
+  values: Record<ComparisonSourceId, string | null>
+): ComparisonStatus {
 
-  const droppedByClient = status === 'removed';
+  const inDigital = !isBlank(values.digital);
+  const inKyc = !isBlank(values.kyc);
+  const inCore = !isBlank(values.core);
 
-  const coreOnly =
-    !isBlank(values.core) &&
-    isBlank(values.kyc) &&
-    isBlank(values.digital);
-
-  if (coreOnly) {
-    return {
-      source: 'core',
-      value: values.core,
-      reason: '',
-      comment: '',
-      reviewed: true,
-    };
+  // Core uniquement :
+  // pour le moment on affiche simplement la donnée existante.
+  if (inCore && !inDigital && !inKyc) {
+    return 'aligned';
   }
 
-  if (droppedByClient) {
-    return {
-      source: 'kyc',
-      value: null,
-      reason: '',
-      comment: '',
-      reviewed: false,
-    };
+  // Nouvelle valeur saisie côté KYC,
+  // absente de Digital et Core.
+  if (!inDigital && inKyc && !inCore) {
+    return 'added';
   }
 
-  return defaultResolution(values, status);
+  // Valeur présente côté Digital mais non retenue côté KYC.
+  if (inDigital && !inKyc) {
+    return 'removed';
+  }
+
+  return computeStatus(values);
 }
