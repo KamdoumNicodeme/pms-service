@@ -1,16 +1,34 @@
-private composeEntryFields(
-  fields: readonly ComparisonEntryFieldDto[] | null
-): string | null {
+function entryFallback(
+  values: Record<ComparisonSourceId, string | null>,
+  status: ComparisonStatus
+): Resolution {
 
-  if (!fields?.length) {
-    return null;
+  const droppedByClient = status === 'removed';
+
+  const coreOnly =
+    !isBlank(values.core) &&
+    isBlank(values.kyc) &&
+    isBlank(values.digital);
+
+  if (coreOnly) {
+    return {
+      source: 'core',
+      value: values.core,
+      reason: '',
+      comment: '',
+      reviewed: true,
+    };
   }
 
-  const values = fields
-    .filter(field => field.value != null)
-    .map(field => `${field.label ?? field.key}: ${field.value}`);
+  if (droppedByClient) {
+    return {
+      source: 'kyc',
+      value: null,
+      reason: '',
+      comment: '',
+      reviewed: false,
+    };
+  }
 
-  return values.length > 0
-    ? values.join(' | ')
-    : null;
+  return defaultResolution(values, status);
 }
