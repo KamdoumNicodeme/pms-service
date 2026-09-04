@@ -1,49 +1,41 @@
-@Service()
-export class CaseSummaryServiceService implements CaseSummaryService {
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ClientProfilingAssignService {
 
-  readonly #dataCasesService = inject(DataCasesService);
+    private static final String TARGET_MARKET_DE = "DE";
+    private static final String PCS_GERMANY = "PCS_GERMANY";
+    private static final String DEFAULT_TEAM = "PSA";
 
-  getSummary(
-    caseBusinessIdentifier: string,
-    currentCase: ICaseDetails
-  ): Observable<CaseSummary> {
-    return this.#dataCasesService
-      .getCaseData(caseBusinessIdentifier)
-      .pipe(
-        map((data: IClientProfilingData) =>
-          this.toCaseSummary(data, currentCase)
-        )
-      );
-  }
+    public void determineInitialCaseOwnerTeam(
+            final ClientProfilingCaseData caseMetadata)
+            throws PolicyNotFoundException {
 
-  private toCaseSummary(
-    data: IClientProfilingData,
-    currentCase: ICaseDetails
-  ): CaseSummary {
-    return {
-      reference: data.caseBusinessIdentifier ?? '',
-      title: 'Client profiling',
-      facts: this.buildFacts(data, currentCase),
-    };
-  }
+        String brokerTargetMarket = Optional.ofNullable(caseMetadata)
+                .map(ClientProfilingCaseData::getInitialBusinessData)
+                .map(ClientProfilingInitialBusinessData::getPolicy)
+                .map(ClientProfilingInitialBusinessData.Policy::getBrokerTargetMarket)
+                .filter(targetMarket -> !targetMarket.isBlank())
+                .orElse(null);
 
-  private buildFacts(
-    data: IClientProfilingData,
-    currentCase: ICaseDetails
-  ): { label: string; value: string }[] {
-    return [
-      {
-        label: 'POLICY NUMBER',
-        value: data.initialBusinessData?.policy?.policyNumber ?? '-',
-      },
-      {
-        label: 'CASE OWNER',
-        value: currentCase.ownerDetails?.displayName ?? '-',
-      },
-      {
-        label: 'BROKER',
-        value: data.initialBusinessData?.policy?.broker ?? '-',
-      },
-    ];
-  }
+        String ownerTeam = determineOwnerTeam(brokerTargetMarket);
+
+        caseMetadata.setOwnerTeam(ownerTeam);
+
+        log.info(
+                "CCI owner team determined: caseBusinessIdentifier='{}', " +
+                "brokerTargetMarket='{}', ownerTeam='{}'",
+                caseMetadata.getCaseBusinessIdentifier(),
+                brokerTargetMarket,
+                ownerTeam
+        );
+    }
+
+    private String determineOwnerTeam(final String brokerTargetMarket) {
+        if (TARGET_MARKET_DE.equalsIgnoreCase(brokerTargetMarket)) {
+            return PCS_GERMANY;
+        }
+
+        return DEFAULT_TEAM;
+    }
 }
