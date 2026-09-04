@@ -3,39 +3,72 @@
 @RequiredArgsConstructor
 public class ClientProfilingAssignService {
 
-    private static final String TARGET_MARKET_DE = "DE";
-    private static final String PCS_GERMANY = "PCS_GERMANY";
-    private static final String DEFAULT_TEAM = "PSA";
+    private final InternalDistributionPartnerService internalDistributionPartnerService;
+    private final TargetMarketTeamConfigProperties targetMarketTeamConfigProperties;
+    private final TeamService teamService;
 
-    public void determineInitialCaseOwnerTeam(
-            final ClientProfilingCaseData caseMetadata)
-            throws PolicyNotFoundException {
+    public void determineInitialCaseAssignment(final CaseMetadata caseMetadata)
+            throws DistributionPartnerNotFoundException {
 
-        String brokerTargetMarket = Optional.ofNullable(caseMetadata)
-                .map(ClientProfilingCaseData::getInitialBusinessData)
-                .map(ClientProfilingInitialBusinessData::getPolicy)
-                .map(ClientProfilingInitialBusinessData.Policy::getBrokerTargetMarket)
-                .filter(targetMarket -> !targetMarket.isBlank())
-                .orElse(null);
+        // Retrieve the policy number
+        String policyNumber = Optional.ofNullable(
+                        caseMetadata.getSubjects().get("policy")
+                )
+                .filter(policies -> !policies.isEmpty())
+                .flatMap(policies -> policies.stream().findFirst())
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                String.format(
+                                        "Policy number is not provided in subject of case '%s'",
+                                        caseMetadata.getCaseBusinessIdentifier()
+                                )
+                        )
+                );
 
-        String ownerTeam = determineOwnerTeam(brokerTargetMarket);
+        // Retrieve the broker linked to the policy
+        DistributionPartner broker =
+                internalDistributionPartnerService.getBrokerOfPolicy(policyNumber);
+
+        // Retrieve the team associated with the broker target market
+        Set<String> teams =
+                targetMarketTeamConfigProperties.getTeamsOfTargetMarket(
+                        broker.getTargetMarket()
+                );
+
+        if (CollectionUtils.isEmpty(teams)) {
+            throw new IllegalStateException(
+                    String.format(
+                            "No team configured for target market '%s'",
+                            broker.getTargetMarket()
+                    )
+            );
+        }
+
+        // CCI expects a single operational team
+        String ownerTeam = teams.iterator().next();
 
         caseMetadata.setOwnerTeam(ownerTeam);
 
         log.info(
-                "CCI owner team determined: caseBusinessIdentifier='{}', " +
-                "brokerTargetMarket='{}', ownerTeam='{}'",
+                "CCI case '{}' assigned to team '{}' for broker target market '{}'",
                 caseMetadata.getCaseBusinessIdentifier(),
-                brokerTargetMarket,
-                ownerTeam
+                ownerTeam,
+                broker.getTargetMarket()
         );
-    }
 
-    private String determineOwnerTeam(final String brokerTargetMarket) {
-        if (TARGET_MARKET_DE.equalsIgnoreCase(brokerTargetMarket)) {
-            return PCS_GERMANY;
+        // If the case initiator belongs to the assigned team,
+        // assign the case directly to the initiator
+        Set<String> initiatorTeams =
+                teamService.getUserTeams(caseMetadata.getInitiator());
+
+        if (initiatorTeams.contains(ownerTeam)) {
+            caseMetadata.setOwner(caseMetadata.getInitiator());
+
+            log.info(
+                    "CCI case '{}' assigned directly to initiator '{}'",
+                    caseMetadata.getCaseBusinessIdentifier(),
+                    caseMetadata.getInitiator()
+            );
         }
-
-        return DEFAULT_TEAM;
     }
 }
