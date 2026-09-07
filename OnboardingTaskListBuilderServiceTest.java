@@ -1,96 +1,36 @@
-@if (expanded()) {
+readonly fieldDefinitions =
+  input<readonly ComparisonFieldEntryDefinition[]>([]);
 
-  @if (entry().fields?.core?.length) {
+protected readonly structuredDraft = linkedSignal<
+  Record<string, string>
+>(() => {
+  const fields = this.entry().fields?.core ?? [];
 
-    <section class="structured-resolution">
+  return Object.fromEntries(
+    fields.map(field => [
+      field.key,
+      field.value ?? ''
+    ])
+  );
+});
 
-      @for (
-        field of entry().fields?.core ?? [];
-        track field.key
-      ) {
+protected draftValue(key: string): string {
+  return this.structuredDraft()[key] ?? '';
+}
 
-        @let definition = definitionFor(field.key);
+protected updateDraftValue(
+  key: string,
+  value: string
+): void {
+  this.structuredDraft.update(current => ({
+    ...current,
+    [key]: value
+  }));
+}
 
-        <div class="structured-resolution__field">
-
-          <label class="structured-resolution__label">
-            {{ field.label ?? field.key }}
-          </label>
-
-          @if (
-            definition?.kind === 'select'
-            && (definition?.options?.length ?? 0) > 0
-          ) {
-
-            <nz-select
-              class="structured-resolution__control"
-              [ngModel]="draftValue(field.key)"
-              (ngModelChange)="updateDraftValue(field.key, $event)"
-            >
-              @for (
-                option of definition?.options ?? [];
-                track option.value
-              ) {
-                <nz-option
-                  [nzValue]="option.value"
-                  [nzLabel]="option.label"
-                />
-              }
-            </nz-select>
-
-          } @else {
-
-            <input
-              nz-input
-              class="structured-resolution__control"
-              [disabled]="definition?.editable === false"
-              [ngModel]="draftValue(field.key)"
-              (ngModelChange)="updateDraftValue(field.key, $event)"
-            />
-
-          }
-
-        </div>
-
-      }
-
-      <div class="structured-resolution__actions">
-
-        <button
-          type="button"
-          class="resolution__button"
-          (click)="toggle.emit()"
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          class="resolution__button resolution__button--primary"
-          (click)="applyStructured()"
-        >
-          Apply
-        </button>
-
-      </div>
-
-    </section>
-
-  } @else {
-
-    <comparison-resolution
-      [fieldId]="entry().id"
-      [kind]="kind()"
-      [values]="entry().values"
-      [status]="entry().status"
-      [resolution]="entry().resolution"
-      [fallback]="entry().fallback"
-      [isOverride]="entry().isOverride"
-      (apply)="apply.emit($event)"
-      (cancel)="toggle.emit()"
-      (reset)="reset.emit()"
-    />
-
-  }
-
+protected definitionFor(
+  key: string
+): ComparisonFieldEntryDefinition | undefined {
+  return this.fieldDefinitions()
+    .find(definition => definition.key === key);
 }
