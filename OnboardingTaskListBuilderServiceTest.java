@@ -1,75 +1,105 @@
-private buildEntryChildren(
-  field: ComparisonListFieldDto,
-  paired: PairedEntry
-): ComparisonRow[] {
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ClientProfilingAssignService {
 
-  if (!field.entryFields?.length) {
-    return [];
-  }
+    private final InternalDistributionPartnerService internalDistributionPartnerService;
+    private final TargetMarketTeamConfigProperties targetMarketTeamConfigProperties;
+    private final TeamService teamService;
 
-  return field.entryFields.map(definition => {
+    public void determineInitialCaseAssignment(final CaseMetadata caseMetadata)
+            throws DistributionPartnerNotFoundException {
 
-    const id =
-      `${field.key}:${paired.key}:${definition.key}`;
+        Set<String> teams = getTeams(caseMetadata);
 
-    const values: Record<
-      ComparisonSourceId,
-      string | null
-    > = {
-      digital: this.entryFieldValue(
-        paired,
-        'digital',
-        definition.key
-      ),
+        if (CollectionUtils.isEmpty(teams)) {
+            throw new IllegalStateException("No team configured for CCI case");
+        }
 
-      kyc: this.entryFieldValue(
-        paired,
-        'kyc',
-        definition.key
-      ),
+        // CCI expects a single operational team
+        String ownerTeam = teams.iterator().next();
 
-      core: this.entryFieldValue(
-        paired,
-        'core',
-        definition.key
-      ),
-    };
+        caseMetadata.setOwnerTeam(ownerTeam);
 
-    const status: ComparisonStatus =
-      computeStatus(values);
+        log.info(
+                "CCI case '{}' assigned to team '{}'",
+                caseMetadata.getCaseBusinessIdentifier(),
+                ownerTeam
+        );
 
-    const fallback: Resolution =
-      defaultResolution(values, status);
+        // If the case initiator belongs to the assigned team,
+        // assign the case directly to the initiator
+        Set<String> initiatorTeams =
+                teamService.getUserTeams(caseMetadata.getInitiator());
 
-    const resolution: Resolution =
-      this.overrides().get(id) ?? fallback;
+        if (initiatorTeams.contains(ownerTeam)) {
+            caseMetadata.setOwner(caseMetadata.getInitiator());
 
-    return {
-      id,
-      key: definition.key,
-      label: definition.label,
+            log.info(
+                    "CCI case '{}' assigned directly to initiator '{}'",
+                    caseMetadata.getCaseBusinessIdentifier(),
+                    caseMetadata.getInitiator()
+            );
+        }
+    }
 
-      kind: definition.kind,
-      options: definition.options ?? [],
+    public Assignment determineChangeClientInformationAssignment(
+            final CaseMetadata caseMetadataByProcessId) {
 
-      values,
+        String initiator = caseMetadataByProcessId.getInitiator();
 
-      status,
-      resolution,
-      fallback,
+        Set<String> teams = getTeams(caseMetadataByProcessId);
 
-      needsAttention:
-        needsAttention(status),
+        // Note that an empty string must be used for a user task
+        // which is left unassigned
+        String assignee;
 
-      isOverride:
-        isOverride(resolution, fallback),
+        if (CollectionUtils.containsAny(
+                teamService.getUserTeams(initiator),
+                teams)) {
 
-      entryNoun: '',
-      entries: [],
-      children: [],
+            assignee = initiator;
 
-      composed: EMPTY_COMPOSED,
-      composedResult: [],
-    };
-  });
+        } else if (CollectionUtils.containsAny(
+                teamService.getUserTeams(caseMetadataByProcessId.getOwner()),
+                teams)) {
+
+            assignee = caseMetadataByProcessId.getOwner();
+
+        } else {
+            assignee = StringUtils.EMPTY;
+        }
+
+        return Assignment.builder()
+                .assignee(assignee)
+                .candidateGroups(teams)
+                .build();
+    }
+
+    private Set<String> getTeams(final CaseMetadata caseMetadata) {
+
+        // Retrieve the policy number
+        String policyNumber = Optional.ofNullable(
+                        caseMetadata.getSubjects().get("policy")
+                )
+                .filter(policies -> !policies.isEmpty())
+                .flatMap(policies -> policies.stream().findFirst())
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                String.format(
+                                        "Policy number is not provided in subject of case '%s'",
+                                        caseMetadata.getCaseBusinessIdentifier()
+                                )
+                        )
+                );
+
+        // Find the broker linked to the policy
+        DistributionPartner broker =
+                internalDistributionPartnerService.getBrokerOfPolicy(policyNumber);
+
+        // Find the teams associated to the target market of the broker
+        return targetMarketTeamConfigProperties.getTeamsOfTargetMarket(
+                broker.getTargetMarket()
+        );
+    }
 }
