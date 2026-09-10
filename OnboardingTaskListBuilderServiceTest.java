@@ -1,35 +1,13 @@
-<nz-tabs style="margin-top: 1rem;">
+private isControllingPerson(client: IThirdParty): boolean {
+  const roles = client.roleTypes ?? [];
 
-  <!-- POLICY TAB -->
+  return roles.includes('TRUSTEE') && roles.includes('EBO');
+}
 
-  <nz-tab>
-
-    <ng-template nzTabLink>
-
-      <span class="holder-tab">
-
-        <nz-icon
-
-          class="holder-tab__avatar"
-
-          nzType="file-text"
-
-        />
-
-        Policy
-
-      </span>
-
-    </ng-template>
-
-    <section class="client-profiling__content">
-
-      <policy-profiling
-
-        [policy]="policy()"
-
-      />
-
-    </section>
-
-  </nz-tab>
+readonly controllingPersons = computed(() =>
+  (this.getClientProfilingData()
+    ?.initialBusinessData
+    ?.policy
+    ?.clients ?? [])
+    .filter(client => this.isControllingPerson(client))
+);
