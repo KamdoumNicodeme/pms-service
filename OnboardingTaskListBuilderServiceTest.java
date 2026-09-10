@@ -1,85 +1,96 @@
-private entryFieldValue(
-  paired: PairedEntry,
-  source: ComparisonSourceId,
-  fieldKey: string
-): string | null {
-  return paired.fields[source]
-    ?.find(field => field.key === fieldKey)
-    ?.value ?? null;
-}
+private buildListRow(
+  field: ComparisonListFieldDto
+): ComparisonRow {
 
-private buildEntryChildren(
-  field: ComparisonListFieldDto,
-  paired: PairedEntry
-): ComparisonRow[] {
+  const overrides = this.overrides();
 
-  if (!field.entryFields?.length) {
-    return [];
-  }
+  const entries: ComparisonEntryRow[] =
+    pairEntries(field).map((paired: PairedEntry) => {
 
-  return field.entryFields.map(definition => {
+      const id =
+        `${field.key}:${paired.key}`;
 
-    const id =
-      `${field.key}:${paired.key}:${definition.key}`;
+      const children =
+        this.buildEntryChildren(field, paired);
 
-    const values: Record<
-      ComparisonSourceId,
-      string | null
-    > = {
-      digital: this.entryFieldValue(
-        paired,
-        'digital',
-        definition.key
-      ),
+      /*
+       * Liste structurée :
+       * Tax Information par exemple.
+       */
+      if (children.length > 0) {
 
-      kyc: this.entryFieldValue(
-        paired,
-        'kyc',
-        definition.key
-      ),
+        const status =
+          worstStatus(children);
 
-      core: this.entryFieldValue(
-        paired,
-        'core',
-        definition.key
-      ),
-    };
+        const fallback: Resolution = {
+          source: 'core',
+          value: null,
+          reason: '',
+          comment: '',
+          reviewed: true,
+        };
 
-    const status =
-      computeStatus(values);
+        return {
+          id,
+          fieldKey: field.key,
+          entryKey: paired.key,
+          label: paired.label,
 
-    const fallback =
-      defaultResolution(values, status);
+          values: paired.values,
+          fields: paired.fields,
 
-    const resolution =
-      this.overrides().get(id) ?? fallback;
+          status,
+          resolution: fallback,
+          fallback,
 
-    return {
-      id,
-      key: definition.key,
-      label: definition.label,
+          needsAttention:
+            children.some(child => child.needsAttention),
 
-      kind: definition.kind,
-      options: definition.options ?? [],
+          isOverride:
+            children.some(child => child.isOverride),
 
-      values,
+          isManual: false,
 
-      status,
-      resolution,
-      fallback,
+          children,
+        };
+      }
 
-      needsAttention:
-        needsAttention(status),
+      /*
+       * Listes simples :
+       * email, phone, nationality...
+       */
+      const values = paired.values;
 
-      isOverride:
-        isOverride(resolution, fallback),
+      const status =
+        computeEntryStatus(values);
 
-      entryNoun: '',
-      entries: [],
-      children: [],
+      const fallback =
+        entryFallback(values, status);
 
-      composed: EMPTY_COMPOSED,
-      composedResult: [],
-    };
-  });
-}
+      const resolution =
+        overrides.get(id) ?? fallback;
+
+      return {
+        id,
+        fieldKey: field.key,
+        entryKey: paired.key,
+        label: paired.label,
+
+        values,
+        fields: paired.fields,
+
+        status,
+        resolution,
+        fallback,
+
+        needsAttention:
+          needsAttention(status),
+
+        isOverride:
+          isOverride(resolution, fallback),
+
+        isManual: false,
+
+        children: [],
+      };
+    });
