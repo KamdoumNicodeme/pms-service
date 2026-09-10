@@ -1,35 +1,85 @@
-<div class="row__body">
+private entryFieldValue(
+  paired: PairedEntry,
+  source: ComparisonSourceId,
+  fieldKey: string
+): string | null {
+  return paired.fields[source]
+    ?.find(field => field.key === fieldKey)
+    ?.value ?? null;
+}
 
-  @if (entry().children?.length) {
+private buildEntryChildren(
+  field: ComparisonListFieldDto,
+  paired: PairedEntry
+): ComparisonRow[] {
 
-    <div class="row__children">
-
-      @for (child of entry().children; track child.id) {
-
-        <comparison-row
-          [row]="child"
-        />
-
-      }
-
-    </div>
-
-  } @else {
-
-    <comparison-result
-      [resolution]="entry().resolution"
-      [needsAttention]="entry().needsAttention"
-      [isOverride]="entry().isOverride"
-      [expanded]="expanded()"
-      [emptyMeansDropped]="true"
-      [kind]="kind()"
-      (edit)="toggle.emit()"
-    />
-
-    <comparison-annotations
-      [annotations]="annotations()"
-    />
-
+  if (!field.entryFields?.length) {
+    return [];
   }
 
-</div>
+  return field.entryFields.map(definition => {
+
+    const id =
+      `${field.key}:${paired.key}:${definition.key}`;
+
+    const values: Record<
+      ComparisonSourceId,
+      string | null
+    > = {
+      digital: this.entryFieldValue(
+        paired,
+        'digital',
+        definition.key
+      ),
+
+      kyc: this.entryFieldValue(
+        paired,
+        'kyc',
+        definition.key
+      ),
+
+      core: this.entryFieldValue(
+        paired,
+        'core',
+        definition.key
+      ),
+    };
+
+    const status =
+      computeStatus(values);
+
+    const fallback =
+      defaultResolution(values, status);
+
+    const resolution =
+      this.overrides().get(id) ?? fallback;
+
+    return {
+      id,
+      key: definition.key,
+      label: definition.label,
+
+      kind: definition.kind,
+      options: definition.options ?? [],
+
+      values,
+
+      status,
+      resolution,
+      fallback,
+
+      needsAttention:
+        needsAttention(status),
+
+      isOverride:
+        isOverride(resolution, fallback),
+
+      entryNoun: '',
+      entries: [],
+      children: [],
+
+      composed: EMPTY_COMPOSED,
+      composedResult: [],
+    };
+  });
+}
