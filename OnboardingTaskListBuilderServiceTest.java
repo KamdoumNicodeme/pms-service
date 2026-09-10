@@ -1,200 +1,71 @@
-<section class="client-profiling">
+@if (kind() === 'date') {
 
-  @let caseId: string | undefined =
-    getClientProfilingData()?.caseBusinessIdentifier;
+  <nz-date-picker
+    nzFormat="dd/MM/yyyy"
+    [ngModel]="dateValue()"
+    (ngModelChange)="onDateChange($event)"
+  />
 
-  <header class="client-profiling__header">
+} @else {
 
-    @if (summary.value(); as caseSummary: CaseSummary | undefined) {
-      <h1>
-        CLIENT PROFILING - {{ caseId }} - {{ caseSummary.title }}
-      </h1>
-    }
+  <input
+    nz-input
+    [ngModel]="manualValue()"
+    (ngModelChange)="manualValue.set($event)"
+  />
 
-    <div class="client-profiling__header__actions">
+}
 
-      <button
-        class="save-button"
-        nz-button
-        nzType="primary"
-        nzShape="circle"
-      >
-        <nz-icon nzType="save" nzTheme="outline" />
-      </button>
+readonly dateValue = computed(() => {
+  const value = this.manualValue();
 
-      <button nz-button nzType="primary">
-        Status
-      </button>
+  if (!value) {
+    return null;
+  }
 
-      <button nz-button nzType="primary">
-        Complete
-      </button>
+  const date = new Date(value);
 
-    </div>
+  return isNaN(date.getTime())
+    ? null
+    : date;
+});
 
-  </header>
+onDateChange(date: Date | null): void {
+  if (!date) {
+    this.manualValue.set('');
+    return;
+  }
 
-  <summary
-    class="client-profiling__summary"
-    [facts]="summary.value()?.facts ?? []"
-  ></summary>
+  const year = date.getFullYear();
 
-  <nz-tabs style="margin-top: 1rem;">
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, '0');
 
-    <!-- PHYSICAL / MORAL POLICY HOLDERS -->
-    @for (
-      holder of holders();
-      track holder.thirdPartyId
-    ) {
+  const day = String(
+    date.getDate()
+  ).padStart(2, '0');
 
-      <nz-tab>
+  this.manualValue.set(
+    `${year}-${month}-${day}`
+  );
+}
 
-        <ng-template nzTabLink>
-          <span
-            class="holder-tab"
-            [attr.data-state]="stateOf(holder.thirdPartyId)"
-          >
-
-            <nz-icon
-              class="holder-tab__avatar"
-              nzType="user"
-            />
-
-            PH-{{ holderLabel(holder) }}
-
-            @if (
-              stateOf(holder.thirdPartyId);
-              as state: ReviewState | null
-            ) {
-              <nz-icon
-                class="holder-tab__state"
-                nz-tooltip
-                [nzTooltipTitle]="
-                  state === 'pending'
-                    ? 'Values still to review'
-                    : 'Nothing left to review'
-                "
-                [nzType]="
-                  state === 'pending'
-                    ? 'exclamation-circle'
-                    : 'check-circle'
-                "
-                nzTheme="fill"
-              />
-            }
-
-          </span>
-        </ng-template>
-
-        <section class="client-profiling__content">
-
-          <holder-profiling
-            (stateChange)="
-              onHolderState(
-                holder.thirdPartyId,
-                $event
-              )
-            "
-            [holder]="holder"
-            [policyNumber]="policyNumber()"
-            [controllingPerson]="false"
-          />
-
-        </section>
-
-      </nz-tab>
-    }
-
-    <!-- CONTROLLING PERSONS -->
-    @for (
-      controllingPerson of controllingPersons();
-      track controllingPerson.thirdPartyId
-    ) {
-
-      <nz-tab>
-
-        <ng-template nzTabLink>
-          <span
-            class="holder-tab"
-            [attr.data-state]="stateOf(controllingPerson.thirdPartyId)"
-          >
-
-            <nz-icon
-              class="holder-tab__avatar"
-              nzType="user"
-            />
-
-            CP-{{ holderLabel(controllingPerson) }}
-
-            @if (
-              stateOf(controllingPerson.thirdPartyId);
-              as state: ReviewState | null
-            ) {
-              <nz-icon
-                class="holder-tab__state"
-                nz-tooltip
-                [nzTooltipTitle]="
-                  state === 'pending'
-                    ? 'Values still to review'
-                    : 'Nothing left to review'
-                "
-                [nzType]="
-                  state === 'pending'
-                    ? 'exclamation-circle'
-                    : 'check-circle'
-                "
-                nzTheme="fill"
-              />
-            }
-
-          </span>
-        </ng-template>
-
-        <section class="client-profiling__content">
-
-          <holder-profiling
-            (stateChange)="
-              onHolderState(
-                controllingPerson.thirdPartyId,
-                $event
-              )
-            "
-            [holder]="controllingPerson"
-            [policyNumber]="policyNumber()"
-            [controllingPerson]="true"
-          />
-
-        </section>
-
-      </nz-tab>
-    }
-
-    <!-- POLICY -->
-    <nz-tab>
-
-      <ng-template nzTabLink>
-
-        <span class="holder-tab">
-
-          <nz-icon
-            class="holder-tab__avatar"
-            nzType="file-text"
-          />
-
-          Policy
-
-        </span>
-
-      </ng-template>
-
-      <section class="client-profiling__content">
-
-        <policy-profiling />
-
-      </section>
-
-    </nz-tab>
-
-  </nz-tabs>
-
-</section>
+private dateField(
+  key: string,
+  label: string,
+  value: string | null | undefined,
+  editable = true
+): ComparisonScalarFieldDto {
+  return {
+    key,
+    label,
+    kind: 'date',
+    editable,
+    values: {
+      digital: null,
+      kyc: null,
+      core: this.normalize(value),
+    },
+  };
+}
