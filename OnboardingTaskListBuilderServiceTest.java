@@ -1,17 +1,22 @@
-readonly expandedId =
-  input<string | null>(null);
+<comparison-entry-row
+  [entry]="entry"
 
-readonly focusedId =
-  input<string | null>(null);
+  [expanded]="store.expandedId() === entry.id"
+  [focused]="store.focusedId() === entry.id"
 
-readonly toggleChild =
-  output<string>();
+  [expandedId]="store.expandedId()"
+  [focusedId]="store.focusedId()"
 
-readonly applyChild =
-  output<{
-    id: string;
-    patch: ResolutionPatch;
-  }>();
+  (toggle)="store.toggleExpanded(entry.id)"
+  (apply)="store.apply(entry.id, $event)"
+  (reset)="store.reset(entry.id)"
 
-readonly resetChild =
-  output<string>();
+  (toggleChild)="store.toggleExpanded($event)"
+
+  (applyChild)="store.apply(
+    $event.id,
+    $event.patch
+  )"
+
+  (resetChild)="store.reset($event)"
+/>
