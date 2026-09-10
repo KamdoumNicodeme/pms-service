@@ -1,13 +1,35 @@
-onDateChange(value: string | null): void {
-  if (!value) {
-    this.manualValue.set('');
-    return;
-  }
+core: values.map((tax: ITaxInformation) => ({
+  key: tax.taxCountry,
 
-  const [year, month, day] =
-    value.split('-');
+  fields: [
+    {
+      key: 'tax-country',
+      label: 'Tax Country',
+      value: this.normalize(tax.taxCountry),
+      kind: 'select',
+      editable: false,
+      options: this.countryOptions,
+    },
 
-  this.manualValue.set(
-    `${day}/${month}/${year}`
-  );
-}
+    {
+      key: 'tin',
+      label: 'TIN',
+      value: tax.taxNumber ?? null,
+      kind: 'text',
+      editable: true,
+    },
+
+    ...(!tax.taxNumber?.trim()
+      ? [
+          {
+            key: 'tin-unavailable-reason',
+            label: 'Reason if TIN Unavailable',
+            value: tax.tinUnavailableReason ?? null,
+            kind: 'select' as const,
+            editable: true,
+            options: this.taxUnavailableOptions,
+          },
+        ]
+      : []),
+  ],
+})),
