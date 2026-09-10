@@ -19,10 +19,7 @@
         nzType="primary"
         nzShape="circle"
       >
-        <nz-icon
-          nzType="save"
-          nzTheme="outline"
-        />
+        <nz-icon nzType="save" nzTheme="outline" />
       </button>
 
       <button nz-button nzType="primary">
@@ -44,7 +41,7 @@
 
   <nz-tabs style="margin-top: 1rem;">
 
-    <!-- POLICY HOLDERS -->
+    <!-- PHYSICAL / MORAL POLICY HOLDERS -->
     @for (
       holder of holders();
       track holder.thirdPartyId
@@ -53,7 +50,6 @@
       <nz-tab>
 
         <ng-template nzTabLink>
-
           <span
             class="holder-tab"
             [attr.data-state]="stateOf(holder.thirdPartyId)"
@@ -70,7 +66,6 @@
               stateOf(holder.thirdPartyId);
               as state: ReviewState | null
             ) {
-
               <nz-icon
                 class="holder-tab__state"
                 nz-tooltip
@@ -86,11 +81,9 @@
                 "
                 nzTheme="fill"
               />
-
             }
 
           </span>
-
         </ng-template>
 
         <section class="client-profiling__content">
@@ -104,12 +97,12 @@
             "
             [holder]="holder"
             [policyNumber]="policyNumber()"
+            [controllingPerson]="false"
           />
 
         </section>
 
       </nz-tab>
-
     }
 
     <!-- CONTROLLING PERSONS -->
@@ -121,7 +114,6 @@
       <nz-tab>
 
         <ng-template nzTabLink>
-
           <span
             class="holder-tab"
             [attr.data-state]="stateOf(controllingPerson.thirdPartyId)"
@@ -138,7 +130,6 @@
               stateOf(controllingPerson.thirdPartyId);
               as state: ReviewState | null
             ) {
-
               <nz-icon
                 class="holder-tab__state"
                 nz-tooltip
@@ -154,11 +145,9 @@
                 "
                 nzTheme="fill"
               />
-
             }
 
           </span>
-
         </ng-template>
 
         <section class="client-profiling__content">
@@ -172,12 +161,12 @@
             "
             [holder]="controllingPerson"
             [policyNumber]="policyNumber()"
+            [controllingPerson]="true"
           />
 
         </section>
 
       </nz-tab>
-
     }
 
     <!-- POLICY -->
