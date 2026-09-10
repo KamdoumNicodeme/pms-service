@@ -1,19 +1,35 @@
-.structured-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+removeManualEntry(
+  fieldKey: string,
+  entryKey: string
+): void {
 
-.structured-form__field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+  // Simple manual entries
+  this.manualEntries.update(current =>
+    current.filter(entry =>
+      !(
+        entry.fieldKey === fieldKey &&
+        entry.entryKey === entryKey
+      )
+    )
+  );
 
-.structured-form__label {
-  font-weight: 500;
-}
+  // Structured manual entries
+  this.manualStructuredEntries.update(current =>
+    current.filter(entry =>
+      !(
+        entry.fieldKey === fieldKey &&
+        entry.entryKey === entryKey
+      )
+    )
+  );
 
-.structured-form__control {
-  width: 100%;
+  const id = `${fieldKey}:${entryKey}`;
+
+  if (this.focusedId() === id) {
+    this.focusedId.set(null);
+  }
+
+  if (this.expandedId() === id) {
+    this.expandedId.set(null);
+  }
 }
