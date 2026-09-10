@@ -1,35 +1,20 @@
-core: values.map((tax: ITaxInformation) => ({
-  key: tax.taxCountry,
+const definitions = (field.entryFields ?? []).filter(definition => {
+  if (definition.key !== 'tin-unavailable-reason') {
+    return true;
+  }
 
-  fields: [
-    {
-      key: 'tax-country',
-      label: 'Tax Country',
-      value: this.normalize(tax.taxCountry),
-      kind: 'select',
-      editable: false,
-      options: this.countryOptions,
-    },
+  const tin =
+    paired.fields.core
+      ?.find(item => item.key === 'tin')
+      ?.value
+    ??
+    paired.fields.kyc
+      ?.find(item => item.key === 'tin')
+      ?.value
+    ??
+    paired.fields.digital
+      ?.find(item => item.key === 'tin')
+      ?.value;
 
-    {
-      key: 'tin',
-      label: 'TIN',
-      value: tax.taxNumber ?? null,
-      kind: 'text',
-      editable: true,
-    },
-
-    ...(!tax.taxNumber?.trim()
-      ? [
-          {
-            key: 'tin-unavailable-reason',
-            label: 'Reason if TIN Unavailable',
-            value: tax.tinUnavailableReason ?? null,
-            kind: 'select' as const,
-            editable: true,
-            options: this.taxUnavailableOptions,
-          },
-        ]
-      : []),
-  ],
-})),
+  return !tin?.trim();
+});
