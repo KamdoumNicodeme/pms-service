@@ -1,151 +1,222 @@
 import {
   Component,
   computed,
+  effect,
+  ElementRef,
+  inject,
   input,
   output,
-  signal
+  viewChild
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
-
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 
 import {
-  ComparisonRow,
+  ComparisonEntryRow,
+  ComparisonFieldKind,
   ResolutionPatch
 } from '../../../../models/comparison.model';
 
 import {
-  ComparisonEntryRowComponent
-} from '../comparison-entry-row/comparison-entry-row';
+  buildAnnotations,
+  opensRow,
+  statusLabel
+} from '../../comparison.utils';
+
+import {
+  ComparisonAnnotations
+} from '../comparison-annotations/comparison-annotations';
+
+import {
+  ComparisonResolution
+} from '../comparison-resolution/comparison-resolution';
+
+import {
+  ComparisonResult
+} from '../comparison-result/comparison-result';
+
+import {
+  ComparisonRowComponent
+} from '../comparison-row/comparison-row';
 
 
-/** Emitted alongside the entry the action targets. */
-export interface EntryAction<T = void> {
-  readonly id: string;
-  readonly payload: T;
-}
-
-
-/**
- * A multi-valued field: every entry is compared and arbitrated on its own line,
- * and the agent can append a value none of the three sources provided.
- */
 @Component({
-  selector: 'comparison-list-field',
+  selector: 'comparison-entry-row',
 
   imports: [
-    ComparisonEntryRowComponent,
-    FormsModule,
+    ComparisonResult,
+    ComparisonResolution,
+    ComparisonAnnotations,
+    ComparisonRowComponent,
     NzIconModule,
-    NzInputModule,
+    NzTooltipModule
   ],
 
+  host: {
+    class: 'row row--entry',
+    tabindex: '0',
+
+    '[class.is-focused]': 'focused()',
+    '[class.is-expanded]': 'expanded()',
+    '[attr.data-status]': 'entry().status',
+
+    '(focus)': 'focusRequest.emit()',
+    '(click)': 'onClick($event)',
+    '(keydown)': 'onKeydown($event)'
+  },
+
   template: `
-    <div class="list">
 
-      <header class="list__header">
+    <div class="row__line">
 
-        <span class="list__title">
-          {{ row().label }}
+      <div class="row__label">
+
+        <span
+          class="row__stripe"
+          [nz-tooltip]="statusText()">
         </span>
 
-        <span class="list__count">
-          {{ row().entries.length }}
-          {{ row().entries.length === 1 ? 'entry' : 'entries' }}
-        </span>
 
-        @if (attentionCount() > 0) {
-          <span class="list__attention">
-            {{ attentionCount() }} to review
+        @if (chipLabel(); as chip) {
+
+          <span
+            class="row__chip"
+            [attr.data-status]="entry().status">
+
+            <nz-icon
+              [nzType]="chipIcon()"
+            />
+
+            {{ chip }}
+
           </span>
+
         }
 
-      </header>
+
+        @if (entry().label) {
+
+          <span class="row__name">
+            {{ entry().label }}
+          </span>
+
+        }
 
 
-      @for (entry of row().entries; track entry.id) {
+        @if (entry().isManual) {
 
-        <comparison-entry-row
-          [entry]="entry"
+          <button
+            type="button"
+            class="row__remove"
+            nz-tooltip
+            nzTooltipTitle="Remove this entry"
+            (click)="remove.emit()">
 
-          [expanded]="expandedId() === entry.id"
-          [focused]="focusedId() === entry.id"
+            <nz-icon
+              nzType="delete"
+            />
 
-          [expandedId]="expandedId()"
-          [focusedId]="focusedId()"
+          </button>
 
-          (toggle)="toggleEntry.emit(entry.id)"
+        }
 
-          (apply)="applyEntry.emit({
-            id: entry.id,
-            payload: $event
-          })"
-
-          (reset)="resetEntry.emit(entry.id)"
-
-          (remove)="removeEntry.emit(entry.entryKey)"
-
-          (focusRequest)="focusEntry.emit(entry.id)"
-
-          (toggleChild)="toggleEntry.emit($event)"
-
-          (applyChild)="applyEntry.emit({
-            id: $event.id,
-            payload: $event.patch
-          })"
-
-          (resetChild)="resetEntry.emit($event)"
-        />
-
-      }
+      </div>
 
 
-      <div class="list__add">
+      <div class="row__body">
 
-        @if (adding()) {
+        <!-- ================================= -->
+        <!-- STRUCTURED LIST ENTRY -->
+        <!-- Tax Country / TIN / Reason -->
+        <!-- ================================= -->
 
-          <input
-            nz-input
-            class="list__add__input"
-            [placeholder]="'New ' + row().entryNoun"
-            [ngModel]="draft()"
-            (ngModelChange)="draft.set($event)"
-            (keydown.enter)="submit()"
-            (keydown.escape)="cancelAdd()"
+        @if (entry().children.length > 0) {
+
+          <div class="row__children">
+
+            @for (
+              child of entry().children;
+              track child.id
+            ) {
+
+              <comparison-row
+                [row]="child"
+
+                [expanded]="expandedId() === child.id"
+
+                [focused]="focusedId() === child.id"
+
+                (toggle)="toggleChild.emit(child.id)"
+
+                (apply)="applyChild.emit({
+                  id: child.id,
+                  patch: $event
+                })"
+
+                (reset)="resetChild.emit(child.id)"
+              />
+
+            }
+
+          </div>
+
+        }
+
+        <!-- ================================= -->
+        <!-- SIMPLE LIST ENTRY -->
+        <!-- email / phone / nationality -->
+        <!-- ================================= -->
+
+        @else {
+
+          <comparison-result
+            [resolution]="entry().resolution"
+
+            [needsAttention]="entry().needsAttention"
+
+            [isOverride]="entry().isOverride"
+
+            [expanded]="expanded()"
+
+            [emptyMeansDropped]="true"
+
+            [kind]="kind()"
+
+            (edit)="toggle.emit()"
           />
 
-          <button
-            type="button"
-            class="list__add__confirm"
-            [disabled]="draft().trim() === ''"
-            (click)="submit()"
-          >
-            Add
-          </button>
 
-          <button
-            type="button"
-            class="list__add__cancel"
-            (click)="cancelAdd()"
-          >
-            Cancel
-          </button>
+          <comparison-annotations
+            [annotations]="annotations()"
+          />
 
-        } @else {
 
-          <button
-            type="button"
-            class="list__add__trigger"
-            (click)="adding.set(true)"
-          >
+          @if (expanded()) {
 
-            <nz-icon nzType="plus" />
+            <comparison-resolution
+              [fieldId]="entry().id"
 
-            Add {{ row().entryNoun }}
+              [kind]="kind()"
 
-          </button>
+              [values]="entry().values"
+
+              [status]="entry().status"
+
+              [resolution]="entry().resolution"
+
+              [fallback]="entry().fallback"
+
+              [isOverride]="entry().isOverride"
+
+              (apply)="apply.emit($event)"
+
+              (cancel)="toggle.emit()"
+
+              (reset)="reset.emit()"
+            />
+
+          }
 
         }
 
@@ -154,82 +225,211 @@ export interface EntryAction<T = void> {
     </div>
   `,
 
-  styleUrl: './comparison-list-field.scss',
+  styleUrl: './comparison-entry-row.scss'
 })
-export class ComparisonListField {
+export class ComparisonEntryRowComponent {
 
-  readonly row =
-    input.required<ComparisonRow>();
+  private readonly host =
+    inject<ElementRef<HTMLElement>>(
+      ElementRef
+    );
+
+
+  private readonly panel =
+    viewChild(ComparisonResolution);
+
+
+  readonly entry =
+    input.required<ComparisonEntryRow>();
+
+
+  readonly expanded =
+    input(false);
+
+
+  readonly focused =
+    input(false);
+
+
+  readonly kind =
+    input<ComparisonFieldKind>('text');
+
 
   readonly expandedId =
     input<string | null>(null);
+
 
   readonly focusedId =
     input<string | null>(null);
 
 
-  readonly toggleEntry =
+  readonly toggle =
+    output<void>();
+
+
+  readonly reset =
+    output<void>();
+
+
+  readonly remove =
+    output<void>();
+
+
+  readonly apply =
+    output<ResolutionPatch>();
+
+
+  readonly focusRequest =
+    output<void>();
+
+
+  readonly toggleChild =
     output<string>();
 
-  readonly resetEntry =
-    output<string>();
 
-  readonly removeEntry =
-    output<string>();
+  readonly applyChild =
+    output<{
+      id: string;
+      patch: ResolutionPatch;
+    }>();
 
-  readonly applyEntry =
-    output<EntryAction<ResolutionPatch>>();
 
-  readonly focusEntry =
-    output<string>();
-
-  readonly addEntry =
+  readonly resetChild =
     output<string>();
 
 
-  readonly adding =
-    signal(false);
-
-  readonly draft =
-    signal('');
-
-
-  readonly attentionCount =
+  readonly statusText =
     computed(() =>
-      this.row()
-        .entries
-        .filter(
-          entry =>
-            entry.needsAttention
-            ||
-            entry.children.some(
-              child =>
-                child.needsAttention
-            )
-        )
-        .length
+      statusLabel(
+        this.entry().status
+      )
     );
 
 
-  submit(): void {
+  readonly annotations =
+    computed(() =>
+      buildAnnotations(
+        this.entry().values,
+        this.entry().resolution.value
+      )
+    );
 
-    const value =
-      this.draft().trim();
 
-    if (value === '') {
-      return;
-    }
+  readonly chipLabel =
+    computed(() => {
 
-    this.addEntry.emit(value);
+      if (
+        this.entry().isManual
+      ) {
+        return 'manual';
+      }
 
-    this.cancelAdd();
+      switch (
+        this.entry().status
+      ) {
+
+        case 'added':
+          return 'added';
+
+        case 'removed':
+          return 'removed';
+
+        case 'drift':
+        case 'conflict':
+          return 'conflict';
+
+        case 'updated':
+          return 'changed';
+
+        default:
+          return '';
+      }
+    });
+
+
+  readonly chipIcon =
+    computed(() => {
+
+      if (
+        this.entry().isManual
+      ) {
+        return 'edit';
+      }
+
+      switch (
+        this.entry().status
+      ) {
+
+        case 'added':
+          return 'plus';
+
+        case 'removed':
+          return 'minus';
+
+        case 'updated':
+          return 'swap';
+
+        default:
+          return 'warning';
+      }
+    });
+
+
+  constructor() {
+
+    effect(() => {
+
+      const element =
+        this.host.nativeElement;
+
+      if (
+        this.focused()
+        &&
+        document.activeElement !== element
+        &&
+        !element.contains(
+          document.activeElement
+        )
+      ) {
+
+        element.focus({
+          preventScroll: false
+        });
+      }
+    });
   }
 
 
-  cancelAdd(): void {
+  onClick(
+    event: MouseEvent
+  ): void {
 
-    this.adding.set(false);
+    /*
+     * Structured entries manage their
+     * own child expansion.
+     *
+     * We must NOT open the parent entry.
+     */
+    if (
+      this.entry().children.length > 0
+    ) {
+      return;
+    }
 
-    this.draft.set('');
+
+    if (
+      opensRow(event)
+    ) {
+      this.toggle.emit();
+    }
+  }
+
+
+  onKeydown(
+    event: KeyboardEvent
+  ): void {
+
+    this.panel()
+      ?.onKeydown(event);
   }
 }
