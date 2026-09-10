@@ -1,47 +1,22 @@
-@for (field of row().entryFields ?? []; track field.key) {
+setFieldValue(
+  key: string,
+  value: string
+): void {
 
-  @if (
-    field.key !== 'tin-unavailable-reason'
-    || !fieldValue('tin').trim()
-  ) {
+  this.structureDraft.update(current => {
 
-    <div class="structured-form__field">
+    const next = {
+      ...current,
+      [key]: value
+    };
 
-      <label class="structured-form__label">
-        {{ field.label }}
-      </label>
+    if (
+      key === 'tin'
+      && value?.trim()
+    ) {
+      next['tin-unavailable-reason'] = '';
+    }
 
-      @if (field.kind === 'select') {
-
-        <nz-select
-          class="structured-form__control"
-          [ngModel]="fieldValue(field.key)"
-          (ngModelChange)="setFieldValue(field.key, $event)"
-          nzPlaceHolder="Select a value"
-        >
-
-          @for (option of field.options ?? []; track option.value) {
-            <nz-option
-              [nzValue]="option.value"
-              [nzLabel]="option.label"
-            />
-          }
-
-        </nz-select>
-
-      } @else {
-
-        <input
-          nz-input
-          class="structured-form__control"
-          [ngModel]="fieldValue(field.key)"
-          (ngModelChange)="setFieldValue(field.key, $event)"
-        />
-
-      }
-
-    </div>
-
-  }
-
+    return next;
+  });
 }
