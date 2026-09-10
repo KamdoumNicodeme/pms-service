@@ -1,262 +1,287 @@
 import {
   Component,
   computed,
+  effect,
+  ElementRef,
+  inject,
   input,
   output,
-  signal
+  viewChild
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
-
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 
 import {
-  NzOptionComponent,
-  NzSelectComponent
-} from 'ng-zorro-antd/select';
-
-import { NzModalModule } from 'ng-zorro-antd/modal';
-
-import {
-  ComparisonRow,
+  ComparisonEntryRow,
+  ComparisonFieldKind,
   ResolutionPatch
 } from '../../../../models/comparison.model';
 
 import {
-  ComparisonEntryRowComponent
-} from '../comparison-entry-row/comparison-entry-row';
+  buildAnnotations,
+  opensRow,
+  statusLabel
+} from '../../comparison.utils';
 
+import {
+  ComparisonAnnotations
+} from '../comparison-annotations/comparison-annotations';
 
-export interface EntryAction<T = void> {
-  readonly id: string;
-  readonly payload: T;
-}
+import {
+  ComparisonResolution
+} from '../comparison-resolution/comparison-resolution';
 
+import {
+  ComparisonResult
+} from '../comparison-result/comparison-result';
 
-export interface StructureEntryPayload {
-  readonly fields: readonly {
-    key: string;
-    value: string | null;
-  }[];
-}
+import {
+  ComparisonRowComponent
+} from '../comparison-row/comparison-row';
 
 
 @Component({
-  selector: 'comparison-list-field',
+  selector: 'comparison-entry-row',
 
   imports: [
-    ComparisonEntryRowComponent,
-    FormsModule,
+    ComparisonResult,
+    ComparisonResolution,
+    ComparisonAnnotations,
+    ComparisonRowComponent,
     NzIconModule,
-    NzInputModule,
-    NzSelectComponent,
-    NzOptionComponent,
-    NzModalModule
+    NzTooltipModule
   ],
 
+  host: {
+    class: 'row row--entry',
+    tabindex: '0',
+
+    '[class.is-focused]': 'focused()',
+    '[class.is-expanded]': 'expanded()',
+    '[attr.data-status]': 'entry().status',
+
+    '(focus)': 'focusRequest.emit()',
+    '(click)': 'onClick($event)',
+    '(keydown)': 'onKeydown($event)',
+  },
+
   template: `
-    <div class="list">
+    <div class="row__line">
 
-      <!-- HEADER -->
+      <!-- ================================ -->
+      <!-- LABEL -->
+      <!-- ================================ -->
 
-      <header class="list__header">
+      <div class="row__label">
 
-        <span class="list__title">
-          {{ row().label }}
+        <span
+          class="row__stripe"
+          [nz-tooltip]="statusText()"
+        >
         </span>
 
-        <span class="list__count">
-          {{ row().entries.length }}
 
-          {{
-            row().entries.length === 1
-              ? 'entry'
-              : 'entries'
-          }}
-        </span>
+        @if (chipLabel(); as chip) {
 
-        @if (attentionCount() > 0) {
+          <span
+            class="row__chip"
+            [attr.data-status]="entry().status"
+          >
 
-          <span class="list__attention">
-            {{ attentionCount() }} to review
+            <nz-icon
+              [nzType]="chipIcon()"
+            />
+
+            {{ chip }}
+
           </span>
 
         }
 
-      </header>
+
+        @if (entry().label) {
+
+          <span class="row__name">
+            {{ entry().label }}
+          </span>
+
+        }
 
 
-      <!-- ENTRIES -->
+        <!-- ================================ -->
+        <!-- DELETE MANUAL ENTRY -->
+        <!-- ================================ -->
 
-      @for (entry of row().entries; track entry.id) {
-
-        <comparison-entry-row
-
-          [entry]="entry"
-
-          [expanded]="expandedId() === entry.id"
-
-          [focused]="focusedId() === entry.id"
-
-          [expandedId]="expandedId()"
-
-          [focusedId]="focusedId()"
-
-
-          (toggle)="
-            toggleEntry.emit(entry.id)
-          "
-
-
-          (apply)="
-            applyEntry.emit({
-              id: entry.id,
-              payload: $event
-            })
-          "
-
-
-          (reset)="
-            resetEntry.emit(entry.id)
-          "
-
-
-          (remove)="
-            removeEntry.emit(entry.entryKey)
-          "
-
-
-          (focusRequest)="
-            focusEntry.emit(entry.id)
-          "
-
-
-          (toggleChild)="
-            toggleEntry.emit($event)
-          "
-
-
-          (applyChild)="
-            applyEntry.emit({
-              id: $event.id,
-              payload: $event.patch
-            })
-          "
-
-
-          (resetChild)="
-            resetEntry.emit($event)
-          "
-        />
-
-      }
-
-
-      <!-- ADD -->
-
-      <div class="list__add">
-
-        <!-- ======================== -->
-        <!-- STRUCTURED LIST -->
-        <!-- TAX INFORMATION -->
-        <!-- ======================== -->
-
-        @if (isStructuredList()) {
+        @if (entry().isManual) {
 
           <button
             type="button"
 
-            class="list__add__trigger"
+            class="row__remove"
 
-            (click)="openStructuredModal()"
+            nz-tooltip
+
+            nzTooltipTitle="Remove this entry"
+
+            (click)="onRemove($event)"
           >
 
-            <nz-icon nzType="plus" />
-
-            Add {{ row().entryNoun }}
+            <nz-icon nzType="delete" />
 
           </button>
 
         }
 
+      </div>
 
-        <!-- ======================== -->
-        <!-- SIMPLE LIST -->
-        <!-- EMAIL / PHONE / NATIONALITY -->
-        <!-- ======================== -->
+
+      <!-- ================================ -->
+      <!-- BODY -->
+      <!-- ================================ -->
+
+      <div class="row__body">
+
+
+        <!-- ================================= -->
+        <!-- STRUCTURED LIST ENTRY -->
+        <!-- Tax Country / TIN / Reason -->
+        <!-- ================================= -->
+
+        @if (entry().children.length > 0) {
+
+          <div class="row__children">
+
+            @for (
+              child of entry().children;
+              track child.id
+            ) {
+
+              <comparison-row
+
+                [row]="child"
+
+                [expanded]="
+                  expandedId() === child.id
+                "
+
+                [focused]="
+                  focusedId() === child.id
+                "
+
+                (toggle)="
+                  toggleChild.emit(
+                    child.id
+                  )
+                "
+
+                (apply)="
+                  applyChild.emit({
+                    id: child.id,
+                    patch: $event
+                  })
+                "
+
+                (reset)="
+                  resetChild.emit(
+                    child.id
+                  )
+                "
+              />
+
+            }
+
+          </div>
+
+        }
+
+
+        <!-- ================================= -->
+        <!-- SIMPLE LIST ENTRY -->
+        <!-- Email / Phone / Nationality -->
+        <!-- ================================= -->
 
         @else {
 
-          @if (adding()) {
+          <comparison-result
 
-            <input
-              nz-input
+            [resolution]="
+              entry().resolution
+            "
 
-              class="list__add__input"
+            [needsAttention]="
+              entry().needsAttention
+            "
 
-              [placeholder]="
-                'New ' + row().entryNoun
+            [isOverride]="
+              entry().isOverride
+            "
+
+            [expanded]="
+              expanded()
+            "
+
+            [emptyMeansDropped]="true"
+
+            [kind]="
+              kind()
+            "
+
+            (edit)="
+              toggle.emit()
+            "
+          />
+
+
+          <comparison-annotations
+            [annotations]="annotations()"
+          />
+
+
+          @if (expanded()) {
+
+            <comparison-resolution
+
+              [fieldId]="
+                entry().id
               "
 
-              [ngModel]="draft()"
-
-              (ngModelChange)="
-                draft.set($event)
+              [kind]="
+                kind()
               "
 
-              (keydown.enter)="
-                submit()
+              [values]="
+                entry().values
               "
 
-              (keydown.escape)="
-                cancelAdd()
+              [status]="
+                entry().status
+              "
+
+              [resolution]="
+                entry().resolution
+              "
+
+              [fallback]="
+                entry().fallback
+              "
+
+              [isOverride]="
+                entry().isOverride
+              "
+
+              (apply)="
+                apply.emit($event)
+              "
+
+              (cancel)="
+                toggle.emit()
+              "
+
+              (reset)="
+                reset.emit()
               "
             />
-
-
-            <button
-              type="button"
-
-              class="list__add__confirm"
-
-              [disabled]="
-                draft().trim() === ''
-              "
-
-              (click)="submit()"
-            >
-              Add
-            </button>
-
-
-            <button
-              type="button"
-
-              class="list__add__cancel"
-
-              (click)="cancelAdd()"
-            >
-              Cancel
-            </button>
-
-          }
-
-          @else {
-
-            <button
-              type="button"
-
-              class="list__add__trigger"
-
-              (click)="openSimpleAdd()"
-            >
-
-              <nz-icon nzType="plus" />
-
-              Add {{ row().entryNoun }}
-
-            </button>
 
           }
 
@@ -264,140 +289,31 @@ export interface StructureEntryPayload {
 
       </div>
 
-
-      <!-- ================================= -->
-      <!-- STRUCTURED MODAL -->
-      <!-- ================================= -->
-
-      <nz-modal
-
-        [nzVisible]="structuredModalVisible()"
-
-        [nzTitle]="
-          'Add ' + row().entryNoun
-        "
-
-        nzOkText="Add"
-
-        nzCancelText="Cancel"
-
-        [nzOkDisabled]="
-          !canSubmitStructured()
-        "
-
-        (nzOnOk)="
-          submitStructured()
-        "
-
-        (nzOnCancel)="
-          closeStructuredModal()
-        "
-      >
-
-        <ng-container *nzModalContent>
-
-          <div class="structured-form">
-
-            @for (
-              field of row().entryFields ?? [];
-              track field.key
-            ) {
-
-              <div class="structured-form__field">
-
-                <label class="structured-form__label">
-
-                  {{ field.label }}
-
-                </label>
-
-
-                <!-- SELECT -->
-
-                @if (field.kind === 'select') {
-
-                  <nz-select
-
-                    class="structured-form__control"
-
-                    [ngModel]="
-                      fieldValue(field.key)
-                    "
-
-                    (ngModelChange)="
-                      setFieldValue(
-                        field.key,
-                        $event
-                      )
-                    "
-
-                    nzPlaceHolder="Select a value"
-                  >
-
-                    @for (
-                      option of field.options ?? [];
-                      track option.value
-                    ) {
-
-                      <nz-option
-                        [nzValue]="option.value"
-
-                        [nzLabel]="option.label"
-                      />
-
-                    }
-
-                  </nz-select>
-
-                }
-
-
-                <!-- TEXT -->
-
-                @else {
-
-                  <input
-                    nz-input
-
-                    class="structured-form__control"
-
-                    [ngModel]="
-                      fieldValue(field.key)
-                    "
-
-                    (ngModelChange)="
-                      setFieldValue(
-                        field.key,
-                        $event
-                      )
-                    "
-                  />
-
-                }
-
-              </div>
-
-            }
-
-          </div>
-
-        </ng-container>
-
-      </nz-modal>
-
     </div>
   `,
 
-  styleUrl: './comparison-list-field.scss'
+  styleUrl: './comparison-entry-row.scss',
 })
-export class ComparisonListField {
+export class ComparisonEntryRowComponent {
 
-  // ==========================
-  // INPUT
-  // ==========================
+  // ==============================
+  // INPUTS
+  // ==============================
 
-  readonly row =
-    input.required<ComparisonRow>();
+  readonly entry =
+    input.required<ComparisonEntryRow>();
+
+
+  readonly expanded =
+    input(false);
+
+
+  readonly focused =
+    input(false);
+
+
+  readonly kind =
+    input<ComparisonFieldKind>('text');
 
 
   readonly expandedId =
@@ -408,258 +324,229 @@ export class ComparisonListField {
     input<string | null>(null);
 
 
-  // ==========================
-  // OUTPUT
-  // ==========================
+  // ==============================
+  // OUTPUTS
+  // ==============================
 
-  readonly toggleEntry =
+  readonly toggle =
+    output<void>();
+
+
+  readonly reset =
+    output<void>();
+
+
+  readonly remove =
+    output<void>();
+
+
+  readonly apply =
+    output<ResolutionPatch>();
+
+
+  readonly focusRequest =
+    output<void>();
+
+
+  readonly toggleChild =
     output<string>();
 
 
-  readonly resetEntry =
+  readonly applyChild =
+    output<{
+      id: string;
+      patch: ResolutionPatch;
+    }>();
+
+
+  readonly resetChild =
     output<string>();
 
 
-  readonly removeEntry =
-    output<string>();
+  // ==============================
+  // DISPLAY
+  // ==============================
+
+  readonly statusText =
+    computed(() =>
+      statusLabel(
+        this.entry().status
+      )
+    );
 
 
-  readonly applyEntry =
-    output<EntryAction<ResolutionPatch>>();
+  readonly annotations =
+    computed(() =>
+      buildAnnotations(
+        this.entry().values,
+        this.entry().resolution.value
+      )
+    );
 
 
-  readonly focusEntry =
-    output<string>();
+  readonly chipLabel =
+    computed(() => {
+
+      if (this.entry().isManual) {
+        return 'manual';
+      }
+
+      switch (this.entry().status) {
+
+        case 'added':
+          return 'added';
+
+        case 'removed':
+          return 'removed';
+
+        case 'drift':
+        case 'conflict':
+          return 'conflict';
+
+        case 'updated':
+          return 'changed';
+
+        default:
+          return '';
+      }
+
+    });
 
 
-  /**
-   * Simple entry:
-   * email
-   * phone
-   * nationality
-   */
-  readonly addEntry =
-    output<string>();
+  readonly chipIcon =
+    computed(() => {
+
+      if (this.entry().isManual) {
+        return 'edit';
+      }
+
+      switch (this.entry().status) {
+
+        case 'added':
+          return 'plus';
+
+        case 'removed':
+          return 'minus';
+
+        case 'updated':
+          return 'swap';
+
+        default:
+          return 'warning';
+      }
+
+    });
 
 
-  /**
-   * Structured entry:
-   * tax information
-   */
-  readonly addStructureEntry =
-    output<StructureEntryPayload>();
+  // ==============================
+  // INTERNAL
+  // ==============================
+
+  private readonly host =
+    inject<ElementRef<HTMLElement>>(
+      ElementRef
+    );
 
 
-  // ==========================
-  // SIMPLE ADD
-  // ==========================
-
-  readonly adding =
-    signal(false);
+  private readonly panel =
+    viewChild(
+      ComparisonResolution
+    );
 
 
-  readonly draft =
-    signal('');
+  constructor() {
+
+    effect(() => {
+
+      const element =
+        this.host.nativeElement;
 
 
-  openSimpleAdd(): void {
+      if (
+        this.focused()
+        &&
+        document.activeElement !== element
+        &&
+        !element.contains(
+          document.activeElement
+        )
+      ) {
 
-    this.draft.set('');
+        element.focus({
+          preventScroll: false
+        });
 
-    this.adding.set(true);
+      }
+
+    });
+
   }
 
 
-  submit(): void {
+  // ==============================
+  // DELETE
+  // ==============================
 
-    const value =
-      this.draft().trim();
+  onRemove(
+    event: MouseEvent
+  ): void {
+
+    /*
+     * Very important:
+     * prevent the click from reaching
+     * the host `(click)="onClick(...)"`
+     */
+    event.preventDefault();
+
+    event.stopPropagation();
 
 
-    if (value === '') {
+    this.remove.emit();
+  }
+
+
+  // ==============================
+  // CLICK
+  // ==============================
+
+  onClick(
+    event: MouseEvent
+  ): void {
+
+    /*
+     * Structured entries manage
+     * their own children.
+     */
+    if (
+      this.entry().children.length > 0
+    ) {
       return;
     }
 
 
-    /*
-     * IMPORTANT:
-     * keep the old event
-     * used by email / phone / nationality
-     */
-    this.addEntry.emit(value);
+    if (
+      opensRow(event)
+    ) {
 
+      this.toggle.emit();
 
-    this.cancelAdd();
+    }
+
   }
 
 
-  cancelAdd(): void {
+  // ==============================
+  // KEYBOARD
+  // ==============================
 
-    this.adding.set(false);
-
-    this.draft.set('');
-  }
-
-
-  // ==========================
-  // STRUCTURED
-  // ==========================
-
-  readonly structureDraft =
-    signal<Record<string, string>>({});
-
-
-  readonly structuredModalVisible =
-    signal(false);
-
-
-  readonly isStructuredList =
-    computed(() =>
-
-      (this.row().entryFields?.length ?? 0) > 0
-
-    );
-
-
-  openStructuredModal(): void {
-
-    this.structureDraft.set({});
-
-    this.structuredModalVisible.set(true);
-  }
-
-
-  closeStructuredModal(): void {
-
-    this.structuredModalVisible.set(false);
-
-    this.structureDraft.set({});
-  }
-
-
-  fieldValue(
-    key: string
-  ): string {
-
-    return (
-      this.structureDraft()[key]
-      ?? ''
-    );
-  }
-
-
-  setFieldValue(
-    key: string,
-    value: string
+  onKeydown(
+    event: KeyboardEvent
   ): void {
 
-    this.structureDraft.update(
-      current => ({
-
-        ...current,
-
-        [key]: value
-
-      })
+    this.panel()?.onKeydown(
+      event
     );
+
   }
 
-
-  readonly canSubmitStructured =
-    computed(() => {
-
-      const definitions =
-        this.row().entryFields ?? [];
-
-
-      if (definitions.length === 0) {
-        return false;
-      }
-
-
-      /*
-       * For Tax Information,
-       * tax country is required.
-       */
-      const taxCountry =
-        this.fieldValue(
-          'tax-country'
-        );
-
-
-      return (
-        taxCountry.trim() !== ''
-      );
-    });
-
-
-  submitStructured(): void {
-
-    const definitions =
-      this.row().entryFields ?? [];
-
-
-    const fields =
-      definitions.map(
-        definition => {
-
-          const value =
-            this.fieldValue(
-              definition.key
-            ).trim();
-
-
-          return {
-
-            key:
-              definition.key,
-
-            value:
-              value === ''
-                ? null
-                : value
-
-          };
-
-        }
-      );
-
-
-    /*
-     * IMPORTANT:
-     *
-     * This is exactly the event
-     * that worked before the modal.
-     */
-    this.addStructureEntry.emit({
-      fields
-    });
-
-
-    this.closeStructuredModal();
-  }
-
-
-  // ==========================
-  // COUNTER
-  // ==========================
-
-  readonly attentionCount =
-    computed(() =>
-
-      this.row().entries.filter(
-        entry =>
-
-          entry.needsAttention
-
-          ||
-
-          entry.children.some(
-            child =>
-              child.needsAttention
-          )
-
-      ).length
-
-    );
 }
