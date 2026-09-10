@@ -1,311 +1,90 @@
-private buildListRow(field: ComparisonListFieldDto): ComparisonRow {
-  const overrides = this.overrides();
+const definitions = (field.entryFields ?? []).filter(definition => {
+  if (definition.key !== 'tin-unavailable-reason') {
+    return true;
+  }
 
-  const entries: ComparisonEntryRow[] = pairEntries(field).map(
-    (paired: PairedEntry): ComparisonEntryRow => {
-      const id = `${field.key}:${paired.key}`;
+  const tin =
+    paired.fields.core
+      ?.find(item => item.key === 'tin')
+      ?.value
+    ??
+    paired.fields.kyc
+      ?.find(item => item.key === 'tin')
+      ?.value
+    ??
+    paired.fields.digital
+      ?.find(item => item.key === 'tin')
+      ?.value;
 
-      // =====================================================
-      // STRUCTURED ENTRY
-      // Tax Information
-      // =====================================================
+  return !tin?.trim();
+});
 
-      const children = this.buildEntryChildren(field, paired);
 
-      if (children.length > 0) {
-        const status = worstStatus(children);
 
-        const fallback: Resolution = {
-          source: 'core',
-          value: null,
-          reason: '',
-          comment: '',
-          reviewed: true,
-        };
+@for (field of row().entryFields ?? []; track field.key) {
 
-        return {
-          id,
-          fieldKey: field.key,
-          entryKey: paired.key,
-          label: paired.label,
-          values: paired.values,
-          fields: paired.fields,
-          status,
-          resolution: fallback,
-          fallback,
-          needsAttention: children.some(child => child.needsAttention),
-          isOverride: children.some(child => child.isOverride),
-          isManual: false,
-          children,
-        };
+  @if (
+    field.key !== 'tin-unavailable-reason'
+    || !fieldValue('tin').trim()
+  ) {
+
+    <div class="structured-form__field">
+
+      <label class="structured-form__label">
+        {{ field.label }}
+      </label>
+
+      @if (field.kind === 'select') {
+
+        <nz-select
+          class="structured-form__control"
+          [ngModel]="fieldValue(field.key)"
+          (ngModelChange)="setFieldValue(field.key, $event)"
+          nzPlaceHolder="Select a value"
+        >
+          @for (option of field.options ?? []; track option.value) {
+            <nz-option
+              [nzValue]="option.value"
+              [nzLabel]="option.label"
+            />
+          }
+        </nz-select>
+
+      } @else {
+
+        <input
+          nz-input
+          class="structured-form__control"
+          [ngModel]="fieldValue(field.key)"
+          (ngModelChange)="setFieldValue(field.key, $event)"
+        />
+
       }
 
-      // =====================================================
-      // SIMPLE ENTRY
-      // Email / Phone / Nationality
-      // =====================================================
+    </div>
 
-      const values = paired.values;
+  }
 
-      const status = computeEntryStatus(values);
+}
 
-      const fallback = entryFallback(values, status);
 
-      const resolution = overrides.get(id) ?? fallback;
+    setFieldValue(
+  key: string,
+  value: string
+): void {
+  this.structureDraft.update(current => {
+    const next = {
+      ...current,
+      [key]: value
+    };
 
-      return {
-        id,
-        fieldKey: field.key,
-        entryKey: paired.key,
-        label: paired.label,
-        values,
-        fields: paired.fields,
-        status,
-        resolution,
-        fallback,
-        needsAttention: needsAttention(status),
-        isOverride: isOverride(resolution, fallback),
-        isManual: false,
-        children: [],
-      };
+    if (
+      key === 'tin'
+      && value?.trim()
+    ) {
+      next['tin-unavailable-reason'] = '';
     }
-  );
 
-  // =========================================================
-  // SIMPLE MANUAL ENTRIES
-  // Email / Phone / Nationality
-  // =========================================================
-
-  for (
-    const manual of this.manualEntries()
-      .filter(entry => entry.fieldKey === field.key)
-  ) {
-    const id = `${field.key}:${manual.entryKey}`;
-
-    const values: Record<ComparisonSourceId, string | null> = {
-      digital: null,
-      kyc: null,
-      core: null,
-    };
-
-    const fallback: Resolution = {
-      source: 'manual',
-      value: manual.value,
-      reason: '',
-      comment: '',
-      reviewed: true,
-    };
-
-    const resolution =
-      overrides.get(id) ?? fallback;
-
-    entries.push({
-      id,
-      fieldKey: field.key,
-      entryKey: manual.entryKey,
-
-      label: manual.value,
-
-      values,
-
-      fields: undefined,
-
-      status: 'added',
-
-      resolution,
-
-      fallback,
-
-      needsAttention: false,
-
-      isOverride: true,
-
-      isManual: true,
-
-      children: [],
-    });
-  }
-
-  // =========================================================
-  // STRUCTURED MANUAL ENTRIES
-  // Tax Information
-  // =========================================================
-
-  for (
-    const manual of this.manualStructureEntries()
-      .filter(entry => entry.fieldKey === field.key)
-  ) {
-    const id = `${field.key}:${manual.entryKey}`;
-
-    const children: ComparisonRow[] =
-      (field.entryFields ?? []).map(definition => {
-        const childId =
-          `${field.key}:${manual.entryKey}:${definition.key}`;
-
-        const manualField =
-          manual.fields.find(
-            value => value.key === definition.key
-          );
-
-        const value =
-          manualField?.value ?? null;
-
-        const values: Record<
-          ComparisonSourceId,
-          string | null
-        > = {
-          digital: null,
-          kyc: value,
-          core: null,
-        };
-
-        const status: ComparisonStatus =
-          'added';
-
-        const fallback: Resolution = {
-          source: 'kyc',
-          value,
-          reason: '',
-          comment: '',
-          reviewed: true,
-        };
-
-        const resolution =
-          overrides.get(childId) ?? fallback;
-
-        return {
-          id: childId,
-
-          key: definition.key,
-
-          label: definition.label,
-
-          kind: definition.kind,
-
-          options:
-            definition.options ?? [],
-
-          values,
-
-          status,
-
-          resolution,
-
-          fallback,
-
-          needsAttention: false,
-
-          isOverride:
-            isOverride(
-              resolution,
-              fallback
-            ),
-
-          entryNoun: '',
-
-          entries: [],
-
-          children: [],
-
-          composed: EMPTY_COMPOSED,
-
-          composedResult: [],
-        };
-      });
-
-    const entryResolution: Resolution = {
-      source: 'kyc',
-      value: null,
-      reason: '',
-      comment: '',
-      reviewed: true,
-    };
-
-    entries.push({
-      id,
-
-      fieldKey: field.key,
-
-      entryKey: manual.entryKey,
-
-      label: '',
-
-      values: EMPTY_VALUES,
-
-      fields: undefined,
-
-      status: 'added',
-
-      resolution: entryResolution,
-
-      fallback: entryResolution,
-
-      needsAttention: false,
-
-      isOverride: true,
-
-      isManual: true,
-
-      children,
-    });
-  }
-
-  // =========================================================
-  // LIST STATUS
-  // =========================================================
-
-  const status = worstStatus(entries);
-
-  const groupResolution: Resolution = {
-    source: 'kyc',
-    value: null,
-    reason: '',
-    comment: '',
-    reviewed: true,
-  };
-
-  return {
-    id: field.key,
-
-    key: field.key,
-
-    label: field.label,
-
-    kind: 'list',
-
-    options: [],
-
-    values: EMPTY_VALUES,
-
-    status,
-
-    resolution: groupResolution,
-
-    fallback: groupResolution,
-
-    needsAttention:
-      entries.some(
-        entry => entry.needsAttention
-      ),
-
-    isOverride:
-      entries.some(
-        entry => entry.isOverride
-      ),
-
-    entryNoun:
-      field.entryNoun,
-
-    entries,
-
-    children: [],
-
-    composed:
-      EMPTY_COMPOSED,
-
-    composedResult: [],
-
-    entryFields:
-      field.entryFields ?? [],
-  };
+    return next;
+  });
 }
