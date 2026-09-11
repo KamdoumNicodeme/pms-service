@@ -1,29 +1,38 @@
-private listField(
-  key: string,
-  label: string,
-  entryNoun: string,
-  values: readonly string[],
-  options: readonly ComparisonOption[] = []
-): ComparisonListFieldDto {
+@if (row().options.length > 0) {
 
-  return {
-    key,
-    label,
-    kind: 'list',
-    entryNoun,
-    options,
+  <nz-select
+    class="list__add__input"
+    [ngModel]="draft()"
+    (ngModelChange)="draft.set($event)"
+    [nzPlaceHolder]="'Select ' + row().entryNoun"
+  >
 
-    values: {
-      digital: [],
-      kyc: [],
+    @for (option of row().options; track option.value) {
 
-      core: values.map(value => ({
-        key: value,
-        label:
-          options.find(option => option.value === value)?.label
-          ?? value,
-        value,
-      })),
-    },
-  };
+      <nz-option
+        [nzValue]="option.value"
+        [nzLabel]="option.label"
+      />
+
+    }
+
+  </nz-select>
+
+} @else {
+
+  <input
+    nz-input
+    class="list__add__input"
+
+    [placeholder]="'New ' + row().entryNoun"
+
+    [ngModel]="draft()"
+
+    (ngModelChange)="draft.set($event)"
+
+    (keydown.enter)="submit()"
+
+    (keydown.escape)="cancelAdd()"
+  />
+
 }
