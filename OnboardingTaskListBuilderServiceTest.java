@@ -1,48 +1,29 @@
-private loadReferences(): void {
-  console.error('### NEW LOAD REFERENCES VERSION ###');
+private listField(
+  key: string,
+  label: string,
+  entryNoun: string,
+  values: readonly string[],
+  options: readonly ComparisonOption[] = []
+): ComparisonListFieldDto {
 
-  this.#referenceService
-    .findReferencesByDomains([
-      'FATCA_STATUS',
-      'AEOI_STATUS',
-    ])
-    .subscribe({
-      next: references => {
-        console.error(
-          '### REFERENCES RECEIVED ###',
-          references
-        );
+  return {
+    key,
+    label,
+    kind: 'list',
+    entryNoun,
+    options,
 
-        this.FATCA_STATUS_OPTIONS.set(
-          references['FATCA_STATUS'] ?? []
-        );
+    values: {
+      digital: [],
+      kyc: [],
 
-        this.AEOI_STATUS_OPTIONS.set(
-          references['AEOI_STATUS'] ?? []
-        );
-
-        console.log(
-          'FATCA',
-          this.FATCA_STATUS_OPTIONS()
-        );
-
-        console.log(
-          'AEOI',
-          this.AEOI_STATUS_OPTIONS()
-        );
-      },
-
-      error: error => {
-        console.error(
-          '### REFERENCES ERROR ###',
-          error
-        );
-      },
-
-      complete: () => {
-        console.log(
-          '### REFERENCES COMPLETE ###'
-        );
-      },
-    });
+      core: values.map(value => ({
+        key: value,
+        label:
+          options.find(option => option.value === value)?.label
+          ?? value,
+        value,
+      })),
+    },
+  };
 }
