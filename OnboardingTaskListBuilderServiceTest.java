@@ -1,28 +1,56 @@
+findReferencesByDomains(
+  domains: string[]
+): Observable<Record<string, IReference[]>> {
+
+  return this.#httpClient.get<
+    Record<string, IReference[]>
+  >(
+    `${environment.apiUrls.get('cma')}/references`,
+    {
+      params: {
+        domains: domains.join(','),
+      },
+    }
+  );
+}
+
 private loadReferences(): void {
   this.#referenceService
     .findReferencesByDomains([
-      'POLICY_TYPE',
-      'THIRD_PARTY_TYPE',
       'FATCA_STATUS',
       'AEOI_STATUS',
     ])
     .subscribe({
-      next: (references: Map<string, IReference[]>) => {
-
-        this.POLICY_TYPES_OPTIONS.set(
-          references.get('POLICY_TYPE') ?? []
-        );
-
-        this.THIRD_PARTY_TYPES_OPTIONS.set(
-          references.get('THIRD_PARTY_TYPE') ?? []
-        );
+      next: (
+        references: Record<string, IReference[]>
+      ): void => {
 
         this.FATCA_STATUS_OPTIONS.set(
-          references.get('FATCA_STATUS') ?? []
+          references['FATCA_STATUS'] ?? []
         );
 
         this.AEOI_STATUS_OPTIONS.set(
-          references.get('AEOI_STATUS') ?? []
+          references['AEOI_STATUS'] ?? []
+        );
+
+        console.log(
+          'FATCA REFERENCES',
+          this.FATCA_STATUS_OPTIONS()
+        );
+
+        console.log(
+          'AEOI REFERENCES',
+          this.AEOI_STATUS_OPTIONS()
+        );
+
+        console.log(
+          'FATCA OPTIONS',
+          this.fatcaOptions()
+        );
+
+        console.log(
+          'CRS OPTIONS',
+          this.crsOptions()
         );
       },
 
