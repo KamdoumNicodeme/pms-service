@@ -1,35 +1,35 @@
-private listField(
-  key: string,
-  label: string,
-  entryNoun: string,
-  values: readonly string[],
-  options: readonly ComparisonOption[] = []
-): ComparisonListFieldDto {
+<comparison-entry-row
+  [entry]="entry"
+  [kind]="row().options.length > 0 ? 'select' : 'text'"
+  [options]="row().options"
+  [expanded]="expandedId() === entry.id"
+  [focused]="focusedId() === entry.id"
+  [expandedId]="expandedId()"
+  [focusedId]="focusedId()"
 
-  const hasOptions = options.length > 0;
+  (toggle)="toggleEntry.emit(entry.id)"
 
-  return {
-    key,
-    label,
-    kind: 'list',
-    entryNoun,
-    options,
+  (apply)="
+    applyEntry.emit({
+      id: entry.id,
+      payload: $event
+    })
+  "
 
-    values: {
-      digital: [],
-      kyc: [],
+  (reset)="resetEntry.emit(entry.id)"
 
-      core: values.map(value => ({
-        key: value,
+  (remove)="removeEntry.emit(entry.entryKey)"
 
-        label: hasOptions
-          ? options.find(
-              option => option.value === value
-            )?.label ?? this.normalizeCountry(value) ?? value
-          : value,
+  (focusRequest)="focusEntry.emit(entry.id)"
 
-        value,
-      })),
-    },
-  };
-}
+  (toggleChild)="toggleEntry.emit($event)"
+
+  (applyChild)="
+    applyEntry.emit({
+      id: $event.id,
+      payload: $event.patch
+    })
+  "
+
+  (resetChild)="resetEntry.emit($event)"
+/>
