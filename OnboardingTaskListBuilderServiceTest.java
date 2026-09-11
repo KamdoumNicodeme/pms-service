@@ -1,17 +1,35 @@
-readonly options =
-  input<readonly ComparisonOption[]>([]);
+private listField(
+  key: string,
+  label: string,
+  entryNoun: string,
+  values: readonly string[],
+  options: readonly ComparisonOption[] = []
+): ComparisonListFieldDto {
 
-readonly displayValue = computed(() => {
-  const value = this.resolution().value;
+  const hasOptions = options.length > 0;
 
-  if (!value) {
-    return null;
-  }
+  return {
+    key,
+    label,
+    kind: 'list',
+    entryNoun,
+    options,
 
-  const option =
-    this.options().find(
-      option => option.value === value
-    );
+    values: {
+      digital: [],
+      kyc: [],
 
-  return option?.label ?? value;
-});
+      core: values.map(value => ({
+        key: value,
+
+        label: hasOptions
+          ? options.find(
+              option => option.value === value
+            )?.label ?? this.normalizeCountry(value) ?? value
+          : value,
+
+        value,
+      })),
+    },
+  };
+}
