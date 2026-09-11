@@ -1,38 +1,67 @@
-@if (row().options.length > 0) {
+<!-- SIMPLE LIST -->
+@else {
 
-  <nz-select
-    class="list__add__input"
-    [ngModel]="draft()"
-    (ngModelChange)="draft.set($event)"
-    [nzPlaceHolder]="'Select ' + row().entryNoun"
-  >
+  @if (adding()) {
 
-    @for (option of row().options; track option.value) {
+    @if ((row().options?.length ?? 0) > 0) {
 
-      <nz-option
-        [nzValue]="option.value"
-        [nzLabel]="option.label"
+      <nz-select
+        class="list__add__input"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        [nzPlaceHolder]="'Select ' + row().entryNoun"
+      >
+        @for (option of row().options ?? []; track option.value) {
+          <nz-option
+            [nzValue]="option.value"
+            [nzLabel]="option.label"
+          />
+        }
+      </nz-select>
+
+    } @else {
+
+      <input
+        nz-input
+        class="list__add__input"
+        [placeholder]="'New ' + row().entryNoun"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        (keydown.enter)="submit()"
+        (keydown.escape)="cancelAdd()"
       />
 
     }
 
-  </nz-select>
+    <button
+      type="button"
+      class="list__add__confirm"
+      [disabled]="draft().trim() === ''"
+      (click)="submit()"
+    >
+      Add
+    </button>
 
-} @else {
+    <button
+      type="button"
+      class="list__add__cancel"
+      (click)="cancelAdd()"
+    >
+      Cancel
+    </button>
 
-  <input
-    nz-input
-    class="list__add__input"
+  } @else {
 
-    [placeholder]="'New ' + row().entryNoun"
+    <button
+      type="button"
+      class="list__add__trigger"
+      (click)="openSimpleAdd()"
+    >
+      <nz-icon nzType="plus" />
 
-    [ngModel]="draft()"
+      Add {{ row().entryNoun }}
+    </button>
 
-    (ngModelChange)="draft.set($event)"
-
-    (keydown.enter)="submit()"
-
-    (keydown.escape)="cancelAdd()"
-  />
+  }
 
 }
