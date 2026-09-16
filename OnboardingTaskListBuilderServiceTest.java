@@ -1,30 +1,21 @@
-private readonly phoneRegex = /^\+\d+$/;
-
-private readonly emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-readonly validationError = computed(() => {
-  const value = this.draft().trim();
-
-  if (!value) {
-    return '';
+readonly maxEntriesReached = computed(() => {
+  if (this.row().key === 'nationalities') {
+    return this.row().entries.length >= 3;
   }
 
-  if (this.row().key === 'phone-numbers') {
-    return this.phoneRegex.test(value)
-      ? ''
-      : 'Phone number must start with + and contain only digits';
-  }
-
-  if (this.row().key === 'emails') {
-    return this.emailRegex.test(value)
-      ? ''
-      : 'Please enter a valid email address';
-  }
-
-  return '';
+  return false;
 });
 
-
+@if (!maxEntriesReached()) {
+  <button
+    type="button"
+    class="list__add__trigger"
+    (click)="openSimpleAdd()"
+  >
+    <nz-icon nzType="plus" />
+    Add {{ row().entryNoun }}
+  </button>
+}
 
 submit(): void {
   const value = this.draft().trim();
@@ -37,31 +28,14 @@ submit(): void {
     return;
   }
 
+  if (
+    this.row().key === 'nationalities' &&
+    this.row().entries.length >= 3
+  ) {
+    return;
+  }
+
   this.addEntry.emit(value);
 
   this.cancelAdd();
 }
-
-
-<button
-  type="button"
-  class="list__add__confirm"
-  [disabled]="draft().trim() === '' || validationError() !== ''"
-  (click)="submit()"
->
-  Add
-</button>
-
-  @if (validationError()) {
-  <div class="list__add__error">
-    {{ validationError() }}
-  </div>
-}
-
-    .list__add__error {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #d4380d;
-}
-
-private readonly phoneRegex = /^\+\d{3,}$/;
