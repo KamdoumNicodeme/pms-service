@@ -1,121 +1,63 @@
-for (const manual of this.manualStructureEntries().filter(entry => entry.fieldKey === field.key)) {
-  const id = `${field.key}:${manual.entryKey}`;
+addManualEntry(
+  fieldKey: string,
+  value: string
+): string | null {
 
-  /*
-   * Valeur actuelle du TIN.
-   *
-   * IMPORTANT :
-   * on regarde d'abord l'override, car le TIN
-   * peut avoir été modifié après l'ajout manuel.
-   */
-  const tinChildId = `${field.key}:${manual.entryKey}:tin`;
+  const normalizedValue = value.trim();
 
-  const tinOverride = overrides.get(tinChildId);
+  if (!normalizedValue) {
+    return null;
+  }
 
-  const originalTin =
-    manual.fields.find(item => item.key === 'tin')?.value ?? null;
+  const row = this.rows().find(
+    current => current.key === fieldKey
+  );
 
-  const currentTin =
-    tinOverride?.value ?? originalTin;
+  if (!row) {
+    return null;
+  }
 
-  /*
-   * Reason if TIN Unavailable n'existe que
-   * lorsque le TIN courant est vide.
-   */
-  const definitions = (field.entryFields ?? []).filter(definition => {
-    if (definition.key !== 'tin-unavailable-reason') {
-      return true;
-    }
+  const duplicate = row.entries.some(entry =>
+    this.isSameListValue(
+      fieldKey,
+      this.currentEntryValue(entry),
+      normalizedValue
+    )
+  );
 
-    return !currentTin?.trim();
-  });
+  if (duplicate) {
+    return null;
+  }
 
-  const children: ComparisonRow[] = definitions.map(definition => {
-    const childId =
-      `${field.key}:${manual.entryKey}:${definition.key}`;
+  const entryKey =
+    `manual-${++this.manualSequence}`;
 
-    const manualField =
-      manual.fields.find(
-        item => item.key === definition.key
-      );
+  this.manualEntries.update(current => [
+    ...current,
+    {
+      fieldKey,
+      entryKey,
+      value: normalizedValue,
+    },
+  ]);
 
-    const value = manualField?.value ?? null;
+  const id = `${fieldKey}:${entryKey}`;
 
-    const values: Record<ComparisonSourceId, string | null> = {
-      digital: null,
-      kyc: value,
-      core: null,
-    };
+  this.overrides.update(current => {
+    const next = new Map(current);
 
-    const status: ComparisonStatus = 'added';
-
-    const fallback: Resolution = {
+    next.set(id, {
       source: 'manual',
-      value,
+      value: normalizedValue,
       reason: '',
       comment: '',
       reviewed: true,
-    };
+    });
 
-    const resolution =
-      overrides.get(childId) ?? fallback;
-
-    return {
-      id: childId,
-      key: definition.key,
-      label: definition.label,
-
-      kind: definition.kind,
-      options: definition.options ?? [],
-
-      values,
-
-      status,
-      resolution,
-      fallback,
-
-      needsAttention: false,
-
-      isOverride: isOverride(resolution, fallback),
-
-      entryNoun: '',
-      entries: [],
-      children: [],
-
-      composed: EMPTY_COMPOSED,
-      composedResult: [],
-    };
+    return next;
   });
 
-  const entryResolution: Resolution = {
-    source: 'manual',
-    value: null,
-    reason: '',
-    comment: '',
-    reviewed: true,
-  };
+  this.focusedId.set(id);
 
-  entries.push({
-    id,
-
-    fieldKey: field.key,
-    entryKey: manual.entryKey,
-
-    label: '',
-
-    values: EMPTY_VALUES,
-
-    fields: undefined,
-
-    status: 'added',
-
-    resolution: entryResolution,
-    fallback: entryResolution,
-
-    needsAttention: false,
-    isOverride: true,
-    isManual: true,
-
-    children,
-  });
+  return id;
 }
