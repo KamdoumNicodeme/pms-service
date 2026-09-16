@@ -1,46 +1,66 @@
-apply(id: string, patch: ResolutionPatch): void {
+addManualEntry(fieldKey: string, value: string): string | null {
+  const newValue = value.trim();
+
+  if (!newValue) {
+    return null;
+  }
 
   // =====================================================
-  // CHECK DUPLICATES FOR SIMPLE LISTS
-  // Nationality / Email / Phone
+  // CHECK EXISTING VALUES
+  // Core + Digital + KYC + Manual + Overrides
   // =====================================================
 
-  const listRow = this.rows().find(row =>
-    row.kind === 'list' &&
-    row.entries.some(entry => entry.id === id)
+  const row = this.rows().find(
+    current => current.key === fieldKey
   );
 
-  if (listRow && patch.value) {
+  if (row) {
+    const duplicate = row.entries.some(entry => {
 
-    const duplicate = listRow.entries.some(entry => {
+      const existingValues: (string | null)[] = [
+        // Current retained / modified value
+        entry.resolution.value,
 
-      // Do not compare the entry with itself
-      if (entry.id === id) {
-        return false;
-      }
+        // Original source values
+        entry.values.core,
+        entry.values.kyc,
+        entry.values.digital,
+      ];
 
-      const currentValue =
-        entry.resolution.value ??
-        entry.values.kyc ??
-        entry.values.digital ??
-        entry.values.core ??
-        null;
-
-      return this.isSameListValue(
-        listRow.key,
-        currentValue,
-        patch.value
+      return existingValues.some(existingValue =>
+        this.isSameListValue(
+          fieldKey,
+          existingValue,
+          newValue
+        )
       );
     });
 
     if (duplicate) {
-      return;
+      console.warn(
+        `Duplicate value "${newValue}" for ${fieldKey}`
+      );
+
+      return null;
     }
   }
 
   // =====================================================
-  // APPLY RESOLUTION
+  // ADD
   // =====================================================
+
+  const entryKey = `manual-${++this.manualSequence}`;
+
+  this.manualEntries.update(current => [
+    ...current,
+    {
+      fieldKey,
+      entryKey,
+      value: newValue,
+    },
+  ]);
+
+  const id = `${fieldKey}:${entryKey}`;
 
   this.overrides.update(
     (current: ReadonlyMap<string, Resolution>) => {
@@ -48,7 +68,10 @@ apply(id: string, patch: ResolutionPatch): void {
       const next = new Map(current);
 
       next.set(id, {
-        ...patch,
+        source: 'manual',
+        value: newValue,
+        reason: '',
+        comment: '',
         reviewed: true,
       });
 
@@ -56,5 +79,7 @@ apply(id: string, patch: ResolutionPatch): void {
     }
   );
 
-  this.expandedId.set(null);
+  this.focusedId.set(id);
+
+  return id;
 }
