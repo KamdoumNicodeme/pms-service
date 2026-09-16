@@ -1,96 +1,51 @@
-addManualEntry(fieldKey: string, value: string): string | null {
-  const newValue = value.trim();
+readonly draft = signal('');
 
-  if (!newValue) {
-    return null;
+readonly addError = signal<string | null>(null);
+
+submit(): void {
+  const value = this.draft().trim();
+
+  if (value === '') {
+    return;
   }
 
-  const row = this.rows().find(
-    current => current.key === fieldKey
-  );
-
-  if (!row) {
-    return null;
-  }
-
-  // =====================================================
-  // DUPLICATE CHECK
-  // =====================================================
-
-  const duplicate = row.entries.some(entry => {
-
-    const valuesToCheck: (string | null | undefined)[] = [
+  const duplicate = this.row().entries.some(entry => {
+    const valuesToCheck = [
       entry.entryKey,
       entry.label,
-
       entry.values.core,
       entry.values.kyc,
       entry.values.digital,
-
       entry.resolution.value,
       entry.fallback.value,
     ];
 
     return valuesToCheck.some(existingValue =>
-      this.isSameListValue(
-        fieldKey,
+      this.isSameValue(
         existingValue,
-        newValue,
-        row.options
+        value
       )
     );
   });
 
   if (duplicate) {
-    console.warn(
-      `[ComparisonStore] "${newValue}" already exists in "${fieldKey}"`
+    this.addError.set(
+      `This ${this.row().entryNoun} already exists`
     );
 
-    return null;
+    return;
   }
 
-  // =====================================================
-  // ADD MANUAL ENTRY
-  // =====================================================
+  this.addError.set(null);
 
-  const entryKey = `manual-${++this.manualSequence}`;
+  this.addEntry.emit(value);
 
-  this.manualEntries.update(current => [
-    ...current,
-    {
-      fieldKey,
-      entryKey,
-      value: newValue,
-    },
-  ]);
-
-  const id = `${fieldKey}:${entryKey}`;
-
-  this.overrides.update(current => {
-    const next = new Map(current);
-
-    next.set(id, {
-      source: 'manual',
-      value: newValue,
-      reason: '',
-      comment: '',
-      reviewed: true,
-    });
-
-    return next;
-  });
-
-  this.focusedId.set(id);
-
-  return id;
+  this.cancelAdd();
 }
 
-
-private isSameListValue(
-  fieldKey: string,
+private isSameValue(
   first: string | null | undefined,
-  second: string | null | undefined,
-  options: readonly ComparisonOption[] = []
+  second: string | null | undefined
 ): boolean {
 
   if (!first || !second) {
@@ -100,19 +55,18 @@ private isSameListValue(
   let a = first.trim();
   let b = second.trim();
 
-  // =====================================================
+  const fieldKey = this.row().key.toLowerCase();
+
+  // ==========================================
   // NATIONALITY
-  // Compare code AND label
-  //
-  // DE      === Germany
-  // Germany === DE
-  // Germany === Germany
-  // =====================================================
+  // DE === Germany
+  // ==========================================
 
   if (
-    fieldKey.toLowerCase() === 'nationality' ||
-    fieldKey.toLowerCase() === 'nationalities'
+    fieldKey === 'nationality' ||
+    fieldKey === 'nationalities'
   ) {
+    const options = this.row().options;
 
     const optionA = options.find(option =>
       option.value.toLowerCase() === a.toLowerCase() ||
@@ -124,40 +78,68 @@ private isSameListValue(
       option.label.toLowerCase() === b.toLowerCase()
     );
 
-    if (optionA) {
-      a = optionA.value;
-    }
-
-    if (optionB) {
-      b = optionB.value;
-    }
+    a = optionA?.value ?? a;
+    b = optionB?.value ?? b;
 
     return a.toUpperCase() === b.toUpperCase();
   }
 
-  // =====================================================
+  // ==========================================
   // EMAIL
-  // =====================================================
+  // ==========================================
 
   if (
-    fieldKey.toLowerCase() === 'email' ||
-    fieldKey.toLowerCase() === 'emails'
+    fieldKey === 'email' ||
+    fieldKey === 'emails'
   ) {
     return a.toLowerCase() === b.toLowerCase();
   }
 
-  // =====================================================
+  // ==========================================
   // PHONE
-  // =====================================================
+  // ==========================================
 
   if (
-    fieldKey.toLowerCase() === 'phone' ||
-    fieldKey.toLowerCase() === 'phones' ||
-    fieldKey.toLowerCase() === 'phone-number' ||
-    fieldKey.toLowerCase() === 'phone-numbers'
+    fieldKey === 'phone' ||
+    fieldKey === 'phones' ||
+    fieldKey === 'phone-number' ||
+    fieldKey === 'phone-numbers'
   ) {
-    return this.normalizePhone(a) === this.normalizePhone(b);
+    const normalizePhone = (phone: string) =>
+      phone.replace(/[\s().-]/g, '');
+
+    return normalizePhone(a) === normalizePhone(b);
   }
 
   return a.toLowerCase() === b.toLowerCase();
+}
+
+<button
+  type="button"
+  class="list__add__confirm"
+  [disabled]="draft().trim() === ''"
+  (click)="submit()"
+>
+  Add
+</button>
+
+@if (addError(); as error) {
+  <span class="list__add__error">
+    {{ error }}
+  </span>
+}
+
+<button
+  type="button"
+  class="list__add__cancel"
+  (click)="cancelAdd()"
+>
+  Cancel
+</button>
+
+    cancelAdd(): void {
+  this.adding.set(false);
+  this.draft.set('');
+  this.structureDraft.set({});
+  this.addError.set(null);
 }
