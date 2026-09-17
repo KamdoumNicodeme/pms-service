@@ -1,32 +1,20 @@
-private applyManualNationalityChange(
-  client: IPhysicalPerson,
-  id: string,
-  resolution: Resolution
-): void {
+if (client.type === 'PHYSICAL_PERSON') {
+  const physicalPerson = client as IPhysicalPerson;
 
-  const country: string = this.stringValue(resolution.value);
+  deletedEntries.forEach(id => {
+    if (id.startsWith('nationalities:manual-')) {
+      this.removeNationalityFromClient(physicalPerson, id);
+    }
+  });
 
-  if (!country) {
-    return;
-  }
+  const activeChanges = new Map(
+    [...changes].filter(([id]) => !deletedEntries.includes(id))
+  );
 
-  if (!client.nationality) {
-    return;
-  }
+  this.applyPhysicalPersonChanges(
+    physicalPerson,
+    activeChanges
+  );
 
-  const nationality: NationalityInfo = {
-    country
-  };
-
-  // First reste la nationalité provenant du Core
-  // On remplit d'abord second, puis third.
-
-  if (!client.nationality.second?.country) {
-    client.nationality.second = nationality;
-    return;
-  }
-
-  if (!client.nationality.third?.country) {
-    client.nationality.third = nationality;
-  }
+  return result;
 }
