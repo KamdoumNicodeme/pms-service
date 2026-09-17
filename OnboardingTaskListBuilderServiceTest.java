@@ -1,46 +1,63 @@
-public applyHolderChanges(
-  changeClientInformation: IChangeClientInformation,
-  thirdPartyId: string,
-  changes: ReadonlyMap<string, Resolution>
-): IChangeClientInformation {
+private applyManualEmailChange(
+    client: IThirdParty,
+    resolution: Resolution
+): void {
 
-  const result: IChangeClientInformation =
-    structuredClone(changeClientInformation);
+    const value: string | null =
+        this.nullableStringValue(resolution.value);
 
-  const client: IThirdParty | undefined =
-    result.policy.clients.find(
-      (item: IThirdParty) =>
-        item.thirdPartyId === thirdPartyId
-    );
+    if (!value) {
+        return;
+    }
 
-  if (!client) {
-    console.warn(
-      '[ClientProfilingChangeService] Client not found:',
-      thirdPartyId
-    );
+    if (!client.emails) {
+        client.emails = [];
+    }
 
-    return result;
-  }
+    const alreadyExists: boolean =
+        client.emails.some(
+            email =>
+                email.email?.trim().toLowerCase() ===
+                value.trim().toLowerCase()
+        );
 
-  if (client.type === 'PHYSICAL_PERSON') {
+    if (alreadyExists) {
+        return;
+    }
 
-    this.applyPhysicalPersonChanges(
-      client as IPhysicalPerson,
-      changes
-    );
+    client.emails.push({
+        email: value
+    } as IEmail);
+}
 
-    return result;
-  }
 
-  if (client.type === 'MORAL_PERSON') {
+private applyManualPhoneChange(
+    client: IThirdParty,
+    resolution: Resolution
+): void {
 
-    this.applyMoralPersonChanges(
-      client as IMoralPerson,
-      changes
-    );
+    const value: string | null =
+        this.nullableStringValue(resolution.value);
 
-    return result;
-  }
+    if (!value) {
+        return;
+    }
 
-  return result;
+    if (!client.phoneNumbers) {
+        client.phoneNumbers = [];
+    }
+
+    const alreadyExists: boolean =
+        client.phoneNumbers.some(
+            phone =>
+                phone.phoneNumber?.trim() === value.trim()
+        );
+
+    if (alreadyExists) {
+        return;
+    }
+
+    client.phoneNumbers.push({
+        phoneNumber: value
+    } as IPhoneNumber);
 }
