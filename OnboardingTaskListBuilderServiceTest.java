@@ -3,102 +3,62 @@ private applyPhysicalPersonChanges(
     changes: ReadonlyMap<string, Resolution>
 ): void {
 
-    // Structured manual tax entries must be processed first because
-    // several resolutions belong to the same Tax Information entry.
+    // ============================================================
+    // MANUAL ENTRIES
+    // ============================================================
+
+    // Manual entries are additions and must be processed separately
+    // from existing entries.
+    this.applyManualNationalities(client, changes);
+    this.applyManualEmails(client, changes);
+    this.applyManualPhoneNumbers(client, changes);
     this.applyManualTaxInformations(client, changes);
+
+    // ============================================================
+    // EXISTING ENTRIES AND SCALAR FIELDS
+    // ============================================================
 
     changes.forEach((resolution: Resolution, id: string): void => {
 
         const value: string | null = resolution.value;
 
-        // ============================================================
-        // NATIONALITIES
-        // ============================================================
-
-        if (id.startsWith('nationalities:manual-')) {
-            this.applyManualNationalityChange(
-                client,
-                id,
-                resolution
-            );
+        // Manual entries have already been processed above.
+        if (
+            id.startsWith('nationalities:manual-') ||
+            id.startsWith('emails:manual-') ||
+            id.startsWith('phone-numbers:manual-') ||
+            id.startsWith('tax-information:manual-')
+        ) {
             return;
         }
 
+        // Existing nationality
         if (id.startsWith('nationalities:')) {
-            this.applyNationalityChange(
-                client,
-                id,
-                resolution
-            );
+            this.applyNationalityChange(client, id, resolution);
             return;
         }
 
-        // ============================================================
-        // EMAILS
-        // ============================================================
-
-        if (id.startsWith('emails:manual-')) {
-            this.applyManualEmailChange(
-                client,
-                id,
-                resolution
-            );
-            return;
-        }
-
+        // Existing email
         if (id.startsWith('emails:')) {
-            this.applyEmailChange(
-                client,
-                id,
-                resolution
-            );
+            this.applyEmailChange(client, id, resolution);
             return;
         }
 
-        // ============================================================
-        // PHONE NUMBERS
-        // ============================================================
-
-        if (id.startsWith('phone-numbers:manual-')) {
-            this.applyManualPhoneChange(
-                client,
-                id,
-                resolution
-            );
-            return;
-        }
-
+        // Existing phone number
         if (id.startsWith('phone-numbers:')) {
-            this.applyPhoneChange(
-                client,
-                id,
-                resolution
-            );
+            this.applyPhoneChange(client, id, resolution);
             return;
         }
 
-        // ============================================================
-        // TAX INFORMATION
-        // ============================================================
-
-        // Manual Tax Information entries have already been processed
-        // by applyManualTaxInformations().
-        if (id.startsWith('tax-information:manual-')) {
-            return;
-        }
-
+        // Existing Tax Information
         if (id.startsWith('tax-information:')) {
-            this.applyTaxInformationChange(
-                client,
-                id,
-                resolution
-            );
+            this.applyTaxInformationChange(client, id, resolution);
             return;
         }
 
-        // ============================================================
+        // ========================================================
         // GENERAL INFORMATION
-        // ============================================================
+        // ========================================================
 
         switch (id) {
 
@@ -124,13 +84,14 @@ private applyPhysicalPersonChanges(
 
             case 'status':
                 if (client.civilStatus) {
-                    client.civilStatus.status = this.nullableStringValue(value);
+                    client.civilStatus.status =
+                        this.nullableStringValue(value);
                 }
                 break;
 
-            // ========================================================
+            // ====================================================
             // PROFESSIONAL DETAILS
-            // ========================================================
+            // ====================================================
 
             case 'profession':
                 if (client.professionalDetails) {
@@ -160,9 +121,9 @@ private applyPhysicalPersonChanges(
                 }
                 break;
 
-            // ========================================================
+            // ====================================================
             // IDENTITY DOCUMENT
-            // ========================================================
+            // ====================================================
 
             case 'type':
                 if (client.idDocument) {
@@ -185,17 +146,17 @@ private applyPhysicalPersonChanges(
                 }
                 break;
 
-            // ========================================================
+            // ====================================================
             // US PERSON
-            // ========================================================
+            // ====================================================
 
             case 'us-entity':
                 client.usPerson = this.booleanValue(value);
                 break;
 
-            // ========================================================
+            // ====================================================
             // LEGAL ADDRESS
-            // ========================================================
+            // ====================================================
 
             case 'legal-address:no':
                 if (client.legalAddress) {
