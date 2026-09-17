@@ -1,22 +1,40 @@
-protected onChangesChange(
-  changes: ReadonlyMap<string, Resolution>
-): void {
+export class ProfilingSection {
 
-  console.log('1 - HOLDER RECEIVED CHANGES');
+  private readonly data: ComparisonDataService =
+    inject(COMPARISON_DATA_SERVICE);
 
-  changes.forEach((resolution, id) => {
-    console.log('   id =', id);
-    console.log('   resolution =', resolution);
-  });
+  readonly policyNumber: InputSignal<string> =
+    input.required<string>();
 
-  console.log(
-    '2 - deletedEntries =',
-    this.deletedEntries()
-  );
+  readonly holder: InputSignal<IThirdParty> =
+    input.required<IThirdParty>();
 
-  this.changesChange.emit({
-    thirdPartyId: this.holder().thirdPartyId,
-    changes,
-    deletedEntries: this.deletedEntries()
+  readonly sectionId: InputSignal<string> =
+    input.required<string>();
+
+  readonly filter: InputSignal<ComparisonFilter> =
+    input<ComparisonFilter>('all');
+
+  readonly countersChange: OutputEmitterRef<ComparisonCounters> =
+    output<ComparisonCounters>();
+
+  readonly changesChange: OutputEmitterRef<ComparisonChanges> =
+    output<ComparisonChanges>();
+
+  protected readonly section = rxResource({
+    params: () => ({
+      policyNumber: this.policyNumber(),
+      holder: this.holder(),
+      sectionId: this.sectionId()
+    }),
+
+    stream: ({ params }) =>
+      this.data.getSection(
+        {
+          policyNumber: params.policyNumber,
+          holder: params.holder
+        },
+        params.sectionId
+      )
   });
 }
