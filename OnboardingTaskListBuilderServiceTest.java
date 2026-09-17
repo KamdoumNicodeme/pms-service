@@ -1,11 +1,27 @@
-private toBoolean(value: string | null | undefined): boolean {
-  if (!value) {
-    return false;
+applyHolderChanges(
+  changeClientInformation: IChangeClientInformation,
+  thirdPartyId: string,
+  changes: ReadonlyMap<string, Resolution>
+): IChangeClientInformation {
+
+  const result: IChangeClientInformation =
+    structuredClone(changeClientInformation);
+
+  const client: IThirdParty | undefined = result.policy.clients.find(
+    (item: IThirdParty): boolean =>
+      item.thirdPartyId === thirdPartyId
+  );
+
+  if (!client) {
+    return result;
   }
 
-  const normalized = value.trim().toLowerCase();
+  if (client.type === 'PHYSICAL_PERSON') {
+    this.applyPhysicalPersonChanges(
+      client as IPhysicalPerson,
+      changes
+    );
+  }
 
-  return normalized === 'true'
-    || normalized === 'yes'
-    || normalized === 'us indicia detected';
+  return result;
 }
