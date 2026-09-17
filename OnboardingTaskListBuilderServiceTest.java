@@ -1,45 +1,35 @@
-private addNationality(
-  holder: IPhysicalPerson,
+private applyManualNationalityChange(
+  client: IPhysicalPerson,
+  id: string,
   resolution: Resolution
 ): void {
-  const country = this.nullable(resolution.value);
+  const value = this.stringValue(resolution.value);
 
-  if (!country) {
+  if (!value) {
     return;
   }
 
-  const nationalities = holder.nationality;
+  const manualIndex = Number(id.replace('nationalities:manual-', ''));
 
-  const alreadyExists = [
-    nationalities.first,
-    nationalities.second,
-    nationalities.third
-  ].some(item => item?.country === country);
-
-  if (alreadyExists) {
-    return;
+  if (!client.nationality) {
+    client.nationality = {
+      first: { country: null, fromDate: null },
+      second: { country: null, fromDate: null },
+      third: { country: null, fromDate: null }
+    };
   }
 
-  const newNationality: NationalityInfo = {
-    country
-  };
-
-  if (!nationalities.first?.country) {
-    nationalities.first = newNationality;
-    return;
+  if (manualIndex === 1) {
+    client.nationality.second = {
+      ...client.nationality.second,
+      country: value
+    };
   }
 
-  if (!nationalities.second?.country) {
-    nationalities.second = newNationality;
-    return;
+  if (manualIndex === 2) {
+    client.nationality.third = {
+      ...client.nationality.third,
+      country: value
+    };
   }
-
-  if (!nationalities.third?.country) {
-    nationalities.third = newNationality;
-    return;
-  }
-
-  console.warn(
-    '[ClientProfilingChangeService] Maximum of 3 nationalities reached'
-  );
 }
