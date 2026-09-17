@@ -1,100 +1,46 @@
-protected onHolderChanges(event: HolderChanges): void {
+public applyHolderChanges(
+  changeClientInformation: IChangeClientInformation,
+  thirdPartyId: string,
+  changes: ReadonlyMap<string, Resolution>
+): IChangeClientInformation {
 
-  const data: IClientProfilingData | null =
-    this.getClientProfilingData();
+  const result: IChangeClientInformation =
+    structuredClone(changeClientInformation);
 
-  if (!data) {
-    return;
-  }
-
-  /*
-   * IMPORTANT :
-   *
-   * On ne repart PAS de pendingChangeClientInformation
-   * pour le holder qui vient de changer.
-   *
-   * On repart des données initiales du backend puis on applique
-   * l'état ACTUEL de son store.
-   *
-   * Ainsi :
-   *
-   * Core DE
-   * + manual FR
-   * + manual BE
-   *
-   * => DE / FR / BE
-   *
-   * Si FR est supprimé du store :
-   *
-   * Core DE
-   * + manual BE
-   *
-   * => DE / BE
-   *
-   * FR disparaît automatiquement.
-   */
-
-  const holderBase: IChangeClientInformation =
-    this.changeService.buildBase(data);
-
-  const rebuiltHolderState: IChangeClientInformation =
-    this.changeService.applyHolderChanges(
-      holderBase,
-      event.thirdPartyId,
-      event.changes
+  const client: IThirdParty | undefined =
+    result.policy.clients.find(
+      (item: IThirdParty) =>
+        item.thirdPartyId === thirdPartyId
     );
 
-  /*
-   * Maintenant on conserve les modifications éventuelles
-   * déjà effectuées sur les AUTRES holders.
-   */
-  const current: IChangeClientInformation =
-    this.pendingChangeClientInformation()
-      ? structuredClone(this.pendingChangeClientInformation()!)
-      : this.changeService.buildBase(data);
-
-  const rebuiltClient: IThirdParty | undefined =
-    rebuiltHolderState.policy.clients.find(
-      (client: IThirdParty) =>
-        client.thirdPartyId === event.thirdPartyId
-    );
-
-  if (!rebuiltClient) {
+  if (!client) {
     console.warn(
-      '[ClientProfilingComponent] Rebuilt client not found:',
-      event.thirdPartyId
+      '[ClientProfilingChangeService] Client not found:',
+      thirdPartyId
     );
 
-    return;
+    return result;
   }
 
-  const clientIndex: number =
-    current.policy.clients.findIndex(
-      (client: IThirdParty) =>
-        client.thirdPartyId === event.thirdPartyId
+  if (client.type === 'PHYSICAL_PERSON') {
+
+    this.applyPhysicalPersonChanges(
+      client as IPhysicalPerson,
+      changes
     );
 
-  if (clientIndex === -1) {
-    console.warn(
-      '[ClientProfilingComponent] Client not found in pending data:',
-      event.thirdPartyId
-    );
-
-    return;
+    return result;
   }
 
-  /*
-   * On remplace uniquement le holder concerné.
-   *
-   * Les modifications des autres holders restent intactes.
-   */
-  current.policy.clients[clientIndex] =
-    structuredClone(rebuiltClient);
+  if (client.type === 'MORAL_PERSON') {
 
-  this.pendingChangeClientInformation.set(current);
+    this.applyMoralPersonChanges(
+      client as IMoralPerson,
+      changes
+    );
 
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE',
-    structuredClone(current)
-  );
+    return result;
+  }
+
+  return result;
 }
