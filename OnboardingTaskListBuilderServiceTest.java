@@ -1,6 +1,22 @@
-this.applyManualTaxInformations(client, changes);
-if (id.startsWith('tax-information:manual-')) {
+private applyManualTaxInformations(
+    client: IPhysicalPerson,
+    changes: ReadonlyMap<string, Resolution>
+): void {
 
-            return;
+    console.log('===== TAX CHANGES =====');
 
+    changes.forEach((resolution: Resolution, id: string): void => {
+        if (id.startsWith('tax-information')) {
+            console.log(
+                'TAX ID:',
+                id,
+                'VALUE:',
+                resolution.value,
+                'RESOLUTION:',
+                resolution
+            );
         }
+    });
+
+    console.log('=======================');
+}
