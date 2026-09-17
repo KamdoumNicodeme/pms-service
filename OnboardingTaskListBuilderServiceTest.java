@@ -1,123 +1,39 @@
-private applyPhysicalPersonChanges(
-
+private applyNationalityChange(
   client: IPhysicalPerson,
-
-  changes: ReadonlyMap<string, Resolution>
-
+  id: string,
+  resolution: Resolution
 ): void {
 
-  changes.forEach(
+  const previousCountry =
+    id.substring('nationalities:'.length);
 
-    (resolution: Resolution, id: string): void => {
+  const nationalities = [
+    client.nationality?.first,
+    client.nationality?.second,
+    client.nationality?.third
+  ];
 
-      const value: string | null = resolution.value;
+  const nationality =
+    nationalities.find(
+      item => item?.country === previousCountry
+    );
 
-      // ========================================================
+  if (!nationality) {
 
-      // MANUAL NATIONALITY
+    console.warn(
+      '[ClientProfilingChangeService] Nationality not found:',
+      previousCountry
+    );
 
-      // ========================================================
+    return;
+  }
 
-      if (id.startsWith('nationalities:manual-')) {
+  const value =
+    this.nullableStringValue(
+      resolution.value
+    );
 
-        this.applyManualNationalityChange(
-
-          client,
-
-          id,
-
-          resolution
-
-        );
-
-        return;
-
-      }
-
-      // ========================================================
-
-      // EXISTING CORE NATIONALITY
-
-      // ========================================================
-
-      if (id.startsWith('nationalities:')) {
-
-        this.applyNationalityChange(
-
-          client,
-
-          id,
-
-          resolution
-
-        );
-
-        return;
-
-      }
-
-      // ========================================================
-
-      // EMAIL
-
-      // ========================================================
-
-      if (id.startsWith('emails:')) {
-
-        this.applyEmailChange(
-
-          client,
-
-          id,
-
-          resolution
-
-        );
-
-        return;
-
-      }
-
-      // ========================================================
-
-      // PHONE
-
-      // ========================================================
-
-      if (id.startsWith('phone-numbers:')) {
-
-        this.applyPhoneChange(
-
-          client,
-
-          id,
-
-          resolution
-
-        );
-
-        return;
-
-      }
-
-      // ========================================================
-
-      // TAX
-
-      // ========================================================
-
-      if (id.startsWith('tax-information:')) {
-
-        this.applyTaxInformationChange(
-
-          client,
-
-          id,
-
-          resolution
-
-        );
-
-        return;
-
-      }
+  if (value !== null) {
+    nationality.country = value;
+  }
+}
