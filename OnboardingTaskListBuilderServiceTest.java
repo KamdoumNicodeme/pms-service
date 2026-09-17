@@ -1,50 +1,32 @@
-public applyHolderChanges(
-  changeClientInformation: IChangeClientInformation,
-  thirdPartyId: string,
-  changes: ReadonlyMap<string, Resolution>,
-  deletedEntries: readonly string[]
-): IChangeClientInformation {
+private applyManualNationalityChange(
+  client: IPhysicalPerson,
+  id: string,
+  resolution: Resolution
+): void {
 
-  let result: IChangeClientInformation =
-    structuredClone(changeClientInformation);
+  const country: string = this.stringValue(resolution.value);
 
-  const client: IThirdParty | undefined =
-    result.policy.clients.find(
-      (item: IThirdParty): boolean =>
-        item.thirdPartyId === thirdPartyId
-    );
-
-  if (!client) {
-    return result;
+  if (!country) {
+    return;
   }
 
-  // 1 - APPLY CHANGES
-  if (client.type === 'PHYSICAL_PERSON') {
-    this.applyPhysicalPersonChanges(
-      client as IPhysicalPerson,
-      changes
-    );
+  if (!client.nationality) {
+    return;
   }
 
-  if (client.type === 'MORAL_PERSON') {
-    this.applyMoralPersonChanges(
-      client as IMoralPerson,
-      changes
-    );
+  const nationality: NationalityInfo = {
+    country
+  };
+
+  // First reste la nationalité provenant du Core
+  // On remplit d'abord second, puis third.
+
+  if (!client.nationality.second?.country) {
+    client.nationality.second = nationality;
+    return;
   }
 
-  // 2 - APPLY DELETIONS AFTER CHANGES
-  deletedEntries.forEach((id: string): void => {
-
-    if (id.startsWith('nationalities:manual-')) {
-      result = this.removeNationality(
-        result,
-        thirdPartyId,
-        id
-      );
-    }
-
-  });
-
-  return result;
+  if (!client.nationality.third?.country) {
+    client.nationality.third = nationality;
+  }
 }
