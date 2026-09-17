@@ -1,82 +1,83 @@
-private applyManualNationalityChange(
-  client: IPhysicalPerson,
-  id: string,
-  resolution: Resolution
-): void {
+removeManualEntry(fieldKey: string, entryKey: string): void {
 
-  if (!id.startsWith('nationalities:manual-')) {
-    return;
+  const id = `${fieldKey}:${entryKey}`;
+
+  // ============================================================
+  // 1. ENTRY MANUELLE
+  // ============================================================
+
+  const isManual =
+    entryKey.startsWith('manual-');
+
+  if (isManual) {
+
+    // Supprime de la liste des entrées manuelles simples
+    this.manualEntries.update(current =>
+      current.filter(entry =>
+        !(entry.fieldKey === fieldKey && entry.entryKey === entryKey)
+      )
+    );
+
+    // Supprime de la liste des entrées manuelles structurées
+    this.manualStructuredEntries.update(current =>
+      current.filter(entry =>
+        !(entry.fieldKey === fieldKey && entry.entryKey === entryKey)
+      )
+    );
+
+    // IMPORTANT :
+    // Supprime également son changement.
+    //
+    // Exemple :
+    // nationalities:manual-1
+    //
+    // ne doit PLUS exister dans overrides après suppression.
+    this.overrides.update(current => {
+
+      const next = new Map(current);
+
+      next.delete(id);
+
+      // Au cas où l'entrée structurée possède des children
+      for (const key of next.keys()) {
+        if (key.startsWith(`${id}:`)) {
+          next.delete(key);
+        }
+      }
+
+      return next;
+    });
+
+    // Une entrée créée puis supprimée n'est PAS une suppression
+    // métier : on ne l'ajoute donc PAS dans deletedEntries.
+
+    this.deletedEntries.update(current =>
+      current.filter(existingId => existingId !== id)
+    );
+
+  } else {
+
+    // ============================================================
+    // 2. ENTRY PROVENANT DU BACKEND
+    // ============================================================
+
+    // Là seulement c'est une vraie suppression.
+    this.deletedEntries.update(current =>
+      current.includes(id)
+        ? current
+        : [...current, id]
+    );
   }
 
-  const country = this.nullableStringValue(resolution.value);
+  // ============================================================
+  // 3. UI
+  // ============================================================
 
-  if (!country) {
-    return;
+  if (this.focusedId() === id) {
+    this.focusedId.set(null);
   }
 
-  // Initialise nationality si nécessaire
-  if (!client.nationality) {
-    client.nationality = {
-      first: undefined,
-      second: undefined,
-      third: undefined
-    };
+  if (this.expandedId() === id) {
+    this.expandedId.set(null);
   }
-
-  // ------------------------------------------
-  // Ne pas ajouter un doublon
-  // ------------------------------------------
-
-  const alreadyExists =
-    client.nationality.first?.country === country ||
-    client.nationality.second?.country === country ||
-    client.nationality.third?.country === country;
-
-  if (alreadyExists) {
-    return;
-  }
-
-  // ------------------------------------------
-  // FIRST
-  // ------------------------------------------
-
-  if (!client.nationality.first?.country) {
-    client.nationality.first = {
-      ...(client.nationality.first ?? {}),
-      country
-    };
-
-    return;
-  }
-
-  // ------------------------------------------
-  // SECOND
-  // ------------------------------------------
-
-  if (!client.nationality.second?.country) {
-    client.nationality.second = {
-      ...(client.nationality.second ?? {}),
-      country
-    };
-
-    return;
-  }
-
-  // ------------------------------------------
-  // THIRD
-  // ------------------------------------------
-
-  if (!client.nationality.third?.country) {
-    client.nationality.third = {
-      ...(client.nationality.third ?? {}),
-      country
-    };
-
-    return;
-  }
-
-  console.warn(
-    '[ClientProfilingChangeService] Maximum of 3 nationalities reached',
-    country
-  );
 }
