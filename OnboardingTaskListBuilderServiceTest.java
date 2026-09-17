@@ -1,32 +1,110 @@
-protected onHolderChanges(event: HolderChanges): void {
-  const data: IClientProfilingData | null =
-    this.getClientProfilingData();
+private applyPhysicalPersonChange(
+  client: IPhysicalPerson,
+  id: string,
+  resolution: Resolution
+): void {
 
-  if (!data) {
-    return;
+  const value = resolution.value;
+
+  switch (id) {
+
+    // ==========================================
+    // GENERAL INFORMATION
+    // ==========================================
+
+    case 'lastname':
+      client.lastname = value ?? '';
+      break;
+
+    case 'firstname':
+      client.firstName = value ?? '';
+      break;
+
+    case 'birth-date':
+      client.birthDate = value ?? '';
+      break;
+
+    case 'birth-country':
+      client.birthCountry = value ?? '';
+      break;
+
+    case 'status':
+      client.civilStatus = {
+        ...client.civilStatus,
+        status: value ?? ''
+      };
+      break;
+
+    case 'trustee-if-moral-person':
+      client.trusteeIfMoralPerson = value ?? '';
+      break;
+
+
+    // ==========================================
+    // PROFESSIONAL DETAILS
+    // ==========================================
+
+    case 'profession':
+      client.professionalDetails = {
+        ...client.professionalDetails,
+        profession: value ?? ''
+      };
+      break;
+
+    case 'profession-status':
+      client.professionalDetails = {
+        ...client.professionalDetails,
+        status: value ?? ''
+      };
+      break;
+
+    case 'employer-name':
+      client.professionalDetails = {
+        ...client.professionalDetails,
+        companyName: value ?? ''
+      };
+      break;
+
+    case 'industry-sector':
+      client.professionalDetails = {
+        ...client.professionalDetails,
+        sector: value ?? ''
+      };
+      break;
+
+
+    // ==========================================
+    // IDENTITY DOCUMENT
+    // ==========================================
+
+    case 'type':
+      client.idDocument = {
+        ...client.idDocument,
+        type: value ?? ''
+      };
+      break;
+
+    case 'number':
+      client.idDocument = {
+        ...client.idDocument,
+        number: value ?? ''
+      };
+      break;
+
+    case 'expirationDate':
+      client.idDocument = {
+        ...client.idDocument,
+        expirationDate: value ?? ''
+      };
+      break;
+
+
+    // ==========================================
+    // TAX / US PERSON
+    // ==========================================
+
+    case 'us-entity':
+      client.usPerson = this.toBoolean(value);
+      break;
   }
-
-  const current: IChangeClientInformation =
-    this.pendingChangeClientInformation() ??
-    this.changeService.buildBase(data);
-
-  const updated: IChangeClientInformation =
-    this.changeService.applyHolderChanges(
-      current,
-      event.thirdPartyId,
-      event.changes
-    );
-
-  this.pendingChangeClientInformation.set(updated);
-
-  const client: IThirdParty | undefined =
-    updated.policy.clients.find(
-      (item: IThirdParty) =>
-        item.thirdPartyId === event.thirdPartyId
-    );
-
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER APPLY',
-    client
-  );
 }
