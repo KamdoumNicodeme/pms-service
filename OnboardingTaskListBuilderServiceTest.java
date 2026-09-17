@@ -1,11 +1,11 @@
 addManualStructuredEntry(
     fieldKey: string,
-    fields: readonly StructuredEntryValue[]
+    fields: readonly StructureEntryValue[]
 ): string {
 
     const entryKey = `manual-${++this.manualSequence}`;
 
-    this.manualStructuredEntries.update(
+    this.manualStructureEntries.update(
         (current: readonly ManualEntryStructure[]) => [
             ...current,
             {
@@ -18,13 +18,11 @@ addManualStructuredEntry(
 
     const id = `${fieldKey}:${entryKey}`;
 
-    // Register every field of the manual structured entry as a change.
+    // Register all structured fields as applied changes immediately.
     this.overrides.update(current => {
-
         const next = new Map(current);
 
-        fields.forEach((field: StructuredEntryValue): void => {
-
+        fields.forEach((field: StructureEntryValue): void => {
             next.set(`${id}:${field.key}`, {
                 source: 'manual',
                 value: field.value,
@@ -32,7 +30,6 @@ addManualStructuredEntry(
                 comment: '',
                 reviewed: true,
             });
-
         });
 
         return next;
