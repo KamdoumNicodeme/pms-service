@@ -1,200 +1,70 @@
-private applyPhysicalPersonChanges(
+private applyManualTaxInformations(
     client: IPhysicalPerson,
     changes: ReadonlyMap<string, Resolution>
 ): void {
 
-    // ============================================================
-    // MANUAL ENTRIES
-    // ============================================================
+    const manualIds = new Set<string>();
 
-    // Manual entries are additions and must be processed separately
-    // from existing entries.
-    this.applyManualNationalities(client, changes);
-    this.applyManualEmails(client, changes);
-    this.applyManualPhoneNumbers(client, changes);
-    this.applyManualTaxInformations(client, changes);
+    // Find all manual Tax Information entries.
+    changes.forEach((_resolution: Resolution, id: string): void => {
 
-    // ============================================================
-    // EXISTING ENTRIES AND SCALAR FIELDS
-    // ============================================================
-
-    changes.forEach((resolution: Resolution, id: string): void => {
-
-        const value: string | null = resolution.value;
-
-        // Manual entries have already been processed above.
-        if (
-            id.startsWith('nationalities:manual-') ||
-            id.startsWith('emails:manual-') ||
-            id.startsWith('phone-numbers:manual-') ||
-            id.startsWith('tax-information:manual-')
-        ) {
+        if (!id.startsWith('tax-information:manual-')) {
             return;
         }
 
-        // Existing nationality
-        if (id.startsWith('nationalities:')) {
-            this.applyNationalityChange(client, id, resolution);
+        const parts = id.split(':');
+
+        // Expected format:
+        // tax-information:manual-1:tax-country
+        // tax-information:manual-1:tin
+        // tax-information:manual-1:tin-unavailable-reason
+        if (parts.length >= 3) {
+            manualIds.add(parts[1]);
+        }
+    });
+
+    if (manualIds.size === 0) {
+        return;
+    }
+
+    client.taxInformations ??= [];
+
+    manualIds.forEach((manualId: string): void => {
+
+        const prefix = `tax-information:${manualId}:`;
+
+        const taxCountry = this.nullableStringValue(
+            changes.get(`${prefix}tax-country`)?.value ?? null
+        );
+
+        const tin = this.nullableStringValue(
+            changes.get(`${prefix}tin`)?.value ?? null
+        );
+
+        const reason = this.nullableStringValue(
+            changes.get(`${prefix}tin-unavailable-reason`)?.value ?? null
+        );
+
+        // Tax Country is required to create the Tax Information entry.
+        if (!taxCountry) {
             return;
         }
 
-        // Existing email
-        if (id.startsWith('emails:')) {
-            this.applyEmailChange(client, id, resolution);
+        // Do not add the same Tax Country twice.
+        const alreadyExists = client.taxInformations.some(
+            tax => tax.taxCountry === taxCountry
+        );
+
+        if (alreadyExists) {
             return;
         }
 
-        // Existing phone number
-        if (id.startsWith('phone-numbers:')) {
-            this.applyPhoneChange(client, id, resolution);
-            return;
-        }
+        client.taxInformations.push({
+            taxCountry,
+            taxNumber: tin,
 
-        // Existing Tax Information
-        if (id.startsWith('tax-information:')) {
-            this.applyTaxInformationChange(client, id, resolution);
-            return;
-        }
-
-        // ========================================================
-        // GENERAL INFORMATION
-        // ========================================================
-
-        switch (id) {
-
-            case 'thirdPartyId':
-                // Third-party ID is not editable.
-                break;
-
-            case 'lastname':
-                client.lastname = this.stringValue(value);
-                break;
-
-            case 'firstname':
-                client.firstname = this.stringValue(value);
-                break;
-
-            case 'birth-date':
-                client.birthDate = this.stringValue(value);
-                break;
-
-            case 'birth-country':
-                client.birthCountry = this.stringValue(value);
-                break;
-
-            case 'status':
-                if (client.civilStatus) {
-                    client.civilStatus.status =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            // ====================================================
-            // PROFESSIONAL DETAILS
-            // ====================================================
-
-            case 'profession':
-                if (client.professionalDetails) {
-                    client.professionalDetails.profession =
-                        this.stringValue(value);
-                }
-                break;
-
-            case 'profession-status':
-                if (client.professionalDetails) {
-                    client.professionalDetails.status =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            case 'employer-name':
-                if (client.professionalDetails) {
-                    client.professionalDetails.companyName =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            case 'industry-sector':
-                if (client.professionalDetails) {
-                    client.professionalDetails.sector =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            // ====================================================
-            // IDENTITY DOCUMENT
-            // ====================================================
-
-            case 'type':
-                if (client.idDocument) {
-                    client.idDocument.type =
-                        this.stringValue(value);
-                }
-                break;
-
-            case 'number':
-                if (client.idDocument) {
-                    client.idDocument.number =
-                        this.stringValue(value);
-                }
-                break;
-
-            case 'expirationDate':
-                if (client.idDocument) {
-                    client.idDocument.expirationDate =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            // ====================================================
-            // US PERSON
-            // ====================================================
-
-            case 'us-entity':
-                client.usPerson = this.booleanValue(value);
-                break;
-
-            // ====================================================
-            // LEGAL ADDRESS
-            // ====================================================
-
-            case 'legal-address:no':
-                if (client.legalAddress) {
-                    client.legalAddress.no =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            case 'legal-address:street':
-                if (client.legalAddress) {
-                    client.legalAddress.address =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            case 'legal-address:postCode':
-                if (client.legalAddress) {
-                    client.legalAddress.postCode =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            case 'legal-address:town':
-                if (client.legalAddress) {
-                    client.legalAddress.town =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            case 'legal-address:country':
-                if (client.legalAddress) {
-                    client.legalAddress.country =
-                        this.nullableStringValue(value);
-                }
-                break;
-
-            default:
-                break;
-        }
+            // Reason is only applicable when TIN is empty.
+            tinUnavailableReason: tin ? null : reason
+        } as ITaxInformation);
     });
 }
