@@ -5,7 +5,7 @@ public applyHolderChanges(
   deletedEntries: readonly string[]
 ): IChangeClientInformation {
 
-  const result: IChangeClientInformation =
+  let result: IChangeClientInformation =
     structuredClone(changeClientInformation);
 
   const client: IThirdParty | undefined =
@@ -18,7 +18,7 @@ public applyHolderChanges(
     return result;
   }
 
-  // 1. Apply modifications first
+  // 1 - APPLY CHANGES
   if (client.type === 'PHYSICAL_PERSON') {
     this.applyPhysicalPersonChanges(
       client as IPhysicalPerson,
@@ -33,21 +33,18 @@ public applyHolderChanges(
     );
   }
 
-  // 2. Apply deletions LAST
-  for (const id of deletedEntries) {
+  // 2 - APPLY DELETIONS AFTER CHANGES
+  deletedEntries.forEach((id: string): void => {
 
-    if (
-      client.type === 'PHYSICAL_PERSON' &&
-      id.startsWith('nationalities:manual-')
-    ) {
-      this.removeNationalityFromClient(
-        client as IPhysicalPerson,
+    if (id.startsWith('nationalities:manual-')) {
+      result = this.removeNationality(
+        result,
+        thirdPartyId,
         id
       );
     }
 
-    // Emails / phones / tax etc. will be added here later.
-  }
+  });
 
   return result;
 }
