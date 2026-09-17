@@ -1,63 +1,105 @@
-private applyManualEmailChange(
+private applyManualTaxInformations(
     client: IThirdParty,
-    resolution: Resolution
+    changes: ReadonlyMap<string, Resolution>
 ): void {
 
-    const value: string | null =
-        this.nullableStringValue(resolution.value);
+    const manualTaxIds = new Set<string>();
 
-    if (!value) {
-        return;
-    }
+    changes.forEach((_resolution, id) => {
 
-    if (!client.emails) {
-        client.emails = [];
-    }
+        if (!id.startsWith('tax-information:manual-')) {
+            return;
+        }
 
-    const alreadyExists: boolean =
-        client.emails.some(
-            email =>
-                email.email?.trim().toLowerCase() ===
-                value.trim().toLowerCase()
+        const parts = id.split(':');
+
+        if (parts.length >= 3) {
+            manualTaxIds.add(parts[1]);
+        }
+    });
+
+    manualTaxIds.forEach(manualId => {
+
+        const prefix = `tax-information:${manualId}:`;
+
+        const country =
+            this.nullableStringValue(
+                changes.get(`${prefix}tax-country`)?.value ?? null
+            );
+
+        const tin =
+            this.nullableStringValue(
+                changes.get(`${prefix}tin`)?.value ?? null
+            );
+
+        const reason =
+            this.nullableStringValue(
+                changes.get(`${prefix}tin-unavailable-reason`)?.value ?? null
+            );
+
+        if (!country) {
+            return;
+        }
+
+        client.taxInformations ??= [];
+
+        /*
+         * Évite également les doublons de Tax Country.
+         */
+        const alreadyExists = client.taxInformations.some(
+            tax => tax.taxCountry === country
         );
 
-    if (alreadyExists) {
-        return;
-    }
+        if (alreadyExists) {
+            return;
+        }
 
-    client.emails.push({
-        email: value
-    } as IEmail);
+        client.taxInformations.push({
+            taxCountry: country,
+            taxNumber: tin,
+
+            // IMPORTANT :
+            // si TIN existe => Reason obligatoirement null
+            tinUnavailableReason: tin ? null : reason
+
+        } as ITaxInformation);
+    });
 }
 
+private applyPhysicalPersonChanges(
 
-private applyManualPhoneChange(
-    client: IThirdParty,
-    resolution: Resolution
+    client: IPhysicalPerson,
+
+    changes: ReadonlyMap<string, Resolution>
+
 ): void {
 
-    const value: string | null =
-        this.nullableStringValue(resolution.value);
+    // Reconstruit toutes les Tax Information manuelles
 
-    if (!value) {
-        return;
-    }
+    this.applyManualTaxInformations(client, changes);
 
-    if (!client.phoneNumbers) {
-        client.phoneNumbers = [];
-    }
+    changes.forEach((resolution: Resolution, id: string): void => {
 
-    const alreadyExists: boolean =
-        client.phoneNumbers.some(
-            phone =>
-                phone.phoneNumber?.trim() === value.trim()
-        );
+        // Les taxes manuelles ont déjà été traitées au-dessus.
 
-    if (alreadyExists) {
-        return;
-    }
+        if (id.startsWith('tax-information:manual-')) {
 
-    client.phoneNumbers.push({
-        phoneNumber: value
-    } as IPhoneNumber);
-}
+            return;
+
+        }
+
+        // Existing Tax Information
+
+        if (id.startsWith('tax-information:')) {
+
+            this.applyTaxInformationChange(
+
+                client,
+
+                id,
+
+                resolution
+
+            );
+
+           
