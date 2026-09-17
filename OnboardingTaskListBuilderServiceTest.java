@@ -1,78 +1,100 @@
-private applyManualNationalityChange(
-  client: IPhysicalPerson,
-  id: string,
-  resolution: Resolution
-): void {
+protected onHolderChanges(event: HolderChanges): void {
 
-  if (!id.startsWith('nationalities:manual-')) {
+  const data: IClientProfilingData | null =
+    this.getClientProfilingData();
+
+  if (!data) {
     return;
   }
 
-  const country =
-    this.nullableStringValue(
-      resolution.value
+  /*
+   * IMPORTANT :
+   *
+   * On ne repart PAS de pendingChangeClientInformation
+   * pour le holder qui vient de changer.
+   *
+   * On repart des données initiales du backend puis on applique
+   * l'état ACTUEL de son store.
+   *
+   * Ainsi :
+   *
+   * Core DE
+   * + manual FR
+   * + manual BE
+   *
+   * => DE / FR / BE
+   *
+   * Si FR est supprimé du store :
+   *
+   * Core DE
+   * + manual BE
+   *
+   * => DE / BE
+   *
+   * FR disparaît automatiquement.
+   */
+
+  const holderBase: IChangeClientInformation =
+    this.changeService.buildBase(data);
+
+  const rebuiltHolderState: IChangeClientInformation =
+    this.changeService.applyHolderChanges(
+      holderBase,
+      event.thirdPartyId,
+      event.changes
     );
 
-  if (!country) {
-    return;
-  }
+  /*
+   * Maintenant on conserve les modifications éventuelles
+   * déjà effectuées sur les AUTRES holders.
+   */
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+      ? structuredClone(this.pendingChangeClientInformation()!)
+      : this.changeService.buildBase(data);
 
-  if (!client.nationality) {
-    return;
-  }
+  const rebuiltClient: IThirdParty | undefined =
+    rebuiltHolderState.policy.clients.find(
+      (client: IThirdParty) =>
+        client.thirdPartyId === event.thirdPartyId
+    );
 
-  // ============================================================
-  // DUPLICATE CHECK
-  // ============================================================
-
-  const exists = [
-    client.nationality.first,
-    client.nationality.second,
-    client.nationality.third
-  ].some(
-    nationality =>
-      nationality?.country === country
-  );
-
-  if (exists) {
-    return;
-  }
-
-  // ============================================================
-  // FIRST AVAILABLE SLOT
-  // ============================================================
-
-  if (!client.nationality.first?.country) {
-
-    client.nationality.first = {
-      ...(client.nationality.first ?? {}),
-      country
-    };
+  if (!rebuiltClient) {
+    console.warn(
+      '[ClientProfilingComponent] Rebuilt client not found:',
+      event.thirdPartyId
+    );
 
     return;
   }
 
-  if (!client.nationality.second?.country) {
+  const clientIndex: number =
+    current.policy.clients.findIndex(
+      (client: IThirdParty) =>
+        client.thirdPartyId === event.thirdPartyId
+    );
 
-    client.nationality.second = {
-      ...(client.nationality.second ?? {}),
-      country
-    };
-
-    return;
-  }
-
-  if (!client.nationality.third?.country) {
-
-    client.nationality.third = {
-      ...(client.nationality.third ?? {}),
-      country
-    };
+  if (clientIndex === -1) {
+    console.warn(
+      '[ClientProfilingComponent] Client not found in pending data:',
+      event.thirdPartyId
+    );
 
     return;
   }
 
-  console.warn(
-    '[ClientProfilingChangeService] Maximum 3 nationalities reached'
+  /*
+   * On remplace uniquement le holder concerné.
+   *
+   * Les modifications des autres holders restent intactes.
+   */
+  current.policy.clients[clientIndex] =
+    structuredClone(rebuiltClient);
+
+  this.pendingChangeClientInformation.set(current);
+
+  console.log(
+    'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE',
+    structuredClone(current)
   );
 }
