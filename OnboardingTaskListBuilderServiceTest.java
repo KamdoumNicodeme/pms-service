@@ -1,54 +1,123 @@
-public applyHolderChanges(
-  changeClientInformation: IChangeClientInformation,
-  thirdPartyId: string,
+private applyPhysicalPersonChanges(
+
+  client: IPhysicalPerson,
+
   changes: ReadonlyMap<string, Resolution>
-): IChangeClientInformation {
 
-  const result: IChangeClientInformation =
-    structuredClone(changeClientInformation);
+): void {
 
-  const client: IThirdParty | undefined =
-    result.policy.clients.find(
-      (item: IThirdParty) =>
-        item.thirdPartyId === thirdPartyId
-    );
+  changes.forEach(
 
-  if (!client) {
-    console.warn(
-      '[ClientProfilingChangeService] Client not found:',
-      thirdPartyId
-    );
+    (resolution: Resolution, id: string): void => {
 
-    return result;
-  }
+      const value: string | null = resolution.value;
 
-  // ============================================================
-  // PHYSICAL PERSON
-  // ============================================================
+      // ========================================================
 
-  if (client.type === 'PHYSICAL_PERSON') {
+      // MANUAL NATIONALITY
 
-    this.applyPhysicalPersonChanges(
-      client as IPhysicalPerson,
-      changes
-    );
+      // ========================================================
 
-    return result;
-  }
+      if (id.startsWith('nationalities:manual-')) {
 
-  // ============================================================
-  // MORAL PERSON
-  // ============================================================
+        this.applyManualNationalityChange(
 
-  if (client.type === 'MORAL_PERSON') {
+          client,
 
-    this.applyMoralPersonChanges(
-      client as IMoralPerson,
-      changes
-    );
+          id,
 
-    return result;
-  }
+          resolution
 
-  return result;
-}
+        );
+
+        return;
+
+      }
+
+      // ========================================================
+
+      // EXISTING CORE NATIONALITY
+
+      // ========================================================
+
+      if (id.startsWith('nationalities:')) {
+
+        this.applyNationalityChange(
+
+          client,
+
+          id,
+
+          resolution
+
+        );
+
+        return;
+
+      }
+
+      // ========================================================
+
+      // EMAIL
+
+      // ========================================================
+
+      if (id.startsWith('emails:')) {
+
+        this.applyEmailChange(
+
+          client,
+
+          id,
+
+          resolution
+
+        );
+
+        return;
+
+      }
+
+      // ========================================================
+
+      // PHONE
+
+      // ========================================================
+
+      if (id.startsWith('phone-numbers:')) {
+
+        this.applyPhoneChange(
+
+          client,
+
+          id,
+
+          resolution
+
+        );
+
+        return;
+
+      }
+
+      // ========================================================
+
+      // TAX
+
+      // ========================================================
+
+      if (id.startsWith('tax-information:')) {
+
+        this.applyTaxInformationChange(
+
+          client,
+
+          id,
+
+          resolution
+
+        );
+
+        return;
+
+      }
