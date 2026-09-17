@@ -1,67 +1,43 @@
-public applyHolderChanges(
-  changeClientInformation: IChangeClientInformation,
-  thirdPartyId: string,
-  changes: ReadonlyMap<string, Resolution>,
-  deletedEntries: readonly string[]
-): IChangeClientInformation {
+private applyManualNationalityChange(
+  client: IPhysicalPerson,
+  id: string,
+  resolution: Resolution
+): void {
 
-  // 1. On part toujours de la base actuelle
-  let result: IChangeClientInformation =
-    this.buildBase(changeClientInformation);
+  const country = this.nullableStringValue(resolution.value);
 
-  // 2. Appliquer les suppressions
-  deletedEntries.forEach((id: string): void => {
-
-    if (id.startsWith('nationalities:manual-')) {
-      result = this.removeNationality(
-        result,
-        thirdPartyId,
-        id
-      );
-    }
-
-  });
-
-  // 3. Récupérer le client APRÈS les suppressions
-  const client: IThirdParty | undefined =
-    result.policy.clients.find(
-      (item: IThirdParty): boolean =>
-        item.thirdPartyId === thirdPartyId
-    );
-
-  if (!client) {
-    return result;
+  if (!country) {
+    return;
   }
 
-  // 4. Ne surtout pas réappliquer une entrée supprimée
-  const activeChanges: Map<string, Resolution> =
-    new Map<string, Resolution>(
-      [...changes].filter(
-        ([id]: [string, Resolution]): boolean =>
-          !deletedEntries.includes(id)
-      )
-    );
-
-  // 5. Appliquer les modifications restantes
-  if (client.type === 'PHYSICAL_PERSON') {
-
-    this.applyPhysicalPersonChanges(
-      client as IPhysicalPerson,
-      activeChanges
-    );
-
-    return result;
+  if (!client.nationality) {
+    client.nationality = {};
   }
 
-  if (client.type === 'MORAL_PERSON') {
+  // Eviter les doublons
+  const alreadyExists = [
+    client.nationality.first,
+    client.nationality.second,
+    client.nationality.third
+  ].some(
+    nationality => nationality?.country === country
+  );
 
-    this.applyMoralPersonChanges(
-      client as IMoralPerson,
-      activeChanges
-    );
-
-    return result;
+  if (alreadyExists) {
+    return;
   }
 
-  return result;
+  if (!client.nationality.first) {
+    client.nationality.first = { country };
+    return;
+  }
+
+  if (!client.nationality.second) {
+    client.nationality.second = { country };
+    return;
+  }
+
+  if (!client.nationality.third) {
+    client.nationality.third = { country };
+  }
 }
