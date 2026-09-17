@@ -1,66 +1,37 @@
-public removeNationality(
-  changeClientInformation: IChangeClientInformation,
-  thirdPartyId: string,
-  id: string
-): IChangeClientInformation {
+removeManualEntry(fieldKey: string, entryKey: string): void {
 
-  const result = structuredClone(changeClientInformation);
-
-  const client = result.policy.clients.find(
-    (item: IThirdParty) => item.thirdPartyId === thirdPartyId
+  this.manualEntries.update(current =>
+    current.filter(
+      entry =>
+        !(entry.fieldKey === fieldKey && entry.entryKey === entryKey)
+    )
   );
 
-  if (!client || client.type !== 'PHYSICAL_PERSON') {
-    return result;
-  }
-
-  const physicalPerson = client as IPhysicalPerson;
-
-  if (!physicalPerson.nationality) {
-    return result;
-  }
-
-  const manualIndex = Number(
-    id.replace('nationalities:manual-', '')
+  this.manualStructureEntries.update(current =>
+    current.filter(
+      entry =>
+        !(entry.fieldKey === fieldKey && entry.entryKey === entryKey)
+    )
   );
 
-  if (manualIndex === 1) {
-    // If third exists, shift it to second
-    physicalPerson.nationality.second =
-      physicalPerson.nationality.third;
+  const id = `${fieldKey}:${entryKey}`;
 
-    physicalPerson.nationality.third = undefined;
+  this.resolutions.update(current => {
+    const updated = new Map(current);
+    updated.delete(id);
+    return updated;
+  });
+
+  this.deletedEntries.update(current => [
+    ...current.filter(existingId => existingId !== id),
+    id
+  ]);
+
+  if (this.focusedId() === id) {
+    this.focusedId.set(null);
   }
 
-  if (manualIndex === 2) {
-    physicalPerson.nationality.third = undefined;
+  if (this.expandedId() === id) {
+    this.expandedId.set(null);
   }
-
-  return result;
-}
-
-protected onNationalityDeleted(
-  thirdPartyId: string,
-  id: string
-): void {
-
-  const current = this.pendingChangeClientInformation();
-
-  if (!current) {
-    return;
-  }
-
-  const updated =
-    this.changeService.removeNationality(
-      current,
-      thirdPartyId,
-      id
-    );
-
-  this.pendingChangeClientInformation.set(updated);
-
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER DELETE',
-    updated
-  );
 }
