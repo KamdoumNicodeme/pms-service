@@ -1,32 +1,25 @@
-private applyManualNationalityChange(
+private removeManualNationality(
   client: IPhysicalPerson,
-  id: string,
-  resolution: Resolution
+  id: string
 ): void {
-  const country = this.stringValue(resolution.value);
-
-  if (!country) {
-    return;
-  }
-
-  const manualIndex = Number(
-    id.replace('nationalities:manual-', '')
-  );
-
   if (!client.nationality) {
     return;
   }
 
-  const nationality: NationalityInfo = {
-    country
-  };
+  const manualIndex = Number(id.replace('nationalities:manual-', ''));
 
   if (manualIndex === 1) {
-    client.nationality.second = nationality;
-    return;
+    client.nationality.second = client.nationality.third;
+    client.nationality.third = {
+      country: null,
+      fromDate: null
+    };
   }
 
   if (manualIndex === 2) {
-    client.nationality.third = nationality;
+    client.nationality.third = {
+      country: null,
+      fromDate: null
+    };
   }
 }
