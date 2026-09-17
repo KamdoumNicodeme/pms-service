@@ -1,41 +1,58 @@
-addManualStructuredEntry(
-    fieldKey: string,
-    fields: readonly StructureEntryValue[]
-): string {
+export const POLICY_PROFILING_SECTIONS = [
+    {
+        id: 'sending-address-communication',
+        label: 'Sending address and Communication Preferences',
+    },
+    {
+        id: 'opt-in-out',
+        label: 'Opt In/Out',
+    },
+] as const;
 
-    const entryKey = `manual-${++this.manualSequence}`;
 
-    this.manualStructureEntries.update(
-        (current: readonly ManualEntryStructure[]) => [
-            ...current,
-            {
-                fieldKey,
-                entryKey,
-                fields,
-            },
-        ]
-    );
 
-    const id = `${fieldKey}:${entryKey}`;
+export class PolicyProfiling {
 
-    // Register all structured fields as applied changes immediately.
-    this.overrides.update(current => {
-        const next = new Map(current);
+    readonly policyNumber = input.required<string>();
 
-        fields.forEach((field: StructureEntryValue): void => {
-            next.set(`${id}:${field.key}`, {
-                source: 'manual',
-                value: field.value,
-                reason: 'Confirmed with client',
-                comment: '',
-                reviewed: true,
-            });
+    protected readonly sections = POLICY_PROFILING_SECTIONS;
+
+    private readonly openSections =
+        signal<ReadonlySet<string>>(
+            new Set(POLICY_PROFILING_SECTIONS.map(section => section.id))
+        );
+
+    protected readonly activeId =
+        signal<string | null>(
+            POLICY_PROFILING_SECTIONS[0]?.id ?? null
+        );
+
+    protected readonly filter =
+        signal<ComparisonFilter>('all');
+
+    protected isOpen(sectionId: string): boolean {
+        return this.openSections().has(sectionId);
+    }
+
+    protected toggleSection(sectionId: string): void {
+        this.openSections.update(current => {
+            const next = new Set(current);
+
+            if (next.has(sectionId)) {
+                next.delete(sectionId);
+            } else {
+                next.add(sectionId);
+            }
+
+            return next;
         });
+    }
 
-        return next;
-    });
+    protected goTo(sectionId: string): void {
+        this.openSections.update(
+            current => new Set(current).add(sectionId)
+        );
 
-    this.focusedId.set(id);
-
-    return id;
+        this.activeId.set(sectionId);
+    }
 }
