@@ -1,76 +1,68 @@
-removeManualEntry(fieldKey: string, entryKey: string): void {
+removeManualEntry(
+  fieldKey: string,
+  entryKey: string
+): void {
 
   const id = `${fieldKey}:${entryKey}`;
 
   // ============================================================
-  // 1. ENTRY MANUELLE
+  // 1 - REMOVE SIMPLE MANUAL ENTRY
   // ============================================================
 
-  const isManual =
-    entryKey.startsWith('manual-');
-
-  if (isManual) {
-
-    // Supprime de la liste des entrées manuelles simples
-    this.manualEntries.update(current =>
-      current.filter(entry =>
-        !(entry.fieldKey === fieldKey && entry.entryKey === entryKey)
+  this.manualEntries.update(current =>
+    current.filter(entry =>
+      !(
+        entry.fieldKey === fieldKey &&
+        entry.entryKey === entryKey
       )
-    );
+    )
+  );
 
-    // Supprime de la liste des entrées manuelles structurées
-    this.manualStructuredEntries.update(current =>
-      current.filter(entry =>
-        !(entry.fieldKey === fieldKey && entry.entryKey === entryKey)
+  // ============================================================
+  // 2 - REMOVE STRUCTURED MANUAL ENTRY
+  // ============================================================
+
+  this.manualStructuredEntries.update(current =>
+    current.filter(entry =>
+      !(
+        entry.fieldKey === fieldKey &&
+        entry.entryKey === entryKey
       )
-    );
+    )
+  );
 
-    // IMPORTANT :
-    // Supprime également son changement.
+  // ============================================================
+  // 3 - REMOVE ITS OVERRIDES
+  // ============================================================
+
+  this.overrides.update(current => {
+
+    const next = new Map(current);
+
+    // Simple manual entry
+    next.delete(id);
+
+    // Structured manual entry children
     //
-    // Exemple :
-    // nationalities:manual-1
-    //
-    // ne doit PLUS exister dans overrides après suppression.
-    this.overrides.update(current => {
-
-      const next = new Map(current);
-
-      next.delete(id);
-
-      // Au cas où l'entrée structurée possède des children
-      for (const key of next.keys()) {
-        if (key.startsWith(`${id}:`)) {
-          next.delete(key);
-        }
+    // Example:
+    // tax-information:manual-1:tin
+    // tax-information:manual-1:tax-country
+    for (const key of next.keys()) {
+      if (key.startsWith(`${id}:`)) {
+        next.delete(key);
       }
+    }
 
-      return next;
-    });
-
-    // Une entrée créée puis supprimée n'est PAS une suppression
-    // métier : on ne l'ajoute donc PAS dans deletedEntries.
-
-    this.deletedEntries.update(current =>
-      current.filter(existingId => existingId !== id)
-    );
-
-  } else {
-
-    // ============================================================
-    // 2. ENTRY PROVENANT DU BACKEND
-    // ============================================================
-
-    // Là seulement c'est une vraie suppression.
-    this.deletedEntries.update(current =>
-      current.includes(id)
-        ? current
-        : [...current, id]
-    );
-  }
+    return next;
+  });
 
   // ============================================================
-  // 3. UI
+  // IMPORTANT
+  //
+  // DO NOT add this entry to deletedEntries.
+  //
+  // A manual entry never existed in Core.
+  // Removing it means cancelling the addition.
   // ============================================================
 
   if (this.focusedId() === id) {
