@@ -1,39 +1,54 @@
-protected onHolderChanges(event: HolderChanges): void {
-  const data: IClientProfilingData | null =
-    this.getClientProfilingData();
+applyHolderChanges(
+  changeClientInformation: IChangeClientInformation,
+  thirdPartyId: string,
+  changes: ReadonlyMap<string, Resolution>,
+  deletedEntries: readonly string[]
+): IChangeClientInformation {
 
-  if (!data) {
-    return;
+  const result: IChangeClientInformation =
+    structuredClone(changeClientInformation);
+
+  const client: IThirdParty | undefined =
+    result.policy.clients.find(
+      (item: IThirdParty): boolean =>
+        item.thirdPartyId === thirdPartyId
+    );
+
+  if (!client) {
+    return result;
   }
 
-  let current: IChangeClientInformation =
-    this.pendingChangeClientInformation() ??
-    data.changeClientInformation ??
-    this.changeService.buildBase(data);
+  if (client.type === 'PHYSICAL_PERSON') {
+    const physicalPerson = client as IPhysicalPerson;
 
-  // 1. Apply additions / modifications
-  current = this.changeService.applyHolderChanges(
-    current,
-    event.thirdPartyId,
-    event.changes
-  );
+    // Modifications + ajouts
+    this.applyPhysicalPersonChanges(
+      physicalPerson,
+      changes
+    );
 
-  // 2. Apply deletions
-  event.deletedEntries.forEach((id: string) => {
-    if (id.startsWith('nationalities:manual-')) {
-      current = this.changeService.removeNationality(
-        current,
-        event.thirdPartyId,
-        id
-      );
-    }
-  });
+    // Suppressions
+    deletedEntries.forEach((id: string) => {
+      if (id.startsWith('nationalities:manual-')) {
+        this.removeNationalityFromClient(
+          physicalPerson,
+          id
+        );
+      }
+    });
 
-  // 3. Keep the updated working copy
-  this.pendingChangeClientInformation.set(current);
+    return result;
+  }
 
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER APPLY',
-    current
-  );
+  // MORAL PERSON
+  if (client.type === 'MORAL_PERSON') {
+    this.applyMoralPersonChanges(
+      client as IMoralPerson,
+      changes
+    );
+
+    return result;
+  }
+
+  return result;
 }
