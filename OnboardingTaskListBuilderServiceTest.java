@@ -1,34 +1,11 @@
-case 'nationalities':
-  this.applyNationalitiesChange(client, resolution);
-  break;
+private getNationalities(details?: INationalityDetails): string[] {
+  if (!details) {
+    return [];
+  }
 
-private applyNationalitiesChange(
-  client: IPhysicalPerson,
-  resolution: Resolution
-): void {
-
-  const values: string[] = Array.isArray(resolution.value)
-    ? resolution.value
-    : resolution.value
-      ? [resolution.value]
-      : [];
-
-  client.nationality = {
-    ...client.nationality,
-
-    first: {
-      ...client.nationality?.first,
-      country: values[0] ?? null,
-    },
-
-    second: {
-      ...client.nationality?.second,
-      country: values[1] ?? null,
-    },
-
-    third: {
-      ...client.nationality?.third,
-      country: values[2] ?? null,
-    },
-  };
+  return [
+    details.first?.country,
+    details.second?.country,
+    details.third?.country,
+  ].filter((country): country is string => !!country);
 }
