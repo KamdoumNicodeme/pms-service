@@ -6,31 +6,30 @@ protected onHolderChanges(event: HolderChanges): void {
     return;
   }
 
-  let current: IChangeClientInformation | null =
-    this.pendingChangeClientInformation();
+  let current: IChangeClientInformation =
+    this.pendingChangeClientInformation() ??
+    data.changeClientInformation ??
+    this.changeService.buildBase(data);
 
-  if (!current) {
-    return;
-  }
-
-  // MODIFICATIONS / ADDITIONS
+  // 1. Apply additions / modifications
   current = this.changeService.applyHolderChanges(
     current,
     event.thirdPartyId,
     event.changes
   );
 
-  // DELETIONS
+  // 2. Apply deletions
   event.deletedEntries.forEach((id: string) => {
     if (id.startsWith('nationalities:manual-')) {
       current = this.changeService.removeNationality(
-        current!,
+        current,
         event.thirdPartyId,
         id
       );
     }
   });
 
+  // 3. Keep the updated working copy
   this.pendingChangeClientInformation.set(current);
 
   console.log(
