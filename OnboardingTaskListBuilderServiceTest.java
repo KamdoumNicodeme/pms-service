@@ -1,75 +1,54 @@
-removeManualEntry(
-  fieldKey: string,
-  entryKey: string
-): void {
+public applyHolderChanges(
+  changeClientInformation: IChangeClientInformation,
+  thirdPartyId: string,
+  changes: ReadonlyMap<string, Resolution>
+): IChangeClientInformation {
 
-  const id = `${fieldKey}:${entryKey}`;
+  const result: IChangeClientInformation =
+    structuredClone(changeClientInformation);
 
-  // ============================================================
-  // 1 - REMOVE SIMPLE MANUAL ENTRY
-  // ============================================================
+  const client: IThirdParty | undefined =
+    result.policy.clients.find(
+      (item: IThirdParty) =>
+        item.thirdPartyId === thirdPartyId
+    );
 
-  this.manualEntries.update(current =>
-    current.filter(entry =>
-      !(
-        entry.fieldKey === fieldKey &&
-        entry.entryKey === entryKey
-      )
-    )
-  );
+  if (!client) {
+    console.warn(
+      '[ClientProfilingChangeService] Client not found:',
+      thirdPartyId
+    );
 
-  // ============================================================
-  // 2 - REMOVE STRUCTURED MANUAL ENTRY
-  // ============================================================
-
-  this.manualStructuredEntries.update(current =>
-    current.filter(entry =>
-      !(
-        entry.fieldKey === fieldKey &&
-        entry.entryKey === entryKey
-      )
-    )
-  );
-
-  // ============================================================
-  // 3 - REMOVE ITS OVERRIDES
-  // ============================================================
-
-  this.overrides.update(current => {
-
-    const next = new Map(current);
-
-    // Simple manual entry
-    next.delete(id);
-
-    // Structured manual entry children
-    //
-    // Example:
-    // tax-information:manual-1:tin
-    // tax-information:manual-1:tax-country
-    for (const key of next.keys()) {
-      if (key.startsWith(`${id}:`)) {
-        next.delete(key);
-      }
-    }
-
-    return next;
-  });
-
-  // ============================================================
-  // IMPORTANT
-  //
-  // DO NOT add this entry to deletedEntries.
-  //
-  // A manual entry never existed in Core.
-  // Removing it means cancelling the addition.
-  // ============================================================
-
-  if (this.focusedId() === id) {
-    this.focusedId.set(null);
+    return result;
   }
 
-  if (this.expandedId() === id) {
-    this.expandedId.set(null);
+  // ============================================================
+  // PHYSICAL PERSON
+  // ============================================================
+
+  if (client.type === 'PHYSICAL_PERSON') {
+
+    this.applyPhysicalPersonChanges(
+      client as IPhysicalPerson,
+      changes
+    );
+
+    return result;
   }
+
+  // ============================================================
+  // MORAL PERSON
+  // ============================================================
+
+  if (client.type === 'MORAL_PERSON') {
+
+    this.applyMoralPersonChanges(
+      client as IMoralPerson,
+      changes
+    );
+
+    return result;
+  }
+
+  return result;
 }
