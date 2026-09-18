@@ -1,28 +1,34 @@
 private hasDuplicateTaxCountry(taxCountry: string): boolean {
-    const normalizedTaxCountry: string =
-        taxCountry.trim().toUpperCase();
+    const expected: string = taxCountry.trim().toUpperCase();
 
     return this.row().entries.some(entry => {
-
-        // First check the current resolved child value.
-        const resolvedTaxCountry = entry.children.find(
+        const taxCountryChild = entry.children.find(
             child => child.key === 'tax-country'
-        )?.resolution.value;
+        );
+
+        if (!taxCountryChild) {
+            return false;
+        }
+
+        // Check the currently resolved value first.
+        const resolvedValue: string | null =
+            taxCountryChild.resolution.value;
 
         if (
-            resolvedTaxCountry?.trim().toUpperCase() ===
-            normalizedTaxCountry
+            resolvedValue?.trim().toUpperCase() === expected
         ) {
             return true;
         }
 
-        // Then check values coming from Core, Digital or KYC.
-        return Object.values(entry.fields ?? {}).some(fields =>
-            fields?.some(field =>
-                field.key === 'tax-country' &&
-                field.value?.trim().toUpperCase() ===
-                    normalizedTaxCountry
-            ) ?? false
+        // Check the original values from every source.
+        const sourceValues: Array<string | null> = [
+            taxCountryChild.values.core,
+            taxCountryChild.values.digital,
+            taxCountryChild.values.kyc,
+        ];
+
+        return sourceValues.some(
+            value => value?.trim().toUpperCase() === expected
         );
     });
 }
