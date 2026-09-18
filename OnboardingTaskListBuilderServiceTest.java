@@ -1,49 +1,34 @@
-private hasDuplicateTaxCountry(): boolean {
-    if (this.row().key !== 'tax-information') {
-        return false;
-    }
+submitStructured(): void {
+    const definitions: readonly ComparisonEntryFieldDefinition[] =
+        this.row().entryFields ?? [];
 
-    const newTaxCountry: string =
-        (this.fieldValue('tax-country') ?? '').trim();
+    const fields: { key: string; value: string | null }[] =
+        definitions.map((definition: ComparisonEntryFieldDefinition) => {
+            const value: string = this.fieldValue(definition.key).trim();
 
-    if (!newTaxCountry) {
-        return false;
-    }
+            return {
+                key: definition.key,
+                value: value === '' ? null : value,
+            };
+        });
 
-    return this.row().entries.some(entry => {
+    // Prevent duplicate Tax Country for Tax Information.
+    if (this.row().key === 'tax-information') {
+        const taxCountry: string | null =
+            fields.find(field => field.key === 'tax-country')?.value ?? null;
 
-        const taxCountry = entry.children.find(
-            child => child.key === 'tax-country'
-        );
-
-        return taxCountry?.resolution.value?.trim() === newTaxCountry;
-    });
-}
-
-protected submitStructured(): void {
-    if (!this.canSubmitStructured()) {
-        return;
-    }
-
-    if (this.hasDuplicateTaxCountry()) {
-        this.addError.set(
-            'Tax information already exists for this country.'
-        );
-
-        return;
+        if (taxCountry && this.hasDuplicateTaxCountry(taxCountry)) {
+            this.addError.set(
+                'Tax information already exists for this country.'
+            );
+            return;
+        }
     }
 
     this.addError.set(null);
 
-    const fields: Record<string, string> = {};
-
-    for (const field of this.row().entryFields ?? []) {
-        fields[field.key] =
-            this.fieldValue(field.key)?.trim() ?? '';
-    }
-
     this.addStructuredEntry.emit({
-        fields
+        fields,
     });
 
     this.closeStructuredModal();
