@@ -1,75 +1,28 @@
-import {
-  Component,
-  effect,
-  inject,
-  input,
-  InputSignal,
-  output,
-  OutputEmitterRef,
-  ResourceRef,
-} from '@angular/core';
+@if (section.value(); as data) {
 
-import {
-  rxResource,
-} from '@angular/core/rxjs-interop';
+  <data-comparison
+    [section]="data"
+    [filter]="filter()"
+    (countersChange)="countersChange.emit($event)"
+    (changeChanges)="changesChange.emit($event)"
+  />
 
-import {
-  COMPARISON_DATA_SERVICE,
-  ComparisonDataService,
-} from '../../../../shared/services/comparison-data.service';
+} @else if (section.error()) {
 
-import {
-  ComparisonChanges,
-  ComparisonCounters,
-  ComparisonFilter,
-  ComparisonSectionDto,
-} from '../../../../shared/models/comparison.model';
+  <p class="profiling-section__error">
+    <nz-icon
+      nzType="close-circle"
+      nzTheme="fill"
+    />
 
-@Component({
-  selector: 'policy-section',
-  standalone: true,
-  templateUrl: './policy-section.html',
-  styleUrl: './policy-section.scss',
-})
-export class PolicySection {
+    We could not load this section.
+  </p>
 
-  readonly policyNumber:
-    InputSignal<string> =
-      input.required<string>();
+} @else {
 
-  readonly sectionId:
-    InputSignal<string> =
-      input.required<string>();
+  <p class="profiling-section__loading">
+    <nz-icon nzType="loading" />
+    Loading...
+  </p>
 
-  readonly filter:
-    InputSignal<ComparisonFilter> =
-      input<ComparisonFilter>('all');
-
-  readonly countersChange:
-    OutputEmitterRef<ComparisonCounters> =
-      output<ComparisonCounters>();
-
-  readonly changesChange:
-    OutputEmitterRef<ComparisonChanges> =
-      output<ComparisonChanges>();
-
-  private readonly data:
-    ComparisonDataService =
-      inject(COMPARISON_DATA_SERVICE);
-
-  protected readonly section:
-    ResourceRef<ComparisonSectionDto | undefined> =
-      rxResource({
-
-        params: () => ({
-          policyNumber: this.policyNumber(),
-          sectionId: this.sectionId(),
-        }),
-
-        stream: ({ params }) =>
-          this.data.getPolicySection(
-            params.policyNumber,
-            params.sectionId
-          ),
-      });
 }
