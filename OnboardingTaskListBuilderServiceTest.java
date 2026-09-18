@@ -1,25 +1,33 @@
-private taxCountryAlreadyExists(taxCountry: string): boolean {
-  const normalizedTaxCountry: string = taxCountry.trim().toUpperCase();
+submitStructured(): void {
+  const definitions: readonly ComparisonEntryFieldDefinition[] =
+    this.row().entryFields ?? [];
 
-  return this.row().entries.some((entry: ComparisonEntryRow): boolean => {
+  const fields: { key: string; value: string | null }[] =
+    definitions.map((definition: ComparisonEntryFieldDefinition) => {
+      const value: string = this.fieldValue(definition.key).trim();
 
-    // Existing Core entry.
-    // The entryKey contains the technical country code, e.g. "FR".
-    if (!entry.isManual) {
-      return entry.entryKey.trim().toUpperCase() === normalizedTaxCountry;
+      return {
+        key: definition.key,
+        value: value === '' ? null : value,
+      };
+    });
+
+  // Tax Country must be unique inside Tax Information.
+  if (this.row().key === 'tax-information') {
+    const taxCountry: string | null =
+      fields.find(field => field.key === 'tax-country')?.value ?? null;
+
+    if (taxCountry && this.taxCountryAlreadyExists(taxCountry)) {
+      this.structuredError.set('Tax Country already exists.');
+      return;
     }
+  }
 
-    // Manual entry.
-    // Read the current resolved value of the tax-country child.
-    const taxCountryChild: ComparisonRow | undefined =
-      entry.children.find(
-        (child: ComparisonRow): boolean =>
-          child.key === 'tax-country'
-      );
+  this.structuredError.set(null);
 
-    const manualValue: string | null =
-      taxCountryChild?.resolution.value ?? null;
-
-    return manualValue?.trim().toUpperCase() === normalizedTaxCountry;
+  this.addStructuredEntry.emit({
+    fields,
   });
+
+  this.closeStructuredModal();
 }
