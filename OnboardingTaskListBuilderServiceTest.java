@@ -1,34 +1,25 @@
-private hasDuplicateTaxCountry(taxCountry: string): boolean {
-    const expected: string = taxCountry.trim().toUpperCase();
+private taxCountryAlreadyExists(taxCountry: string): boolean {
+  const normalizedTaxCountry: string = taxCountry.trim().toUpperCase();
 
-    return this.row().entries.some(entry => {
-        const taxCountryChild = entry.children.find(
-            child => child.key === 'tax-country'
-        );
+  return this.row().entries.some((entry: ComparisonEntryRow): boolean => {
 
-        if (!taxCountryChild) {
-            return false;
-        }
+    // Existing Core entry.
+    // The entryKey contains the technical country code, e.g. "FR".
+    if (!entry.isManual) {
+      return entry.entryKey.trim().toUpperCase() === normalizedTaxCountry;
+    }
 
-        // Check the currently resolved value first.
-        const resolvedValue: string | null =
-            taxCountryChild.resolution.value;
+    // Manual entry.
+    // Read the current resolved value of the tax-country child.
+    const taxCountryChild: ComparisonRow | undefined =
+      entry.children.find(
+        (child: ComparisonRow): boolean =>
+          child.key === 'tax-country'
+      );
 
-        if (
-            resolvedValue?.trim().toUpperCase() === expected
-        ) {
-            return true;
-        }
+    const manualValue: string | null =
+      taxCountryChild?.resolution.value ?? null;
 
-        // Check the original values from every source.
-        const sourceValues: Array<string | null> = [
-            taxCountryChild.values.core,
-            taxCountryChild.values.digital,
-            taxCountryChild.values.kyc,
-        ];
-
-        return sourceValues.some(
-            value => value?.trim().toUpperCase() === expected
-        );
-    });
+    return manualValue?.trim().toUpperCase() === normalizedTaxCountry;
+  });
 }
