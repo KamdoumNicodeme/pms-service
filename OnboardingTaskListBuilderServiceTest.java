@@ -1,59 +1,75 @@
-<section class="holder">
+import {
+  Component,
+  effect,
+  inject,
+  input,
+  InputSignal,
+  output,
+  OutputEmitterRef,
+  ResourceRef,
+} from '@angular/core';
 
-  <aside class="holder__nav">
+import {
+  rxResource,
+} from '@angular/core/rxjs-interop';
 
-    <profiling-nav
-      [sections]="navSections()"
-      [activeId]="activeId()"
-      (select)="goTo($event)"
-    />
+import {
+  COMPARISON_DATA_SERVICE,
+  ComparisonDataService,
+} from '../../../../shared/services/comparison-data.service';
 
-  </aside>
+import {
+  ComparisonChanges,
+  ComparisonCounters,
+  ComparisonFilter,
+  ComparisonSectionDto,
+} from '../../../../shared/models/comparison.model';
 
+@Component({
+  selector: 'policy-section',
+  standalone: true,
+  templateUrl: './policy-section.html',
+  styleUrl: './policy-section.scss',
+})
+export class PolicySection {
 
-  <section class="holder__main">
+  readonly policyNumber:
+    InputSignal<string> =
+      input.required<string>();
 
-    <comparison-toolbar
-      class="holder__toolbar"
-      [counters]="totals()"
-      [filter]="filter()"
-      (filterChange)="setFilter($event)"
-    />
+  readonly sectionId:
+    InputSignal<string> =
+      input.required<string>();
 
+  readonly filter:
+    InputSignal<ComparisonFilter> =
+      input<ComparisonFilter>('all');
 
-    <section class="holder__sections">
+  readonly countersChange:
+    OutputEmitterRef<ComparisonCounters> =
+      output<ComparisonCounters>();
 
-      @for (section of sections; track section.id) {
+  readonly changesChange:
+    OutputEmitterRef<ComparisonChanges> =
+      output<ComparisonChanges>();
 
-        <profiling-panel
-          [attr.data-section]="section.id"
-          [title]="section.title"
-          [open]="isOpen(section.id)"
-          [counters]="countersFor(section.id)"
-          (toggle)="toggle(section.id)"
-        >
+  private readonly data:
+    ComparisonDataService =
+      inject(COMPARISON_DATA_SERVICE);
 
-          <policy-section
-            [policyNumber]="policyNumber()"
-            [sectionId]="section.id"
-            [filter]="filter()"
-            (countersChange)="onCounters(section.id, $event)"
-            (changesChange)="onPolicyChanges($event)"
-          />
+  protected readonly section:
+    ResourceRef<ComparisonSectionDto | undefined> =
+      rxResource({
 
-        </profiling-panel>
+        params: () => ({
+          policyNumber: this.policyNumber(),
+          sectionId: this.sectionId(),
+        }),
 
-      }
-
-    </section>
-
-  </section>
-
-
-  <aside class="holder__checks">
-
-    <check />
-
-  </aside>
-
-</section>
+        stream: ({ params }) =>
+          this.data.getPolicySection(
+            params.policyNumber,
+            params.sectionId
+          ),
+      });
+}
