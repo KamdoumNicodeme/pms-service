@@ -1,99 +1,31 @@
-changes.forEach((resolution: Resolution, id: string): void => {
+protected onHolderChanges(event: HolderChanges): void {
+    const data: IClientProfilingData | null = this.getClientProfilingData();
 
-    console.log('[MORAL 1] ENTER id =', id);
-
-    const value: string | null = resolution.value;
-
-    if (id.startsWith('tax-information:manual-')) {
-
-        console.log('[MORAL RETURN] manual tax');
-
+    if (!data) {
         return;
-
     }
 
-    if (id.startsWith('emails:manual-')) {
+    // 1. On part du pending s'il existe.
+    // Sinon on initialise depuis les données backend.
+    const current: IChangeClientInformation =
+        this.pendingChangeClientInformation()
+            ? structuredClone(this.pendingChangeClientInformation()!)
+            : this.changeService.buildBase(data);
 
-        console.log('[MORAL RETURN] manual email');
+    // 2. On applique uniquement les changements reçus
+    // sur l'état déjà modifié.
+    const updated: IChangeClientInformation =
+        this.changeService.applyHolderChanges(
+            current,
+            event.thirdPartyId,
+            event.changes
+        );
 
-        this.applyManualEmailChange(client, resolution);
+    // 3. Le résultat devient notre nouvel état de travail.
+    this.pendingChangeClientInformation.set(updated);
 
-        return;
-
-    }
-
-    if (id.startsWith('emails:')) {
-
-        console.log('[MORAL RETURN] email');
-
-        this.applyEmailChange(client, id, resolution);
-
-        return;
-
-    }
-
-    if (id.startsWith('phone-numbers:manual-')) {
-
-        console.log('[MORAL RETURN] manual phone');
-
-        this.applyManualPhoneChange(client, resolution);
-
-        return;
-
-    }
-
-    if (id.startsWith('phone-numbers:')) {
-
-        console.log('[MORAL RETURN] phone');
-
-        this.applyPhoneChange(client, id, resolution);
-
-        return;
-
-    }
-
-    if (id.startsWith('tax-information:')) {
-
-        console.log('[MORAL RETURN] tax');
-
-        this.applyTaxInformationChange(client, id, resolution);
-
-        return;
-
-    }
-
-    console.log('[MORAL 2] BEFORE SWITCH id =', id);
-
-    switch (id) {
-
-        case 'thirdPartyId':
-
-            break;
-
-        case 'name':
-
-            console.log('[MORAL 3] NAME CASE value =', value);
-
-            client.name = value ?? '';
-
-            console.log('[MORAL 4] NEW NAME =', client.name);
-
-            break;
-
-        case 'industry-sector':
-
-            client.economicSector = this.stringValue(value);
-
-            break;
-
-        case 'creation-date':
-
-            client.creationDate = this.stringValue(value);
-
-            break;
-
-        case 'vat-number':
-
-            client.vatNumber = this.stringValue(value);
-
-            break;
+    console.log(
+        'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE',
+        structuredClone(updated)
+    );
+}
