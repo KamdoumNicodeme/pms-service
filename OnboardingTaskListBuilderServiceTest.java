@@ -1,26 +1,91 @@
-protected onPolicyChanges(event: ComparisonChanges): void {
-  const data: IClientProfilingData | null =
-    this.getClientProfilingData();
+public applyPolicyChanges(
+  changeClientInformation: IChangeClientInformation,
+  changes: ReadonlyMap<string, Resolution>
+): IChangeClientInformation {
 
-  if (!data) {
-    return;
-  }
+  const result: IChangeClientInformation =
+    structuredClone(changeClientInformation);
 
-  const current: IChangeClientInformation =
-    this.pendingChangeClientInformation()
-      ? structuredClone(this.pendingChangeClientInformation()!)
-      : this.changeService.buildBase(data);
+  changes.forEach(
+    (resolution: Resolution, id: string): void => {
 
-  const updated: IChangeClientInformation =
-    this.changeService.applyPolicyChanges(
-      current,
-      event.changes
-    );
+      const value: string | null = resolution.value;
 
-  this.pendingChangeClientInformation.set(updated);
+      switch (id) {
 
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER POLICY CHANGE',
-    structuredClone(updated)
+        // ============================================================
+        // SENDING ADDRESS
+        // ============================================================
+
+        case 'street':
+          this.applyPolicyStreet(result, value);
+          break;
+
+        case 'house-name':
+          this.applyPolicyHouseName(result, value);
+          break;
+
+        case 'city':
+          this.applyPolicyCity(result, value);
+          break;
+
+        case 'county':
+          this.applyPolicyCounty(result, value);
+          break;
+
+        case 'language':
+          this.applyPolicyLanguage(result, value);
+          break;
+
+        case 'number':
+          this.applyPolicyNumber(result, value);
+          break;
+
+        case 'apartment-number':
+          this.applyPolicyApartmentNumber(result, value);
+          break;
+
+        case 'postcode':
+          this.applyPolicyPostcode(result, value);
+          break;
+
+        case 'area':
+          this.applyPolicyArea(result, value);
+          break;
+
+        // ============================================================
+        // COMMUNICATION PREFERENCES
+        // ============================================================
+
+        case 'receive-electronic-communication':
+          this.applyReceiveElectronicCommunication(result, value);
+          break;
+
+        case 'consent-to-use-digital-platform':
+          this.applyConsentToUseDigitalPlatform(result, value);
+          break;
+
+        case 'consent-to-use-electronic-signature':
+          this.applyConsentToUseElectronicSignature(result, value);
+          break;
+
+        // ============================================================
+        // OPT IN / OUT
+        // ============================================================
+
+        case 'policy-type':
+          this.applyPolicyType(result, value);
+          break;
+
+        default:
+          console.warn(
+            '[ClientProfilingChangeService] Unknown policy field:',
+            id
+          );
+          break;
+      }
+    }
   );
+
+  return result;
 }
