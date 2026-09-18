@@ -1,39 +1,59 @@
-protected readonly saving: WritableSignal<boolean> = signal(false);
+import { IMoralPerson } from '@lia/commons';
 
-protected saveChangeClientInformation(): void {
-  const currentCase: ICaseDetails = this.currentCase();
+export const MOCK_DIGITAL_MORAL_PERSON: IMoralPerson = {
+  type: 'MORAL_PERSON',
 
-  const changeClientInformation: IChangeClientInformation | null =
-    this.pendingChangeClientInformation();
+  thirdPartyId: '0003310689',
 
-  if (!changeClientInformation) {
-    console.warn(
-      '[ClientProfilingComponent] No change client information to save'
-    );
-    return;
-  }
+  name: 'Cox Tilly Digital S.A.',
 
-  this.saving.set(true);
+  creationDate: '2025-01-27T00:00:00Z',
 
-  this.#caseService
-    .updateChangeClientInformation(
-      currentCase.caseBusinessIdentifier,
-      changeClientInformation
-    )
-    .pipe(
-      finalize((): void => this.saving.set(false))
-    )
-    .subscribe({
-      next: (): void => {
-        console.log(
-          '[ClientProfilingComponent] Change client information saved successfully'
-        );
-      },
-      error: (error: unknown): void => {
-        console.error(
-          '[ClientProfilingComponent] Failed to save change client information',
-          error
-        );
-      }
-    });
-}
+  countryOfResidence: 'FR',
+
+  economicSector: 'SCI',
+
+  vatNumber: 'FR123456789',
+
+  legalAddress: {
+    address: '10 Avenue des Champs',
+    no: '10',
+    postCode: '75008',
+    town: 'Paris',
+    country: 'FR',
+  },
+
+  emails: [
+    {
+      email: 'contact@coxtilly-digital.fr',
+    },
+  ],
+
+  phoneNumbers: [
+    {
+      phoneNumber: '+33123456789',
+    },
+  ],
+
+  taxInformations: [
+    {
+      taxCountry: 'FR',
+      taxNumber: '294435507',
+      tinUnavailableReason: null,
+    },
+  ],
+
+  fatcaStatus: 'PNFFE',
+
+  aeoiStatus: 'PNFE',
+
+  companyLegalForm: 'SCI',
+
+  leiCode: null,
+
+  giin: null,
+
+  taxCountry: 'FR',
+
+  roleTypes: ['Holder'],
+} as IMoralPerson;
