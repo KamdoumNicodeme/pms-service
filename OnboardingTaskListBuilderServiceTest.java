@@ -1,24 +1,8 @@
-if (client.type === 'MORAL_PERSON') {
+case 'name':
+    console.log('[MORAL NAME] BEFORE =', client.name);
+    console.log('[MORAL NAME] VALUE =', value);
 
-    console.log(
-        '[MORAL BEFORE]',
-        structuredClone(client)
-    );
+    client.name = value ?? '';
 
-    console.log(
-        '[MORAL CHANGES]',
-        [...changes.entries()]
-    );
-
-    this.applyMoralPersonChanges(
-        client as IMoralPerson,
-        changes
-    );
-
-    console.log(
-        '[MORAL AFTER]',
-        structuredClone(client)
-    );
-
-    return result;
-}
+    console.log('[MORAL NAME] AFTER =', client.name);
+    break;
