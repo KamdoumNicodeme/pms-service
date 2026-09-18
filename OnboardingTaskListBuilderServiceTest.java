@@ -14,59 +14,79 @@ public applyPolicyChanges(
       switch (id) {
 
         // ============================================================
-        // SENDING ADDRESS
+        // SENDING ADDRESS AND COMMUNICATION PREFERENCES
         // ============================================================
 
         case 'street':
-          this.applyPolicyStreet(result, value);
-          break;
-
-        case 'house-name':
-          this.applyPolicyHouseName(result, value);
-          break;
-
-        case 'city':
-          this.applyPolicyCity(result, value);
-          break;
-
-        case 'county':
-          this.applyPolicyCounty(result, value);
-          break;
-
-        case 'language':
-          this.applyPolicyLanguage(result, value);
+          result.policy.sendingAddress.address =
+            this.stringValue(value);
           break;
 
         case 'number':
-          this.applyPolicyNumber(result, value);
+          result.policy.sendingAddress.no =
+            this.stringValue(value);
+          break;
+
+        case 'house-name':
+          result.policy.sendingAddress.houseName =
+            this.stringValue(value);
           break;
 
         case 'apartment-number':
-          this.applyPolicyApartmentNumber(result, value);
+          result.policy.sendingAddress.apartmentNumber =
+            this.stringValue(value);
+          break;
+
+        case 'city':
+          result.policy.sendingAddress.town =
+            this.stringValue(value);
           break;
 
         case 'postcode':
-          this.applyPolicyPostcode(result, value);
+          result.policy.sendingAddress.postCode =
+            this.stringValue(value);
+          break;
+
+        case 'county':
+          result.policy.sendingAddress.county =
+            this.stringValue(value);
           break;
 
         case 'area':
-          this.applyPolicyArea(result, value);
+          result.policy.sendingAddress.area =
+            this.stringValue(value);
+          break;
+
+        case 'country':
+          result.policy.sendingAddress.country =
+            this.stringValue(value);
+          break;
+
+        case 'language':
+          result.policy.language =
+            this.stringValue(value);
           break;
 
         // ============================================================
-        // COMMUNICATION PREFERENCES
+        // COMMUNICATION CONSENTS
         // ============================================================
 
         case 'receive-electronic-communication':
-          this.applyReceiveElectronicCommunication(result, value);
+          result.policy.digitalConsent
+            .receiveElectronicCommunicationsConsentStatus =
+              this.stringValue(value);
           break;
 
         case 'consent-to-use-digital-platform':
-          this.applyConsentToUseDigitalPlatform(result, value);
+          result.policy.digitalConsent
+            .digitalPlatformConsentStatus =
+              this.stringValue(value);
           break;
 
         case 'consent-to-use-electronic-signature':
-          this.applyConsentToUseElectronicSignature(result, value);
+          result.policy.digitalConsent
+            .electronicSignatureConsentStatus =
+              this.stringValue(value);
           break;
 
         // ============================================================
@@ -74,7 +94,8 @@ public applyPolicyChanges(
         // ============================================================
 
         case 'policy-type':
-          this.applyPolicyType(result, value);
+          result.policy.type =
+            this.stringValue(value);
           break;
 
         default:
