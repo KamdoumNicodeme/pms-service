@@ -1,51 +1,103 @@
-<section class="holder">
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  input,
+  InputSignal,
+  output,
+  OutputEmitterRef
+} from '@angular/core';
 
-  <aside class="holder__nav">
-    <profiling-nav
-      [sections]="navSections()"
-      [activeId]="activeId()"
-      (select)="goTo($event)"
-    />
-  </aside>
+import {
+  rxResource
+} from '@angular/core/rxjs-interop';
 
-  <section class="holder__main">
+import {
+  COMPARISON_DATA_SERVICE,
+  ComparisonDataService
+} from '../../../../services/comparison-data.service';
 
-    <comparison-toolbar
-      class="holder__toolbar"
-      [counters]="totals()"
-      [filter]="filter()"
-      (filterChange)="setFilter($event)"
-    />
+import {
+  ComparisonChanges,
+  ComparisonCounters,
+  ComparisonFilter,
+  ComparisonSectionDto
+} from '../../../../shared/models/comparison.model';
 
-    <section class="holder__sections">
+import { DataComparison } from '../data-comparison/data-comparison';
 
-      @for (section of sections; track section.id) {
+@Component({
+  selector: 'policy-section',
+  standalone: true,
+  imports: [
+    DataComparison
+  ],
+  templateUrl: './policy-section.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class PolicySection {
 
-        <profiling-panel
-          [attr.data-section]="section.id"
-          [title]="section.title"
-          [open]="isOpen(section.id)"
-          [counters]="countersFor(section.id)"
-          (toggle)="toggle(section.id)"
-        >
+  // ============================================================
+  // INPUTS
+  // ============================================================
 
-          <policy-section
-            [policyNumber]="policyNumber()"
-            [sectionId]="section.id"
-            [filter]="filter()"
-            (countersChange)="onCounters(section.id, $event)"
-          />
+  readonly policyNumber: InputSignal<string> =
+    input.required<string>();
 
-        </profiling-panel>
+  readonly sectionId: InputSignal<string> =
+    input.required<string>();
 
-      }
+  readonly filter: InputSignal<ComparisonFilter> =
+    input<ComparisonFilter>('all');
 
-    </section>
 
-  </section>
+  // ============================================================
+  // OUTPUTS
+  // ============================================================
 
-  <aside class="holder__checks">
-    <check />
-  </aside>
+  readonly countersChange: OutputEmitterRef<ComparisonCounters> =
+    output<ComparisonCounters>();
 
-</section>
+  readonly changesChange: OutputEmitterRef<ComparisonChanges> =
+    output<ComparisonChanges>();
+
+
+  // ============================================================
+  // DATA SERVICE
+  // ============================================================
+
+  private readonly data: ComparisonDataService =
+    inject(COMPARISON_DATA_SERVICE);
+
+
+  // ============================================================
+  // SECTION DATA
+  // ============================================================
+
+  protected readonly section = rxResource({
+    params: () => ({
+      policyNumber: this.policyNumber(),
+      sectionId: this.sectionId()
+    }),
+
+    stream: ({ params }) =>
+      this.data.getPolicySection(
+        params.policyNumber,
+        params.sectionId
+      )
+  });
+
+
+  // ============================================================
+  // EVENTS
+  // ============================================================
+
+  protected onCounters(counters: ComparisonCounters): void {
+    this.countersChange.emit(counters);
+  }
+
+  protected onChanges(changes: ComparisonChanges): void {
+    this.changesChange.emit(changes);
+  }
+}
