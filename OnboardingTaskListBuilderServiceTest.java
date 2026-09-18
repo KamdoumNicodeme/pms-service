@@ -1,31 +1,48 @@
-protected onHolderChanges(event: HolderChanges): void {
-    const data: IClientProfilingData | null = this.getClientProfilingData();
+private updateHolderSectionChanges(
+    event: HolderChanges
+): ReadonlyMap<string, Resolution> {
 
-    if (!data) {
-        return;
-    }
+    const holders = new Map(this.holderSectionChanges());
 
-    // 1. On part du pending s'il existe.
-    // Sinon on initialise depuis les données backend.
-    const current: IChangeClientInformation =
-        this.pendingChangeClientInformation()
-            ? structuredClone(this.pendingChangeClientInformation()!)
-            : this.changeService.buildBase(data);
-
-    // 2. On applique uniquement les changements reçus
-    // sur l'état déjà modifié.
-    const updated: IChangeClientInformation =
-        this.changeService.applyHolderChanges(
-            current,
-            event.thirdPartyId,
-            event.changes
-        );
-
-    // 3. Le résultat devient notre nouvel état de travail.
-    this.pendingChangeClientInformation.set(updated);
-
-    console.log(
-        'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE',
-        structuredClone(updated)
+    const sections = new Map<
+        string,
+        ReadonlyMap<string, Resolution>
+    >(
+        holders.get(event.thirdPartyId) ?? []
     );
+
+    /*
+     * Replace the complete state of the current section.
+     * This also removes entries that no longer exist in the store.
+     */
+    sections.set(
+        event.sectionId,
+        new Map(event.changes)
+    );
+
+    holders.set(
+        event.thirdPartyId,
+        sections
+    );
+
+    this.holderSectionChanges.set(holders);
+
+    /*
+     * Merge the current changes from every section
+     * belonging to this holder.
+     */
+    const allChanges = new Map<string, Resolution>();
+
+    sections.forEach(
+        (sectionChanges: ReadonlyMap<string, Resolution>) => {
+
+            sectionChanges.forEach(
+                (resolution: Resolution, id: string) => {
+                    allChanges.set(id, resolution);
+                }
+            );
+        }
+    );
+
+    return allChanges;
 }
