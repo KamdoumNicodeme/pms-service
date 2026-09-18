@@ -1,33 +1,42 @@
-submitStructured(): void {
-  const definitions: readonly ComparisonEntryFieldDefinition[] =
-    this.row().entryFields ?? [];
+<section class="holder">
 
-  const fields: { key: string; value: string | null }[] =
-    definitions.map((definition: ComparisonEntryFieldDefinition) => {
-      const value: string = this.fieldValue(definition.key).trim();
+  <aside class="holder__nav">
+    <profiling-nav
+      [sections]="navSections()"
+      [activeId]="activeId()"
+      (select)="goTo($event)"
+    />
+  </aside>
 
-      return {
-        key: definition.key,
-        value: value === '' ? null : value,
-      };
-    });
+  <section class="holder__main">
 
-  // Tax Country must be unique inside Tax Information.
-  if (this.row().key === 'tax-information') {
-    const taxCountry: string | null =
-      fields.find(field => field.key === 'tax-country')?.value ?? null;
+    <comparison-toolbar
+      class="holder__toolbar"
+      [counters]="totals()"
+      [filter]="filter()"
+      (filterChange)="setFilter($event)"
+    />
 
-    if (taxCountry && this.taxCountryAlreadyExists(taxCountry)) {
-      this.structuredError.set('Tax Country already exists.');
-      return;
-    }
-  }
+    <section class="holder__sections">
 
-  this.structuredError.set(null);
+      @for (section of sections; track section.id) {
 
-  this.addStructuredEntry.emit({
-    fields,
-  });
+        <profiling-panel
+          [attr.data-section]="section.id"
+          [title]="section.title"
+          [open]="isOpen(section.id)"
+          [counters]="countersFor(section.id)"
+          (toggle)="toggle(section.id)"
+        >
 
-  this.closeStructuredModal();
-}
+          <!-- Policy content will go here -->
+
+        </profiling-panel>
+
+      }
+
+    </section>
+
+  </section>
+
+</section>
