@@ -1,28 +1,26 @@
-@if (section.value(); as data) {
+protected onPolicyChanges(event: ComparisonChanges): void {
+  const data: IClientProfilingData | null =
+    this.getClientProfilingData();
 
-  <data-comparison
-    [section]="data"
-    [filter]="filter()"
-    (countersChange)="countersChange.emit($event)"
-    (changeChanges)="changesChange.emit($event)"
-  />
+  if (!data) {
+    return;
+  }
 
-} @else if (section.error()) {
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+      ? structuredClone(this.pendingChangeClientInformation()!)
+      : this.changeService.buildBase(data);
 
-  <p class="profiling-section__error">
-    <nz-icon
-      nzType="close-circle"
-      nzTheme="fill"
-    />
+  const updated: IChangeClientInformation =
+    this.changeService.applyPolicyChanges(
+      current,
+      event.changes
+    );
 
-    We could not load this section.
-  </p>
+  this.pendingChangeClientInformation.set(updated);
 
-} @else {
-
-  <p class="profiling-section__loading">
-    <nz-icon nzType="loading" />
-    Loading...
-  </p>
-
+  console.log(
+    'CHANGE CLIENT INFORMATION AFTER POLICY CHANGE',
+    structuredClone(updated)
+  );
 }
