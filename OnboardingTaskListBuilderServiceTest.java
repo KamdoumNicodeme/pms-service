@@ -1,48 +1,100 @@
-private updateHolderSectionChanges(
+protected onHolderChanges(
     event: HolderChanges
-): ReadonlyMap<string, Resolution> {
+): void {
 
-    const holders = new Map(this.holderSectionChanges());
+    const data: IClientProfilingData | null =
+        this.getClientProfilingData();
 
-    const sections = new Map<
-        string,
-        ReadonlyMap<string, Resolution>
-    >(
-        holders.get(event.thirdPartyId) ?? []
-    );
+    if (!data) {
+        return;
+    }
 
     /*
-     * Replace the complete state of the current section.
-     * This also removes entries that no longer exist in the store.
+     * Store the current state of this section and retrieve
+     * all changes currently applied to this holder.
      */
-    sections.set(
-        event.sectionId,
-        new Map(event.changes)
-    );
-
-    holders.set(
-        event.thirdPartyId,
-        sections
-    );
-
-    this.holderSectionChanges.set(holders);
+    const allHolderChanges: ReadonlyMap<string, Resolution> =
+        this.updateHolderSectionChanges(event);
 
     /*
-     * Merge the current changes from every section
-     * belonging to this holder.
+     * Rebuild the holder from the original backend data.
+     * This guarantees that removed manual entries disappear.
      */
-    const allChanges = new Map<string, Resolution>();
+    const base: IChangeClientInformation =
+        this.changeService.buildBase(data);
 
-    sections.forEach(
-        (sectionChanges: ReadonlyMap<string, Resolution>) => {
+    const rebuilt: IChangeClientInformation =
+        this.changeService.applyHolderChanges(
+            base,
+            event.thirdPartyId,
+            allHolderChanges
+        );
 
-            sectionChanges.forEach(
-                (resolution: Resolution, id: string) => {
-                    allChanges.set(id, resolution);
-                }
-            );
-        }
+    /*
+     * Preserve pending modifications made to other holders.
+     */
+    const current: IChangeClientInformation =
+        this.pendingChangeClientInformation()
+            ? structuredClone(
+                this.pendingChangeClientInformation()!
+            )
+            : this.changeService.buildBase(data);
+
+    const rebuiltClient: IThirdParty | undefined =
+        rebuilt.policy.clients.find(
+            (client: IThirdParty): boolean =>
+                client.thirdPartyId === event.thirdPartyId
+        );
+
+    if (!rebuiltClient) {
+        console.warn(
+            '[ClientProfilingComponent] Rebuilt client not found:',
+            event.thirdPartyId
+        );
+
+        return;
+    }
+
+    const clientIndex: number =
+        current.policy.clients.findIndex(
+            (client: IThirdParty): boolean =>
+                client.thirdPartyId === event.thirdPartyId
+        );
+
+    if (clientIndex === -1) {
+        console.warn(
+            '[ClientProfilingComponent] Client not found:',
+            event.thirdPartyId
+        );
+
+        return;
+    }
+
+    /*
+     * Replace only the current holder.
+     */
+    current.policy.clients[clientIndex] =
+        structuredClone(rebuiltClient);
+
+    this.pendingChangeClientInformation.set(current);
+
+    console.log(
+        'HOLDER:',
+        event.thirdPartyId
     );
 
-    return allChanges;
+    console.log(
+        'SECTION:',
+        event.sectionId
+    );
+
+    console.log(
+        'ALL HOLDER CHANGES:',
+        allHolderChanges
+    );
+
+    console.log(
+        'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE:',
+        structuredClone(current)
+    );
 }
