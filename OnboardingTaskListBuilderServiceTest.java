@@ -1,42 +1,110 @@
-<section class="holder">
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  Signal,
+  WritableSignal
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { switchMap } from 'rxjs';
 
-  <aside class="holder__nav">
-    <profiling-nav
-      [sections]="navSections()"
-      [activeId]="activeId()"
-      (select)="goTo($event)"
-    />
-  </aside>
+import {
+  ComparisonCounters,
+  ComparisonFilter,
+  ComparisonSectionDto,
+  Resolution
+} from '../../../../shared/models/comparison.model';
 
-  <section class="holder__main">
+import {
+  COMPARISON_DATA_SERVICE,
+  ComparisonDataService
+} from '../../../../services/comparison-data.service';
 
-    <comparison-toolbar
-      class="holder__toolbar"
-      [counters]="totals()"
-      [filter]="filter()"
-      (filterChange)="setFilter($event)"
-    />
+import { IPolicy } from '@lia/commons';
 
-    <section class="holder__sections">
+interface PolicySectionChanges {
+  readonly sectionId: string;
+  readonly changes: ReadonlyMap<string, Resolution>;
+}
 
-      @for (section of sections; track section.id) {
+export class PolicyProfiling {
 
-        <profiling-panel
-          [attr.data-section]="section.id"
-          [title]="section.title"
-          [open]="isOpen(section.id)"
-          [counters]="countersFor(section.id)"
-          (toggle)="toggle(section.id)"
-        >
+  readonly policy = input.required<IPolicy>();
 
-          <!-- Policy content will go here -->
+  private readonly data =
+    inject<ComparisonDataService>(COMPARISON_DATA_SERVICE);
 
-        </profiling-panel>
+  protected readonly sections = POLICY_PROFILING_SECTIONS;
 
+  protected readonly activeId: WritableSignal<string | null> =
+    signal(POLICY_PROFILING_SECTIONS[0]?.id ?? null);
+
+  protected readonly filter: WritableSignal<ComparisonFilter> =
+    signal<ComparisonFilter>('all');
+
+  private readonly openSections: WritableSignal<ReadonlySet<string>> =
+    signal(
+      new Set(
+        POLICY_PROFILING_SECTIONS.map(section => section.id)
+      )
+    );
+
+  protected readonly section = toSignal(
+    toObservable(this.activeId).pipe(
+      switchMap(sectionId => {
+        if (!sectionId) {
+          throw new Error('Policy section id is required');
+        }
+
+        return this.data.getPolicySection(
+          this.policy(),
+          sectionId
+        );
+      })
+    ),
+    {
+      initialValue: null
+    }
+  );
+
+  protected isOpen(sectionId: string): boolean {
+    return this.openSections().has(sectionId);
+  }
+
+  protected toggleSection(sectionId: string): void {
+    this.openSections.update(current => {
+      const next = new Set(current);
+
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
       }
 
-    </section>
+      return next;
+    });
+  }
 
-  </section>
+  protected goTo(sectionId: string): void {
+    this.openSections.update(
+      current => new Set(current).add(sectionId)
+    );
 
-</section>
+    this.activeId.set(sectionId);
+  }
+
+  protected setFilter(filter: ComparisonFilter): void {
+    this.filter.set(filter);
+  }
+
+  protected onPolicyChanges(event: PolicySectionChanges): void {
+    console.log(
+      'POLICY CHANGES',
+      event.sectionId,
+      event.changes
+    );
+  }
+}
