@@ -10,27 +10,32 @@
 
   <section class="holder__main">
 
-    @if (section(); as data) {
+    <comparison-toolbar
+      class="holder__toolbar"
+      [counters]="totals()"
+      [filter]="filter()"
+      (filterChange)="setFilter($event)"
+    />
 
-      <profiling-panel
-        [attr.data-section]="data.id"
-        [title]="data.title"
-        [open]="isOpen(data.id)"
-        (toggle)="toggleSection(data.id)"
-      >
+    <section class="holder__sections">
 
-        <data-comparison
-          [section]="data"
-          [filter]="filter()"
-          (changeChanges)="onPolicyChanges({
-            sectionId: data.id,
-            changes: $event.changes
-          })"
-        />
+      @for (section of sections; track section.id) {
 
-      </profiling-panel>
+        <profiling-panel
+          [attr.data-section]="section.id"
+          [title]="section.title"
+          [open]="isOpen(section.id)"
+          [counters]="countersFor(section.id)"
+          (toggle)="toggleSection(section.id)"
+        >
 
-    }
+          <!-- Section content will be displayed here -->
+
+        </profiling-panel>
+
+      }
+
+    </section>
 
   </section>
 
