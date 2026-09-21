@@ -1,56 +1,105 @@
-private generalInformation(
-  coreHolder: IThirdParty,
-  digitalHolder: IThirdParty | null,
-  kycHolder: IThirdParty | null
-): ComparisonSectionDto {
+getSection(
+  context: ComparisonContext,
+  sectionId: string
+): Observable<ComparisonSectionDto> {
 
-  if (this.isPhysicalPerson(coreHolder)) {
+  const coreHolder: IThirdParty = context.holder;
 
-    const digitalPhysical =
-      digitalHolder && this.isPhysicalPerson(digitalHolder)
-        ? digitalHolder
-        : null;
+  const digitalHolder: IThirdParty | null =
+    context.digitalHolder ?? null;
 
-    const kycPhysical =
-      kycHolder && this.isPhysicalPerson(kycHolder)
-        ? kycHolder
-        : null;
+  const kycHolder: IThirdParty | null =
+    context.kycHolder ?? null;
 
-    return this.coreUtils.physicalPersonGeneralInformation(
-      coreHolder,
-      digitalPhysical,
-      kycPhysical,
-      this.isControllingPerson(coreHolder),
-      this.countryOptions(),
-      this.professionOptions(),
-      this.industrySectorOptions(),
-      this.statusMaritalOptions(),
-      this.professionalStatusOptions()
-    );
+  switch (sectionId) {
+
+    case 'general-information':
+      return of(
+        this.generalInformation(
+          coreHolder,
+          digitalHolder,
+          kycHolder
+        )
+      );
+
+    case 'contact-details':
+      return of(
+        this.coreUtils.contactDetails(
+          coreHolder,
+          digitalHolder,
+          kycHolder,
+          this.countryOptions()
+        )
+      );
+
+    case 'identity-documents':
+      if (
+        this.isPhysicalPerson(coreHolder) &&
+        (!digitalHolder || this.isPhysicalPerson(digitalHolder)) &&
+        (!kycHolder || this.isPhysicalPerson(kycHolder))
+      ) {
+        return of(
+          this.coreUtils.idDocument(
+            coreHolder,
+            digitalHolder,
+            kycHolder,
+            this.idTypeOptions()
+          )
+        );
+      }
+
+      return of(
+        this.coreUtils.emptySection(
+          'identity-documents',
+          'Identity Documents'
+        )
+      );
+
+    case 'tax-information':
+      if (this.isPhysicalPerson(coreHolder)) {
+        return of(
+          this.coreUtils.taxInformation(
+            coreHolder,
+            digitalHolder && this.isPhysicalPerson(digitalHolder)
+              ? digitalHolder
+              : null,
+            kycHolder && this.isPhysicalPerson(kycHolder)
+              ? kycHolder
+              : null,
+            this.countryOptions(),
+            this.tinReasonOptions()
+          )
+        );
+      }
+
+      if (this.isMoralPerson(coreHolder)) {
+        return of(
+          this.coreUtils.moralTaxInformation(
+            coreHolder,
+            digitalHolder && this.isMoralPerson(digitalHolder)
+              ? digitalHolder
+              : null,
+            kycHolder && this.isMoralPerson(kycHolder)
+              ? kycHolder
+              : null,
+            this.fatcaOptions(),
+            this.crsOptions(),
+            this.countryOptions(),
+            this.tinReasonOptions()
+          )
+        );
+      }
+
+      return of(
+        this.coreUtils.emptySection(
+          'tax-information',
+          'Tax Information'
+        )
+      );
+
+    default:
+      return throwError(
+        () => new Error(`Unknown section "${sectionId}"`)
+      );
   }
-
-  if (this.isMoralPerson(coreHolder)) {
-
-    const digitalMoral =
-      digitalHolder && this.isMoralPerson(digitalHolder)
-        ? digitalHolder
-        : null;
-
-    const kycMoral =
-      kycHolder && this.isMoralPerson(kycHolder)
-        ? kycHolder
-        : null;
-
-    return this.coreUtils.moralPersonGeneralInformation(
-      coreHolder,
-      digitalMoral,
-      kycMoral,
-      this.industrySectorOptions()
-    );
-  }
-
-  return this.coreUtils.emptySection(
-    'general-information',
-    'General information'
-  );
 }
