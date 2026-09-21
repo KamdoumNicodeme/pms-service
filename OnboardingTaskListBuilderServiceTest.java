@@ -1,105 +1,45 @@
-getSection(
-  context: ComparisonContext,
-  sectionId: string
-): Observable<ComparisonSectionDto> {
+export class PolicySection {
 
-  const coreHolder: IThirdParty = context.holder;
+  readonly corePolicy: InputSignal<IPolicy> =
+    input.required<IPolicy>();
 
-  const digitalHolder: IThirdParty | null =
-    context.digitalHolder ?? null;
+  readonly digitalPolicy: InputSignal<IPolicy | null> =
+    input<IPolicy | null>(null);
 
-  const kycHolder: IThirdParty | null =
-    context.kycHolder ?? null;
+  readonly kycPolicy: InputSignal<IPolicy | null> =
+    input<IPolicy | null>(null);
 
-  switch (sectionId) {
+  readonly sectionId: InputSignal<string> =
+    input.required<string>();
 
-    case 'general-information':
-      return of(
-        this.generalInformation(
-          coreHolder,
-          digitalHolder,
-          kycHolder
-        )
-      );
+  readonly filter: InputSignal<ComparisonFilter> =
+    input<ComparisonFilter>('all');
 
-    case 'contact-details':
-      return of(
-        this.coreUtils.contactDetails(
-          coreHolder,
-          digitalHolder,
-          kycHolder,
-          this.countryOptions()
-        )
-      );
+  readonly countersChange: OutputEmitterRef<ComparisonCounters> =
+    output<ComparisonCounters>();
 
-    case 'identity-documents':
-      if (
-        this.isPhysicalPerson(coreHolder) &&
-        (!digitalHolder || this.isPhysicalPerson(digitalHolder)) &&
-        (!kycHolder || this.isPhysicalPerson(kycHolder))
-      ) {
-        return of(
-          this.coreUtils.idDocument(
-            coreHolder,
-            digitalHolder,
-            kycHolder,
-            this.idTypeOptions()
-          )
-        );
-      }
+  readonly changesChange: OutputEmitterRef<ComparisonChanges> =
+    output<ComparisonChanges>();
 
-      return of(
-        this.coreUtils.emptySection(
-          'identity-documents',
-          'Identity Documents'
-        )
-      );
+  private readonly data: ComparisonDataService =
+    inject(COMPARISON_DATA_SERVICE);
 
-    case 'tax-information':
-      if (this.isPhysicalPerson(coreHolder)) {
-        return of(
-          this.coreUtils.taxInformation(
-            coreHolder,
-            digitalHolder && this.isPhysicalPerson(digitalHolder)
-              ? digitalHolder
-              : null,
-            kycHolder && this.isPhysicalPerson(kycHolder)
-              ? kycHolder
-              : null,
-            this.countryOptions(),
-            this.tinReasonOptions()
-          )
-        );
-      }
+  protected readonly section:
+    ResourceRef<ComparisonSectionDto | undefined> = rxResource({
 
-      if (this.isMoralPerson(coreHolder)) {
-        return of(
-          this.coreUtils.moralTaxInformation(
-            coreHolder,
-            digitalHolder && this.isMoralPerson(digitalHolder)
-              ? digitalHolder
-              : null,
-            kycHolder && this.isMoralPerson(kycHolder)
-              ? kycHolder
-              : null,
-            this.fatcaOptions(),
-            this.crsOptions(),
-            this.countryOptions(),
-            this.tinReasonOptions()
-          )
-        );
-      }
+    params: () => ({
+      corePolicy: this.corePolicy(),
+      digitalPolicy: this.digitalPolicy(),
+      kycPolicy: this.kycPolicy(),
+      sectionId: this.sectionId(),
+    }),
 
-      return of(
-        this.coreUtils.emptySection(
-          'tax-information',
-          'Tax Information'
-        )
-      );
-
-    default:
-      return throwError(
-        () => new Error(`Unknown section "${sectionId}"`)
-      );
-  }
+    stream: ({ params }) =>
+      this.data.getPolicySection(
+        params.corePolicy,
+        params.digitalPolicy,
+        params.kycPolicy,
+        params.sectionId
+      ),
+  });
 }
