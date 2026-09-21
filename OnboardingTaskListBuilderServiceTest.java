@@ -1,21 +1,32 @@
-private selectField(
+private listField(
   key: string,
   label: string,
-  value: string | null | undefined,
-  options: readonly ComparisonOption[],
-  editable = true,
-  digitalValue: string | null | undefined = null
-): ComparisonScalarFieldDto {
+  entryNoun: string,
+  coreValue: readonly string[],
+  digitalValue: readonly string[] = [],
+  kycValue: readonly string[] = [],
+  options: readonly ComparisonOption[] = []
+): ComparisonListFieldDto {
+  const toEntries = (values: readonly string[]) =>
+    values.map((value: string) => ({
+      key: value,
+      label: options.find(
+        (option: ComparisonOption) => option.value === value
+      )?.label ?? value,
+      value,
+    }));
+
   return {
     key,
     label,
-    kind: 'select',
-    editable,
+    kind: 'list',
+    entryNoun,
     options,
+
     values: {
-      digital: this.normalize(digitalValue),
-      kyc: null,
-      core: this.normalize(value),
+      digital: toEntries(digitalValue),
+      kyc: toEntries(kycValue),
+      core: toEntries(coreValue),
     },
   };
 }
