@@ -1,29 +1,99 @@
-cleanForSave<T>(value: T): T {
-  return this.removeEmptyValues(structuredClone(value)) as T;
-}
+@Mapper(uses = DateMapper.class)
+public interface ClientProfilingCaseRestApiModelMapper {
 
-private removeEmptyValues(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value
-      .map(item => this.removeEmptyValues(item))
-      .filter(item => item !== undefined);
-  }
+    ClientProfilingCaseDataDto toDto(
+            ClientProfilingCaseData clientProfilingCaseData
+    );
 
-  if (value !== null && typeof value === 'object') {
-    const cleaned = Object.entries(value)
-      .map(([key, val]) => [key, this.removeEmptyValues(val)] as const)
-      .filter(([, val]) => val !== undefined);
+    ChangeClientInformationDto toDto(
+            ChangeClientInformation changeClientInformation
+    );
 
-    if (cleaned.length === 0) {
-      return undefined;
+    ChangeClientInformation toDomain(
+            ChangeClientInformationDto changeClientInformationDto
+    );
+
+
+    // =========================================================
+    // DOMAIN -> DTO
+    // =========================================================
+
+    default ClientProfilingThirdPartyDto toThirdPartyDto(
+            ClientProfilingThirdParty clientProfilingThirdParty
+    ) {
+
+        if (clientProfilingThirdParty == null) {
+            return null;
+        }
+
+        return switch (clientProfilingThirdParty.getType()) {
+
+            case MORAL_PERSON ->
+                    toMoralPersonDto(clientProfilingThirdParty);
+
+            case PHYSICAL_PERSON ->
+                    toPhysicalPersonDto(clientProfilingThirdParty);
+
+            default ->
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Third party type '%s' not supported",
+                                    clientProfilingThirdParty.getType()
+                            )
+                    );
+        };
     }
 
-    return Object.fromEntries(cleaned);
-  }
+    ClientProfilingThirdPartyDto.PhysicalPersonDtoClientProfiling toPhysicalPersonDto(
+            ClientProfilingThirdParty clientProfilingThirdParty
+    );
 
-  if (value === null || value === undefined) {
-    return undefined;
-  }
+    ClientProfilingThirdPartyDto.MoralPersonDtoClientProfiling toMoralPersonDto(
+            ClientProfilingThirdParty clientProfilingThirdParty
+    );
 
-  return value;
+
+    // =========================================================
+    // DTO -> DOMAIN
+    // =========================================================
+
+    default ClientProfilingThirdParty toThirdParty(
+            ClientProfilingThirdPartyDto clientProfilingThirdPartyDto
+    ) {
+
+        if (clientProfilingThirdPartyDto == null) {
+            return null;
+        }
+
+        return switch (clientProfilingThirdPartyDto.getType()) {
+
+            case PHYSICAL_PERSON ->
+                    toPhysicalPerson(
+                            (ClientProfilingThirdPartyDto.PhysicalPersonDtoClientProfiling)
+                                    clientProfilingThirdPartyDto
+                    );
+
+            case MORAL_PERSON ->
+                    toMoralPerson(
+                            (ClientProfilingThirdPartyDto.MoralPersonDtoClientProfiling)
+                                    clientProfilingThirdPartyDto
+                    );
+
+            default ->
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Third party type '%s' not supported",
+                                    clientProfilingThirdPartyDto.getType()
+                            )
+                    );
+        };
+    }
+
+    ClientProfilingThirdParty toPhysicalPerson(
+            ClientProfilingThirdPartyDto.PhysicalPersonDtoClientProfiling clientProfilingThirdPartyDto
+    );
+
+    ClientProfilingThirdParty toMoralPerson(
+            ClientProfilingThirdPartyDto.MoralPersonDtoClientProfiling clientProfilingThirdPartyDto
+    );
 }
