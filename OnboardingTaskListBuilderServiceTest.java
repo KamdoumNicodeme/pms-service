@@ -1,28 +1,8 @@
-function mentions(
-  source: ComparisonSourceId,
-  values: Readonly<Record<ComparisonSourceId, string | null>>,
-  retained: string | null
-): boolean {
+readonly coreHolder: InputSignal<IThirdParty> =
+  input.required<IThirdParty>();
 
-  const sourceValue = values[source];
+readonly digitalHolder: InputSignal<IThirdParty | null> =
+  input<IThirdParty | null>(null);
 
-  if (isBlank(sourceValue)) {
-    return false;
-  }
-
-  // Si la valeur affichée correspond à UNE des vraies sources,
-  // on ne répète pas cette source en annotation.
-  //
-  // MAIS si la valeur retenue est manuelle (elle ne correspond
-  // à aucune source), on conserve toutes les sources disponibles.
-  const retainedComesFromSource =
-    sameValue(retained, values.digital) ||
-    sameValue(retained, values.kyc) ||
-    sameValue(retained, values.core);
-
-  if (retainedComesFromSource && sameValue(sourceValue, retained)) {
-    return false;
-  }
-
-  return true;
-}
+readonly kycHolder: InputSignal<IThirdParty | null> =
+  input<IThirdParty | null>(null);
