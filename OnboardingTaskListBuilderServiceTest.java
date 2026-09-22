@@ -1,45 +1,20 @@
-export class PolicySection {
+private toIsoDate(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
 
-  readonly corePolicy: InputSignal<IPolicy> =
-    input.required<IPolicy>();
+  // Valeur venant de l'UI : dd/MM/yyyy
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
 
-  readonly digitalPolicy: InputSignal<IPolicy | null> =
-    input<IPolicy | null>(null);
+  if (match) {
+    const [, day, month, year] = match;
+    return `${year}-${month}-${day}T00:00:00Z`;
+  }
 
-  readonly kycPolicy: InputSignal<IPolicy | null> =
-    input<IPolicy | null>(null);
+  // Déjà au format ISO
+  if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    return value;
+  }
 
-  readonly sectionId: InputSignal<string> =
-    input.required<string>();
-
-  readonly filter: InputSignal<ComparisonFilter> =
-    input<ComparisonFilter>('all');
-
-  readonly countersChange: OutputEmitterRef<ComparisonCounters> =
-    output<ComparisonCounters>();
-
-  readonly changesChange: OutputEmitterRef<ComparisonChanges> =
-    output<ComparisonChanges>();
-
-  private readonly data: ComparisonDataService =
-    inject(COMPARISON_DATA_SERVICE);
-
-  protected readonly section:
-    ResourceRef<ComparisonSectionDto | undefined> = rxResource({
-
-    params: () => ({
-      corePolicy: this.corePolicy(),
-      digitalPolicy: this.digitalPolicy(),
-      kycPolicy: this.kycPolicy(),
-      sectionId: this.sectionId(),
-    }),
-
-    stream: ({ params }) =>
-      this.data.getPolicySection(
-        params.corePolicy,
-        params.digitalPolicy,
-        params.kycPolicy,
-        params.sectionId
-      ),
-  });
+  return value;
 }
