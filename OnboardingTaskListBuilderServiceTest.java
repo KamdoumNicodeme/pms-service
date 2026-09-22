@@ -1,37 +1,28 @@
-export function defaultResolution(
-  values: Record<ComparisonSourceId, string | null>,
-  status: ComparisonStatus
-): Resolution {
+function mentions(
+  source: ComparisonSourceId,
+  values: Readonly<Record<ComparisonSourceId, string | null>>,
+  retained: string | null
+): boolean {
 
-  // KYC = ChangeClientInformation.
-  // Si une valeur KYC existe, c'est la valeur de travail déjà sauvegardée.
-  if (!isBlank(values.kyc)) {
-    return {
-      source: 'kyc',
-      value: values.kyc,
-      reason: '',
-      comment: '',
-      reviewed: !needsAttention(status),
-    };
+  const sourceValue = values[source];
+
+  if (isBlank(sourceValue)) {
+    return false;
   }
 
-  // Si aucune valeur KYC mais une valeur Digital existe.
-  if (!isBlank(values.digital)) {
-    return {
-      source: 'digital',
-      value: values.digital,
-      reason: '',
-      comment: '',
-      reviewed: !needsAttention(status),
-    };
+  // Si la valeur affichée correspond à UNE des vraies sources,
+  // on ne répète pas cette source en annotation.
+  //
+  // MAIS si la valeur retenue est manuelle (elle ne correspond
+  // à aucune source), on conserve toutes les sources disponibles.
+  const retainedComesFromSource =
+    sameValue(retained, values.digital) ||
+    sameValue(retained, values.kyc) ||
+    sameValue(retained, values.core);
+
+  if (retainedComesFromSource && sameValue(sourceValue, retained)) {
+    return false;
   }
 
-  // Sinon on conserve la valeur Core.
-  return {
-    source: 'core',
-    value: values.core,
-    reason: '',
-    comment: '',
-    reviewed: true,
-  };
+  return true;
 }
