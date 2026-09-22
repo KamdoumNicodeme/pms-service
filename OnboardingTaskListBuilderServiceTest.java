@@ -1,27 +1,28 @@
-buildBase(data: IClientProfilingData): IChangeClientInformation {
-  const policy = data.initialBusinessData.policy;
+private toIsoDate(value: string | null): string | null {
+  if (!value?.trim()) {
+    return null;
+  }
 
-  return {
-    policy: {
-      ...structuredClone(policy),
+  // Valeur venant du date picker : dd/MM/yyyy
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
 
-      clients: structuredClone(
-        (policy.clients ?? []).filter(
-          (client: IThirdParty) => this.isRelevantClient(client)
-        )
-      ),
-    },
-  };
-}
+  if (match) {
+    const [, day, month, year] = match;
 
-private isRelevantClient(client: IThirdParty): boolean {
-  const roles = client.roleTypes ?? [];
+    return `${year}-${month}-${day}T00:00:00Z`;
+  }
 
-  const isHolder = roles.includes('Holder');
+  // Valeur déjà sous forme yyyy-MM-dd
+  const isoDate = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
-  const isControllingPerson =
-    roles.includes('Economic_Beneficiary_Owner') &&
-    roles.includes('Trustee');
+  if (isoDate) {
+    return `${value}T00:00:00Z`;
+  }
 
-  return isHolder || isControllingPerson;
+  // Valeur déjà ISO complète
+  if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    return value;
+  }
+
+  return null;
 }
