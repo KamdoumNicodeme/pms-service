@@ -1,20 +1,37 @@
-private toIsoDate(value: string | null): string | null {
-  if (!value) {
-    return null;
+export function defaultResolution(
+  values: Record<ComparisonSourceId, string | null>,
+  status: ComparisonStatus
+): Resolution {
+
+  // KYC = ChangeClientInformation.
+  // Si une valeur KYC existe, c'est la valeur de travail déjà sauvegardée.
+  if (!isBlank(values.kyc)) {
+    return {
+      source: 'kyc',
+      value: values.kyc,
+      reason: '',
+      comment: '',
+      reviewed: !needsAttention(status),
+    };
   }
 
-  // Valeur venant de l'UI : dd/MM/yyyy
-  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-
-  if (match) {
-    const [, day, month, year] = match;
-    return `${year}-${month}-${day}T00:00:00Z`;
+  // Si aucune valeur KYC mais une valeur Digital existe.
+  if (!isBlank(values.digital)) {
+    return {
+      source: 'digital',
+      value: values.digital,
+      reason: '',
+      comment: '',
+      reviewed: !needsAttention(status),
+    };
   }
 
-  // Déjà au format ISO
-  if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
-    return value;
-  }
-
-  return value;
+  // Sinon on conserve la valeur Core.
+  return {
+    source: 'core',
+    value: values.core,
+    reason: '',
+    comment: '',
+    reviewed: true,
+  };
 }
