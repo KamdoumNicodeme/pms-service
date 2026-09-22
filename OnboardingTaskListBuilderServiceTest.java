@@ -1,24 +1,32 @@
-public static ClientProfilingThirdPartyDto buildThirdPartyDto() {
+protected onHolderChanges(event: HolderChanges): void {
+  const data: IClientProfilingData | null = this.getClientProfilingData();
 
-    return ClientProfilingThirdPartyDto.PhysicalPersonDtoClientProfiling
-        .builder()
-        .type("PHYSICAL_PERSON")
-        .thirdPartyId("0003310939")
-        .aeoiStatus(TEST_AEOI_STATUS)
-        .fatcaStatus(TEST_FATCA_STATUS)
-        .taxCountry(TEST_COUNTRY)
-        .taxNumber("8798546")
-        .legalAddress(buildLegalAddressDto())
-        .taxInformations(List.of(buildTaxInformationDto()))
+  if (!data) {
+    return;
+  }
 
-        // PHYSICAL PERSON
-        .salutation("MR")
-        .firstName("John")
-        .lastname("Doe")
-        .birthDate(/* valeur correspondant au type exact */)
-        .birthCountry(TEST_COUNTRY)
-        .civilStatus(/* ton DTO CivilStatus */)
-        .professionalDetails(/* ton DTO ProfessionalDetails */)
+  const allHolderChanges: ReadonlyMap<string, Resolution> =
+    this.updateHolderSectionChanges(event);
 
-        .build();
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+      ? structuredClone(this.pendingChangeClientInformation()!)
+      : this.changeService.buildBase(data);
+
+  const updated: IChangeClientInformation =
+    this.changeService.applyHolderChanges(
+      current,
+      event.thirdPartyId,
+      allHolderChanges
+    );
+
+  this.pendingChangeClientInformation.set(updated);
+
+  console.log('HOLDER:', event.thirdPartyId);
+  console.log('SECTION:', event.sectionId);
+  console.log('ALL HOLDER CHANGES:', allHolderChanges);
+  console.log(
+    'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE:',
+    structuredClone(updated)
+  );
 }
