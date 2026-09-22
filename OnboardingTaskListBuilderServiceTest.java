@@ -10,5 +10,15 @@ public static ClientProfilingThirdPartyDto buildThirdPartyDto() {
         .taxNumber("8798546")
         .legalAddress(buildLegalAddressDto())
         .taxInformations(List.of(buildTaxInformationDto()))
+
+        // PHYSICAL PERSON
+        .salutation("MR")
+        .firstName("John")
+        .lastname("Doe")
+        .birthDate(/* valeur correspondant au type exact */)
+        .birthCountry(TEST_COUNTRY)
+        .civilStatus(/* ton DTO CivilStatus */)
+        .professionalDetails(/* ton DTO ProfessionalDetails */)
+
         .build();
 }
