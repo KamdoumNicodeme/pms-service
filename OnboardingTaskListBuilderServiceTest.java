@@ -1,28 +1,29 @@
-private toIsoDate(value: string | null): string | null {
-  if (!value?.trim()) {
-    return null;
+cleanForSave<T>(value: T): T {
+  return this.removeEmptyValues(structuredClone(value)) as T;
+}
+
+private removeEmptyValues(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value
+      .map(item => this.removeEmptyValues(item))
+      .filter(item => item !== undefined);
   }
 
-  // Valeur venant du date picker : dd/MM/yyyy
-  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (value !== null && typeof value === 'object') {
+    const cleaned = Object.entries(value)
+      .map(([key, val]) => [key, this.removeEmptyValues(val)] as const)
+      .filter(([, val]) => val !== undefined);
 
-  if (match) {
-    const [, day, month, year] = match;
+    if (cleaned.length === 0) {
+      return undefined;
+    }
 
-    return `${year}-${month}-${day}T00:00:00Z`;
+    return Object.fromEntries(cleaned);
   }
 
-  // Valeur déjà sous forme yyyy-MM-dd
-  const isoDate = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-  if (isoDate) {
-    return `${value}T00:00:00Z`;
+  if (value === null || value === undefined) {
+    return undefined;
   }
 
-  // Valeur déjà ISO complète
-  if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
-    return value;
-  }
-
-  return null;
+  return value;
 }
