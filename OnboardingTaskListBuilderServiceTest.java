@@ -1,8 +1,20 @@
-readonly coreHolder: InputSignal<IThirdParty> =
-  input.required<IThirdParty>();
+protected readonly section = rxResource({
+  params: () => ({
+    policyNumber: this.policyNumber(),
+    coreHolder: this.coreHolder(),
+    digitalHolder: this.digitalHolder(),
+    kycHolder: this.kycHolder(),
+    sectionId: this.sectionId(),
+  }),
 
-readonly digitalHolder: InputSignal<IThirdParty | null> =
-  input<IThirdParty | null>(null);
-
-readonly kycHolder: InputSignal<IThirdParty | null> =
-  input<IThirdParty | null>(null);
+  stream: ({ params }) =>
+    this.data.getSection(
+      {
+        policyNumber: params.policyNumber,
+        coreHolder: params.coreHolder,
+        digitalHolder: params.digitalHolder,
+        kycHolder: params.kycHolder,
+      },
+      params.sectionId
+    ),
+});
