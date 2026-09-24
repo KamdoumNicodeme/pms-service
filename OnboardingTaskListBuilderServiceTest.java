@@ -1,66 +1,47 @@
-public applyHolderChanges(
-  changeClientInformation: IChangeClientInformation,
-  sourceHolder: IThirdParty,
-  changes: ReadonlyMap<string, Resolution>
-): IChangeClientInformation {
+protected onHolderChanges(event: HolderChanges): void {
+  const data: IClientProfilingData | null =
+    this.getClientProfilingData();
 
-  const result: IChangeClientInformation =
-    structuredClone(changeClientInformation);
-
-  result.policy.clients ??= [];
-
-  let client: IThirdParty | undefined =
-    result.policy.clients.find(
-      (item: IThirdParty): boolean =>
-        item.thirdPartyId === sourceHolder.thirdPartyId
-    );
-
-  /*
-   * CCI/Connect does not contain the client yet.
-   * Create ONLY the minimum structure required for the partial update.
-   *
-   * Do NOT copy the Snapshot holder.
-   */
-  if (!client) {
-    if (sourceHolder.type === 'PHYSICAL_PERSON') {
-      client = {
-        thirdPartyId: sourceHolder.thirdPartyId,
-        type: 'PHYSICAL_PERSON'
-      } as IPhysicalPerson;
-    } else if (sourceHolder.type === 'MORAL_PERSON') {
-      client = {
-        thirdPartyId: sourceHolder.thirdPartyId,
-        type: 'MORAL_PERSON'
-      } as IMoralPerson;
-    } else {
-      console.warn(
-        '[ClientProfilingChangeService] Unsupported client type:',
-        sourceHolder.type
-      );
-
-      return result;
-    }
-
-    result.policy.clients.push(client);
+  if (!data) {
+    return;
   }
 
-  if (client.type === 'PHYSICAL_PERSON') {
-    this.applyPhysicalPersonChanges(
-      client as IPhysicalPerson,
-      changes
+  const digitalHolder: IThirdParty | undefined =
+    data.initialBusinessData.policy.clients?.find(
+      (client: IThirdParty): boolean =>
+        client.thirdPartyId === event.thirdPartyId
     );
 
-    return result;
+  if (!digitalHolder) {
+    console.warn(
+      'Digital holder not found:',
+      event.thirdPartyId
+    );
+    return;
   }
 
-  if (client.type === 'MORAL_PERSON') {
-    this.applyMoralPersonChanges(
-      client as IMoralPerson,
-      changes
+  const allHolderChanges: ReadonlyMap<string, Resolution> =
+    this.updateHolderSectionChanges(event);
+
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+    ?? (
+      data.changeClientInformation
+        ? structuredClone(data.changeClientInformation)
+        : this.changeService.createEmpty(data)
     );
 
-    return result;
-  }
+  const updated: IChangeClientInformation =
+    this.changeService.applyHolderChanges(
+      current,
+      digitalHolder,
+      allHolderChanges
+    );
 
-  return result;
+  this.pendingChangeClientInformation.set(updated);
+
+  console.log(
+    'CHANGE CLIENT INFORMATION:',
+    structuredClone(updated)
+  );
 }
