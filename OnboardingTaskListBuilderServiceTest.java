@@ -1,43 +1,29 @@
-protected saveChangeClientInformation(): void {
-  const changeClientInformation =
-    this.pendingChangeClientInformation();
+protected onPolicyChanges(event: ComparisonChanges): void {
+  const data: IClientProfilingData | null =
+    this.getClientProfilingData();
 
-  if (!changeClientInformation) {
+  if (!data) {
     return;
   }
 
-  const currentCase = this.currentCase();
-  const taskId =
-    this.currentTask().userTaskIdentifier;
-
-  const payload =
-    this.changeService.cleanForSave(
-      changeClientInformation
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+    ?? (
+      data.changeClientInformation
+        ? structuredClone(data.changeClientInformation)
+        : this.changeService.createEmpty(data)
     );
 
-  this.saving.set(true);
+  const updated: IChangeClientInformation =
+    this.changeService.applyPolicyChanges(
+      current,
+      event.changes
+    );
 
-  this.#caseService
-    .updateChangeClientInformation(
-      currentCase.caseBusinessIdentifier,
-      payload,
-      taskId
-    )
-    .pipe(
-      finalize(() => this.saving.set(false))
-    )
-    .subscribe({
-      next: () => {
-        console.log(
-          'ChangeClientInformation saved successfully'
-        );
-      },
+  this.pendingChangeClientInformation.set(updated);
 
-      error: error => {
-        console.error(
-          'Error while saving ChangeClientInformation',
-          error
-        );
-      }
-    });
+  console.log(
+    'CHANGE CLIENT INFORMATION AFTER POLICY CHANGE:',
+    structuredClone(updated)
+  );
 }
