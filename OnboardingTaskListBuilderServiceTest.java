@@ -1,18 +1,28 @@
-protected documentsForHolder(
-  thirdPartyId: string
-): readonly ICaseDocument[] {
+protected readonly documents = computed((): readonly ICaseDocument[] => {
+  const sectionId = this.sectionId();
 
-  const allDocuments = this.caseDocuments();
-
-  console.log('[CCI] ALL DOCUMENTS', allDocuments);
-  console.log('[CCI] HOLDER ID', thirdPartyId);
-
-  const documents = allDocuments.filter(
-    document =>
-      document.metadata?.['thirdPartyId'] === thirdPartyId
+  return this.caseDocuments().filter(document =>
+    this.belongsToSection(document, sectionId)
   );
+});
 
-  console.log('[CCI] HOLDER DOCUMENTS', documents);
+private belongsToSection(
+  document: ICaseDocument,
+  sectionId: string
+): boolean {
 
-  return documents;
+  switch (sectionId) {
+    case 'contact-details':
+      return document.type === 'PROOF_OF_RESIDENCE';
+
+    case 'identity-documents':
+      return document.type === 'ID_DOCUMENT';
+
+    case 'tax-information':
+      return document.type === 'AEOI_SELF_CERTIFICATION'
+          || document.type === 'W9';
+
+    default:
+      return false;
+  }
 }
