@@ -1,33 +1,43 @@
-protected onHolderChanges(event: HolderChanges): void {
-  const data: IClientProfilingData | null =
-    this.getClientProfilingData();
+protected saveChangeClientInformation(): void {
+  const changeClientInformation =
+    this.pendingChangeClientInformation();
 
-  if (!data) {
+  if (!changeClientInformation) {
     return;
   }
 
-  const allHolderChanges: ReadonlyMap<string, Resolution> =
-    this.updateHolderSectionChanges(event);
+  const currentCase = this.currentCase();
+  const taskId =
+    this.currentTask().userTaskIdentifier;
 
-  const current: IChangeClientInformation =
-    this.pendingChangeClientInformation()
-    ?? (
-      data.changeClientInformation
-        ? structuredClone(data.changeClientInformation)
-        : this.changeService.createEmpty(data)
+  const payload =
+    this.changeService.cleanForSave(
+      changeClientInformation
     );
 
-  const updated: IChangeClientInformation =
-    this.changeService.applyHolderChanges(
-      current,
-      event.thirdPartyId,
-      allHolderChanges
-    );
+  this.saving.set(true);
 
-  this.pendingChangeClientInformation.set(updated);
+  this.#caseService
+    .updateChangeClientInformation(
+      currentCase.caseBusinessIdentifier,
+      payload,
+      taskId
+    )
+    .pipe(
+      finalize(() => this.saving.set(false))
+    )
+    .subscribe({
+      next: () => {
+        console.log(
+          'ChangeClientInformation saved successfully'
+        );
+      },
 
-  console.log(
-    'CHANGE CLIENT INFORMATION:',
-    structuredClone(updated)
-  );
+      error: error => {
+        console.error(
+          'Error while saving ChangeClientInformation',
+          error
+        );
+      }
+    });
 }
