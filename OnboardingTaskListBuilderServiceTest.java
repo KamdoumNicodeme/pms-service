@@ -1,24 +1,33 @@
-private getWorkingChangeClientInformation(
-  data: IClientProfilingData
-): IChangeClientInformation {
+protected onHolderChanges(event: HolderChanges): void {
+  const data: IClientProfilingData | null =
+    this.getClientProfilingData();
 
-  const pending =
-    this.pendingChangeClientInformation();
-
-  // Des modifications ont déjà été faites dans CLIP
-  if (pending) {
-    return pending;
+  if (!data) {
+    return;
   }
 
-  // Connect nous a envoyé un CCI :
-  // on conserve son contenu et on travaille dessus.
-  if (data.changeClientInformation) {
-    return structuredClone(
+  const allHolderChanges: ReadonlyMap<string, Resolution> =
+    this.updateHolderSectionChanges(event);
+
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+    ?? (
       data.changeClientInformation
+        ? structuredClone(data.changeClientInformation)
+        : this.changeService.createEmpty(data)
     );
-  }
 
-  // Connect n'a rien envoyé :
-  // surtout PAS de copie du Snapshot.
-  return this.changeService.createEmpty(data);
+  const updated: IChangeClientInformation =
+    this.changeService.applyHolderChanges(
+      current,
+      event.thirdPartyId,
+      allHolderChanges
+    );
+
+  this.pendingChangeClientInformation.set(updated);
+
+  console.log(
+    'CHANGE CLIENT INFORMATION:',
+    structuredClone(updated)
+  );
 }
