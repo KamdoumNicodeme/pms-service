@@ -1,29 +1,66 @@
-protected onPolicyChanges(event: ComparisonChanges): void {
-  const data: IClientProfilingData | null =
-    this.getClientProfilingData();
+public applyHolderChanges(
+  changeClientInformation: IChangeClientInformation,
+  sourceHolder: IThirdParty,
+  changes: ReadonlyMap<string, Resolution>
+): IChangeClientInformation {
 
-  if (!data) {
-    return;
+  const result: IChangeClientInformation =
+    structuredClone(changeClientInformation);
+
+  result.policy.clients ??= [];
+
+  let client: IThirdParty | undefined =
+    result.policy.clients.find(
+      (item: IThirdParty): boolean =>
+        item.thirdPartyId === sourceHolder.thirdPartyId
+    );
+
+  /*
+   * CCI/Connect does not contain the client yet.
+   * Create ONLY the minimum structure required for the partial update.
+   *
+   * Do NOT copy the Snapshot holder.
+   */
+  if (!client) {
+    if (sourceHolder.type === 'PHYSICAL_PERSON') {
+      client = {
+        thirdPartyId: sourceHolder.thirdPartyId,
+        type: 'PHYSICAL_PERSON'
+      } as IPhysicalPerson;
+    } else if (sourceHolder.type === 'MORAL_PERSON') {
+      client = {
+        thirdPartyId: sourceHolder.thirdPartyId,
+        type: 'MORAL_PERSON'
+      } as IMoralPerson;
+    } else {
+      console.warn(
+        '[ClientProfilingChangeService] Unsupported client type:',
+        sourceHolder.type
+      );
+
+      return result;
+    }
+
+    result.policy.clients.push(client);
   }
 
-  const current: IChangeClientInformation =
-    this.pendingChangeClientInformation()
-    ?? (
-      data.changeClientInformation
-        ? structuredClone(data.changeClientInformation)
-        : this.changeService.createEmpty(data)
+  if (client.type === 'PHYSICAL_PERSON') {
+    this.applyPhysicalPersonChanges(
+      client as IPhysicalPerson,
+      changes
     );
 
-  const updated: IChangeClientInformation =
-    this.changeService.applyPolicyChanges(
-      current,
-      event.changes
+    return result;
+  }
+
+  if (client.type === 'MORAL_PERSON') {
+    this.applyMoralPersonChanges(
+      client as IMoralPerson,
+      changes
     );
 
-  this.pendingChangeClientInformation.set(updated);
+    return result;
+  }
 
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER POLICY CHANGE:',
-    structuredClone(updated)
-  );
+  return result;
 }
