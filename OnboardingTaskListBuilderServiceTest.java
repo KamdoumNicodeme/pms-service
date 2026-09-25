@@ -28,3 +28,10 @@ readonly taskDetailsInputs = computed(() => {
       return {};
   }
 });
+
+<ng-container
+  *ngComponentOutlet="
+    component;
+    inputs: taskDetailsInputs()
+  "
+/>
