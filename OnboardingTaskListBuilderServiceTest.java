@@ -1,37 +1,25 @@
-readonly taskDetailsInputs = computed(() => {
-  const currentCase = this.sourceCase();
-  const task = this.task();
+.client-profiling__layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  gap: 1rem;
+}
 
-  if (!currentCase || !task) {
-    return {};
-  }
+.client-profiling__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 
-  const commonInputs = {
-    currentTask: task,
-    currentCase,
-    policy: this.policies(),
-    positions: this.positions().flat(),
-  };
+  display: flex;
+  flex-direction: column;
+}
 
-  switch (currentCase.caseType) {
-    case CaseType.CLIENT_PROFILING:
-      return {
-        ...commonInputs,
-        caseDocuments: this.caseDocuments(),
-        clientProfilingReferences: this.clientProfilingReferences(),
-      };
+.client-profiling__checks {
+  flex: 0 0 40rem;
+  width: 40rem;
+  min-width: 40rem;
 
-    case CaseType.CHANGE_OF_STRATEGY:
-      return commonInputs;
-
-    default:
-      return {};
-  }
-});
-
-<ng-container
-  *ngComponentOutlet="
-    component;
-    inputs: taskDetailsInputs()
-  "
-/>
+  padding-right: 1.75rem;
+  overflow-y: auto;
+}
