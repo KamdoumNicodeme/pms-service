@@ -1,13 +1,17 @@
-private ensureSendingAddress(
-  result: IChangeClientInformation
-): void {
-  console.log('BEFORE HOLDER:', result.policy.holder);
+<!-- DOCUMENTS -->
+<nz-tab>
+  <ng-template nzTabLink>
+    <span class="holder-tab">
+      <nz-icon
+        class="holder-tab__avatar"
+        nzType="file-text"
+      />
 
-  result.policy.holder ??= {} as IThirdParty;
+      DOCUMENTS
+    </span>
+  </ng-template>
 
-  console.log('AFTER HOLDER:', result.policy.holder);
-
-  result.policy.holder.sendingAddress ??= {} as SendingAddress;
-
-  result.policy.holder.sendingAddress.address ??= {} as Address;
-}
+  <section class="client-profiling__content">
+    <!-- ICI le composant du tableau global -->
+  </section>
+</nz-tab>
