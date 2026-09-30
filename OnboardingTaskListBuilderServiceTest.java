@@ -1,18 +1,25 @@
-.documents__menu-button {
-  width: 2rem;
-  min-width: 2rem;
-  height: 2rem;
-  padding: 0;
+:host ::ng-deep .ant-dropdown-menu {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 4px 0 !important;
+}
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+:host ::ng-deep .ant-dropdown-menu-item {
+  list-style: none !important;
 
-  border-color: #d9d3c7;
-
-  &:hover,
-  &:focus {
-    color: var(--ant-primary-6);
-    border-color: var(--ant-primary-5);
+  &::marker {
+    display: none;
+    content: '';
   }
+}
+
+:host ::ng-deep .ant-dropdown {
+  min-width: 130px;
+}
+
+:host ::ng-deep .ant-dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 6px 12px;
 }
