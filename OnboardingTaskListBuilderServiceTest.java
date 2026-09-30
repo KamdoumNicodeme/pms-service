@@ -1,62 +1,170 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
+
+import { ICaseDocument } from '...';
+
+export type DocumentAction =
+  | 'download'
+  | 'edit'
+  | 'reject'
+  | 'validate'
+  | 'delete';
+
+@Component({
+  selector: 'documents',
+  standalone: true,
+  templateUrl: './documents.html',
+  styleUrl: './documents.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class DocumentsComponent {
+
+  readonly documents = input.required<readonly ICaseDocument[]>();
+
+  readonly downloadDocument = output<ICaseDocument>();
+  readonly editDocument = output<ICaseDocument>();
+  readonly rejectDocument = output<ICaseDocument>();
+  readonly validateDocument = output<ICaseDocument>();
+  readonly deleteDocument = output<ICaseDocument>();
+
+  protected onAction(
+    action: DocumentAction,
+    document: ICaseDocument
+  ): void {
+
+    switch (action) {
+      case 'download':
+        this.downloadDocument.emit(document);
+        break;
+
+      case 'edit':
+        this.editDocument.emit(document);
+        break;
+
+      case 'reject':
+        this.rejectDocument.emit(document);
+        break;
+
+      case 'validate':
+        this.validateDocument.emit(document);
+        break;
+
+      case 'delete':
+        this.deleteDocument.emit(document);
+        break;
+    }
+  }
+}
+
+
+
+
 <section class="documents">
-
-  <header class="documents__header">
-    <h3>Documents</h3>
-
-    <span>
-      {{ documents().length }} document(s)
-    </span>
-  </header>
 
   <div class="documents__table">
 
     <div class="documents__row documents__row--header">
-      <span>Document name</span>
-      <span>Type</span>
-      <span>Date</span>
-      <span>Status</span>
-      <span>Actions</span>
+      <div>Filename</div>
+      <div>Document type</div>
+      <div>Metadata</div>
+      <div>Source</div>
+      <div>Status</div>
+      <div>Actions</div>
     </div>
 
     @for (document of documents(); track document.documentId) {
 
       <div class="documents__row">
 
-        <span>
+        <!-- FILENAME -->
+        <div class="documents__filename">
           {{ document.name }}
-        </span>
+        </div>
 
-        <span>
+        <!-- DOCUMENT TYPE -->
+        <div>
           {{ document.type ?? '-' }}
-        </span>
+        </div>
 
-        <span>
-          {{ document.date ?? '-' }}
-        </span>
+        <!-- METADATA -->
+        <div class="documents__metadata">
+          <!-- À mapper avec les vrais champs de ICaseDocument -->
+        </div>
 
-        <span>
+        <!-- SOURCE -->
+        <div>
+          {{ document.source ?? '-' }}
+        </div>
+
+        <!-- STATUS -->
+        <div
+          class="documents__status"
+          [class.documents__status--rejected]="document.status === 'REJECTED'"
+          [class.documents__status--validated]="document.status === 'VALIDATED'"
+        >
           {{ document.status ?? '-' }}
-        </span>
+        </div>
 
+        <!-- ACTIONS -->
         <div class="documents__actions">
 
           <button
-            type="button"
-            (click)="download(document)">
-            Download
+            nz-button
+            nz-dropdown
+            nzTrigger="click"
+            [nzDropdownMenu]="documentMenu"
+            class="documents__menu-button"
+          >
+            ⋮
           </button>
 
-          <button
-            type="button"
-            (click)="validate(document)">
-            Validate
-          </button>
+          <nz-dropdown-menu #documentMenu="nzDropdownMenu">
 
-          <button
-            type="button"
-            (click)="reject(document)">
-            Reject
-          </button>
+            <ul nz-menu>
+
+              <li
+                nz-menu-item
+                (click)="onAction('download', document)"
+              >
+                Download
+              </li>
+
+              <li
+                nz-menu-item
+                (click)="onAction('edit', document)"
+              >
+                Edit
+              </li>
+
+              <li
+                nz-menu-item
+                (click)="onAction('reject', document)"
+              >
+                Reject
+              </li>
+
+              <li
+                nz-menu-item
+                (click)="onAction('validate', document)"
+              >
+                Validate
+              </li>
+
+              <li
+                nz-menu-item
+                nzDanger
+                (click)="onAction('delete', document)"
+              >
+                Delete
+              </li>
+
+            </ul>
+
+          </nz-dropdown-menu>
 
         </div>
 
@@ -72,4 +180,96 @@
 
   </div>
 
+  <div class="documents__footer">
+    <button
+      nz-button
+      nzType="primary"
+      type="button"
+    >
+      Add new documents
+    </button>
+  </div>
+
 </section>
+
+
+
+
+          .documents {
+  width: 100%;
+  padding: 1rem;
+
+  &__table {
+    width: 100%;
+  }
+
+  &__row {
+    display: grid;
+
+    grid-template-columns:
+      minmax(20rem, 3fr)
+      minmax(8rem, 1fr)
+      minmax(15rem, 2fr)
+      7rem
+      7rem
+      5rem;
+
+    min-height: 2.75rem;
+
+    background: #e7e3dd;
+    border-bottom: 1px solid #fff;
+
+    > div {
+      padding: 0.6rem;
+      border-right: 1px solid #fff;
+      display: flex;
+      align-items: center;
+    }
+
+    &--header {
+      background: var(--ant-primary-5);
+      color: #fff;
+      font-weight: 600;
+    }
+  }
+
+  &__filename {
+    font-weight: 500;
+  }
+
+  &__metadata {
+    white-space: normal;
+  }
+
+  &__status {
+    &--rejected {
+      color: #d32029;
+      font-weight: 600;
+    }
+
+    &--validated {
+      color: #389e0d;
+      font-weight: 600;
+    }
+  }
+
+  &__actions {
+    justify-content: center;
+  }
+
+  &__menu-button {
+    min-width: 2rem;
+    width: 2rem;
+    padding: 0;
+  }
+
+  &__footer {
+    margin-top: 1rem;
+  }
+
+  &__empty {
+    padding: 2rem;
+    text-align: center;
+    background: #fafafa;
+  }
+}
