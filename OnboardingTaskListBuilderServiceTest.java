@@ -1,25 +1,16 @@
-:host ::ng-deep .ant-dropdown-menu {
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 4px 0 !important;
+protected metadataEntries(
+  metadata: Record<string, string> | null | undefined
+): [string, string][] {
+  return Object.entries(metadata ?? {});
 }
 
-:host ::ng-deep .ant-dropdown-menu-item {
-  list-style: none !important;
-
-  &::marker {
-    display: none;
-    content: '';
+<div class="documents__metadata">
+  @for (entry of metadataEntries(document.metadata); track entry[0]) {
+    <span class="documents__metadata-entry">
+      <strong>{{ entry[0] }}:</strong>
+      {{ entry[1] }}
+    </span>
+  } @empty {
+    <span>-</span>
   }
-}
-
-:host ::ng-deep .ant-dropdown {
-  min-width: 130px;
-}
-
-:host ::ng-deep .ant-dropdown-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 6px 12px;
-}
+</div>
