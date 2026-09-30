@@ -1,25 +1,65 @@
-.client-profiling__layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  gap: 1rem;
+private downloadDocument(caseDocument: ICaseDocument): void {
+  const caseIdentifier = this.caseIdentifier();
+
+  if (!caseIdentifier) {
+    return;
+  }
+
+  this.#caseService
+    .downloadDocument(caseIdentifier, caseDocument.identifier)
+    .subscribe({
+      next: (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+
+        const link = window.document.createElement('a');
+
+        link.href = url;
+        link.download = caseDocument.fileName ?? 'document';
+
+        link.click();
+
+        URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Error downloading document', error);
+      }
+    });
 }
 
-.client-profiling__main {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
+private validateDocument(caseDocument: ICaseDocument): void {
+  const caseIdentifier = this.caseIdentifier();
 
-  display: flex;
-  flex-direction: column;
+  if (!caseIdentifier) {
+    return;
+  }
+
+  this.#caseService
+    .validateDocument(caseIdentifier, caseDocument.identifier)
+    .subscribe({
+      next: () => {
+        console.log('Document validated');
+      },
+      error: (error) => {
+        console.error('Error validating document', error);
+      }
+    });
 }
 
-.client-profiling__checks {
-  flex: 0 0 40rem;
-  width: 40rem;
-  min-width: 40rem;
+private rejectDocument(caseDocument: ICaseDocument): void {
+  const caseIdentifier = this.caseIdentifier();
 
-  padding-right: 1.75rem;
-  overflow-y: auto;
+  if (!caseIdentifier) {
+    return;
+  }
+
+  this.#caseService
+    .rejectDocument(caseIdentifier, caseDocument.identifier)
+    .subscribe({
+      next: () => {
+        console.log('Document rejected');
+      },
+      error: (error) => {
+        console.error('Error rejecting document', error);
+      }
+    });
 }
