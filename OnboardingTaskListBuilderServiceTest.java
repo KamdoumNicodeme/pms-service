@@ -1,255 +1,93 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  output,
-} from '@angular/core';
-
-import { ICaseDocument } from '...';
-
-export type DocumentAction =
-  | 'download'
-  | 'edit'
-  | 'reject'
-  | 'validate'
-  | 'delete';
-
-@Component({
-  selector: 'documents',
-  standalone: true,
-  templateUrl: './documents.html',
-  styleUrl: './documents.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-export class DocumentsComponent {
-
-  readonly documents = input.required<readonly ICaseDocument[]>();
-
-  readonly downloadDocument = output<ICaseDocument>();
-  readonly editDocument = output<ICaseDocument>();
-  readonly rejectDocument = output<ICaseDocument>();
-  readonly validateDocument = output<ICaseDocument>();
-  readonly deleteDocument = output<ICaseDocument>();
-
-  protected onAction(
-    action: DocumentAction,
-    document: ICaseDocument
-  ): void {
-
-    switch (action) {
-      case 'download':
-        this.downloadDocument.emit(document);
-        break;
-
-      case 'edit':
-        this.editDocument.emit(document);
-        break;
-
-      case 'reject':
-        this.rejectDocument.emit(document);
-        break;
-
-      case 'validate':
-        this.validateDocument.emit(document);
-        break;
-
-      case 'delete':
-        this.deleteDocument.emit(document);
-        break;
-    }
-  }
-}
-
-
-
-
-<section class="documents">
-
-  <div class="documents__table">
-
-    <div class="documents__row documents__row--header">
-      <div>Filename</div>
-      <div>Document type</div>
-      <div>Metadata</div>
-      <div>Source</div>
-      <div>Status</div>
-      <div>Actions</div>
-    </div>
-
-    @for (document of documents(); track document.documentId) {
-
-      <div class="documents__row">
-
-        <!-- FILENAME -->
-        <div class="documents__filename">
-          {{ document.name }}
-        </div>
-
-        <!-- DOCUMENT TYPE -->
-        <div>
-          {{ document.type ?? '-' }}
-        </div>
-
-        <!-- METADATA -->
-        <div class="documents__metadata">
-          <!-- À mapper avec les vrais champs de ICaseDocument -->
-        </div>
-
-        <!-- SOURCE -->
-        <div>
-          {{ document.source ?? '-' }}
-        </div>
-
-        <!-- STATUS -->
-        <div
-          class="documents__status"
-          [class.documents__status--rejected]="document.status === 'REJECTED'"
-          [class.documents__status--validated]="document.status === 'VALIDATED'"
-        >
-          {{ document.status ?? '-' }}
-        </div>
-
-        <!-- ACTIONS -->
-        <div class="documents__actions">
-
-          <button
-            nz-button
-            nz-dropdown
-            nzTrigger="click"
-            [nzDropdownMenu]="documentMenu"
-            class="documents__menu-button"
-          >
-            ⋮
-          </button>
-
-          <nz-dropdown-menu #documentMenu="nzDropdownMenu">
-
-            <ul nz-menu>
-
-              <li
-                nz-menu-item
-                (click)="onAction('download', document)"
-              >
-                Download
-              </li>
-
-              <li
-                nz-menu-item
-                (click)="onAction('edit', document)"
-              >
-                Edit
-              </li>
-
-              <li
-                nz-menu-item
-                (click)="onAction('reject', document)"
-              >
-                Reject
-              </li>
-
-              <li
-                nz-menu-item
-                (click)="onAction('validate', document)"
-              >
-                Validate
-              </li>
-
-              <li
-                nz-menu-item
-                nzDanger
-                (click)="onAction('delete', document)"
-              >
-                Delete
-              </li>
-
-            </ul>
-
-          </nz-dropdown-menu>
-
-        </div>
-
-      </div>
-
-    } @empty {
-
-      <div class="documents__empty">
-        No documents available
-      </div>
-
-    }
-
-  </div>
-
-  <div class="documents__footer">
-    <button
-      nz-button
-      nzType="primary"
-      type="button"
-    >
-      Add new documents
-    </button>
-  </div>
-
-</section>
-
-
-
-
-          .documents {
+.documents {
   width: 100%;
-  padding: 1rem;
+  padding: 1rem 1.25rem 2rem;
 
   &__table {
     width: 100%;
+    overflow: hidden;
+    border: 1px solid #ebe7df;
+    border-radius: 4px;
+    background: #fff;
   }
 
   &__row {
     display: grid;
 
     grid-template-columns:
-      minmax(20rem, 3fr)
-      minmax(8rem, 1fr)
-      minmax(15rem, 2fr)
-      7rem
-      7rem
+      minmax(18rem, 2.7fr)
+      minmax(10rem, 1.1fr)
+      minmax(15rem, 1.8fr)
+      minmax(7rem, 0.7fr)
+      minmax(7rem, 0.7fr)
       5rem;
 
-    min-height: 2.75rem;
+    min-height: 3.4rem;
+    background: #fff;
+    border-bottom: 1px solid #eeeae3;
 
-    background: #e7e3dd;
-    border-bottom: 1px solid #fff;
+    transition: background-color 0.15s ease;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:not(&--header):hover {
+      background: #faf8f4;
+    }
 
     > div {
-      padding: 0.6rem;
-      border-right: 1px solid #fff;
+      min-width: 0;
+      padding: 0.75rem 0.9rem;
+
       display: flex;
       align-items: center;
+
+      border-right: 1px solid #eeeae3;
+
+      &:last-child {
+        border-right: none;
+      }
     }
 
     &--header {
-      background: var(--ant-primary-5);
-      color: #fff;
+      min-height: 2.8rem;
+
+      background: linear-gradient(
+        180deg,
+        var(--ant-primary-2),
+        var(--ant-primary-3)
+      );
+
+      color: #5c4a27;
+      font-size: 0.8rem;
       font-weight: 600;
+
+      > div {
+        border-right-color: rgba(255, 255, 255, 0.5);
+      }
     }
   }
 
   &__filename {
-    font-weight: 500;
+    font-weight: 600;
+    color: #2c2c2c;
   }
 
   &__metadata {
-    white-space: normal;
+    color: #666;
+    font-size: 0.82rem;
   }
 
   &__status {
-    &--rejected {
-      color: #d32029;
-      font-weight: 600;
-    }
+    font-size: 0.8rem;
+    font-weight: 500;
 
     &--validated {
       color: #389e0d;
-      font-weight: 600;
+    }
+
+    &--rejected {
+      color: #cf1322;
     }
   }
 
@@ -258,18 +96,58 @@ export class DocumentsComponent {
   }
 
   &__menu-button {
-    min-width: 2rem;
     width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+
     padding: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #d9d3c7;
+    border-radius: 3px;
+
+    background: #fff;
+
+    font-size: 1rem;
+    line-height: 1;
+
+    cursor: pointer;
+
+    &:hover {
+      color: var(--ant-primary-6);
+      border-color: var(--ant-primary-5);
+      background: #faf8f4;
+    }
   }
 
   &__footer {
     margin-top: 1rem;
+
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  &__add-button {
+    height: 2.3rem;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    padding: 0 1rem;
+
+    font-weight: 600;
   }
 
   &__empty {
-    padding: 2rem;
+    padding: 3rem 1rem;
+
     text-align: center;
-    background: #fafafa;
+
+    color: #8c8c8c;
+    background: #fff;
   }
 }
