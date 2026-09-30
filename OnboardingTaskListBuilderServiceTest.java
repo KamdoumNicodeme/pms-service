@@ -1,34 +1,91 @@
-protected onPolicyChanges(event: ComparisonChanges): void {
-  const data: IClientProfilingData | null =
-    this.getClientProfilingData();
-
-  if (!data) {
+private ensureSendingAddress(result: IChangeClientInformation): void {
+  if (!result.policy.holder) {
     return;
   }
 
-  const allPolicyChanges =
-    this.updatePolicySectionChanges(event);
+  result.policy.holder.sendingAddress ??= {} as SendingAddress;
 
-  const current: IChangeClientInformation =
-    this.pendingChangeClientInformation()
-      ?? (
-        data.changeClientInformation
-          ? structuredClone(data.changeClientInformation)
-          : this.changeService.createEmpty(data)
-      );
+  result.policy.holder.sendingAddress.address ??= {} as Address;
+}
 
-  const updated: IChangeClientInformation =
-    this.changeService.applyPolicyChanges(
-      structuredClone(current),
-      allPolicyChanges
-    );
 
-  this.pendingChangeClientInformation.set(updated);
+case 'street': {
+  this.ensureSendingAddress(result);
 
-  console.log('POLICY SECTION:', event.sectionId);
-  console.log('ALL POLICY CHANGES:', allPolicyChanges);
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER POLICY CHANGE:',
-    structuredClone(updated)
-  );
+  result.policy.holder!.sendingAddress!.address!.streetName =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'number': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.address!.streetNumber =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'house-name': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.address!.residenceName =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'apartment-number': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.address!.apartmentNumber =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'city': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.address!.townName =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'postcode': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.address!.postCode =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'country': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.address!.country =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'area': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.address!.area =
+    this.stringValue(value);
+
+  break;
+}
+
+case 'language': {
+  this.ensureSendingAddress(result);
+
+  result.policy.holder!.sendingAddress!.language =
+    this.stringValue(value);
+
+  break;
 }
