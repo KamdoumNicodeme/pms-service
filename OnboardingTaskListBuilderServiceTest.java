@@ -1,37 +1,34 @@
-private updatePolicySectionChanges(
-  event: ComparisonChanges
-): ReadonlyMap<string, Resolution> {
+protected onPolicyChanges(event: ComparisonChanges): void {
+  const data: IClientProfilingData | null =
+    this.getClientProfilingData();
 
-  const sections =
-    new Map<string, ReadonlyMap<string, Resolution>>(
-      this.policySectionChanges()
-    );
+  if (!data) {
+    return;
+  }
 
-  /*
-   * Replace the complete state of the current section.
-   * This also removes entries that no longer exist in the store.
-   */
-  sections.set(
-    event.sectionId,
-    new Map(event.changes)
-  );
+  const allPolicyChanges =
+    this.updatePolicySectionChanges(event);
 
-  this.policySectionChanges.set(sections);
-
-  /* Merge the current changes from every section. */
-  const allChanges = new Map<string, Resolution>();
-
-  sections.forEach(
-    (sectionChanges: ReadonlyMap<string, Resolution>): void => {
-
-      sectionChanges.forEach(
-        (resolution: Resolution, id: string): void => {
-          allChanges.set(id, resolution);
-        }
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+      ?? (
+        data.changeClientInformation
+          ? structuredClone(data.changeClientInformation)
+          : this.changeService.createEmpty(data)
       );
 
-    }
-  );
+  const updated: IChangeClientInformation =
+    this.changeService.applyPolicyChanges(
+      structuredClone(current),
+      allPolicyChanges
+    );
 
-  return allChanges;
+  this.pendingChangeClientInformation.set(updated);
+
+  console.log('POLICY SECTION:', event.sectionId);
+  console.log('ALL POLICY CHANGES:', allPolicyChanges);
+  console.log(
+    'CHANGE CLIENT INFORMATION AFTER POLICY CHANGE:',
+    structuredClone(updated)
+  );
 }
