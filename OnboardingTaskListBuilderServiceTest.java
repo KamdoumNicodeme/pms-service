@@ -2,15 +2,21 @@ private updatePolicySectionChanges(
   event: ComparisonChanges
 ): ReadonlyMap<string, Resolution> {
 
-  this.policySectionChanges.set(
-    event.sectionId,
-    event.changes
-  );
+  this.policySectionChanges.update(current => {
+    const updated = new Map(current);
+
+    updated.set(
+      event.sectionId,
+      new Map(event.changes)
+    );
+
+    return updated;
+  });
 
   const allChanges = new Map<string, Resolution>();
 
-  for (const changes of this.policySectionChanges.values()) {
-    changes.forEach((resolution, key) => {
+  for (const sectionChanges of this.policySectionChanges().values()) {
+    sectionChanges.forEach((resolution, key) => {
       allChanges.set(key, resolution);
     });
   }
