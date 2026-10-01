@@ -1,40 +1,18 @@
-<button
-  nz-button
-  nz-dropdown
-  [nzDropdownMenu]="documentMenu"
-  nzTrigger="click"
-  class="documents__menu-button"
->
-  <span nz-icon nzType="more" nzTheme="outline"></span>
-</button>
+readonly coreHolders: Signal<IThirdParty[]> = computed((): IThirdParty[] => {
+  const clients: IThirdParty[] = this.getBusinessData()?.clients ?? [];
 
-<nz-dropdown-menu #documentMenu="nzDropdownMenu">
-  <ul nz-menu>
-    <li nz-menu-item>
-      <span nz-icon nzType="download"></span>
-      Download
-    </li>
+  return clients.filter((client: IThirdParty) => {
+    const isHolder = client.roleTypes?.includes('Holder') ?? false;
+    const isControllingPerson = this.isControllingPerson(client);
 
-    <li nz-menu-item>
-      <span nz-icon nzType="edit"></span>
-      Edit
-    </li>
+    console.log('----- CLIENT -----');
+    console.log('thirdPartyId:', client.thirdPartyId);
+    console.log('name:', client.name);
+    console.log('roleTypes:', client.roleTypes);
+    console.log('isHolder:', isHolder);
+    console.log('isControllingPerson:', isControllingPerson);
+    console.log('KEEP:', isHolder && !isControllingPerson);
 
-    <li nz-menu-item>
-      <span nz-icon nzType="close-circle"></span>
-      Reject
-    </li>
-
-    <li nz-menu-item>
-      <span nz-icon nzType="check-circle"></span>
-      Validate
-    </li>
-
-    <li nz-menu-divider></li>
-
-    <li nz-menu-item nzDanger>
-      <span nz-icon nzType="delete"></span>
-      Delete
-    </li>
-  </ul>
-</nz-dropdown-menu>
+    return isHolder && !isControllingPerson;
+  });
+});
