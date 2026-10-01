@@ -1,18 +1,20 @@
-readonly coreHolders: Signal<IThirdParty[]> = computed((): IThirdParty[] => {
-  const clients: IThirdParty[] = this.getBusinessData()?.clients ?? [];
+protected coreHolderOf(digitalHolder: IThirdParty): IThirdParty | null {
+  console.log('🔥 coreHolderOf CALLED', digitalHolder);
 
-  return clients.filter((client: IThirdParty) => {
-    const isHolder = client.roleTypes?.includes('Holder') ?? false;
-    const isControllingPerson = this.isControllingPerson(client);
+  const businessData = this.getBusinessData();
 
-    console.log('----- CLIENT -----');
-    console.log('thirdPartyId:', client.thirdPartyId);
-    console.log('name:', client.name);
-    console.log('roleTypes:', client.roleTypes);
-    console.log('isHolder:', isHolder);
-    console.log('isControllingPerson:', isControllingPerson);
-    console.log('KEEP:', isHolder && !isControllingPerson);
+  console.log('🔥 BUSINESS DATA:', businessData);
+  console.log('🔥 BUSINESS CLIENTS:', businessData?.clients);
 
-    return isHolder && !isControllingPerson;
-  });
-});
+  const holders = businessData?.clients?.filter(
+    (client: IThirdParty) =>
+      client.roleTypes?.includes('Holder')
+  ) ?? [];
+
+  console.log('🔥 HOLDERS:', holders);
+
+  return holders.find(
+    (holder: IThirdParty) =>
+      holder.thirdPartyId === digitalHolder.thirdPartyId
+  ) ?? null;
+}
