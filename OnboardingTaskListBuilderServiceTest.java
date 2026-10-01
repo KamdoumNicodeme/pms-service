@@ -1,20 +1,16 @@
-protected coreHolderOf(digitalHolder: IThirdParty): IThirdParty | null {
-  console.log('🔥 coreHolderOf CALLED', digitalHolder);
+private normalize(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
 
-  const businessData = this.getBusinessData();
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
+  }
 
-  console.log('🔥 BUSINESS DATA:', businessData);
-  console.log('🔥 BUSINESS CLIENTS:', businessData?.clients);
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
 
-  const holders = businessData?.clients?.filter(
-    (client: IThirdParty) =>
-      client.roleTypes?.includes('Holder')
-  ) ?? [];
-
-  console.log('🔥 HOLDERS:', holders);
-
-  return holders.find(
-    (holder: IThirdParty) =>
-      holder.thirdPartyId === digitalHolder.thirdPartyId
-  ) ?? null;
+  return null;
 }
