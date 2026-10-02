@@ -7,25 +7,20 @@ private applyNationalityChange(
   const previousCountry: string =
     id.substring('nationalities:'.length);
 
-  console.log(
-    'NATIONALITY BEFORE:',
-    structuredClone(client.nationality)
-  );
-
-  console.log('PREVIOUS COUNTRY:', previousCountry);
-  console.log('NEW COUNTRY:', resolution.value);
-
   const nationalities: (NationalityInfo | null | undefined)[] = [
     client.nationality?.first,
     client.nationality?.second,
     client.nationality?.third
   ];
 
-  const nationality: NationalityInfo | null | undefined =
-    nationalities.find(
-      (item: NationalityInfo | null | undefined) =>
-        item?.country === previousCountry
-    );
+  console.log('NATIONALITY BEFORE:', structuredClone(client.nationality));
+  console.log('PREVIOUS COUNTRY:', previousCountry);
+  console.log('NEW COUNTRY:', resolution.value);
+  console.log('NATIONALITIES ARRAY:', structuredClone(nationalities));
+
+  const nationality = nationalities.find(
+    item => item?.country === previousCountry
+  );
 
   if (!nationality) {
     console.warn(
@@ -35,15 +30,11 @@ private applyNationalityChange(
     return;
   }
 
-  const value: string | null =
-    this.nullableStringValue(resolution.value);
+  const value = this.nullableStringValue(resolution.value);
 
   if (value !== null) {
     nationality.country = value;
   }
 
-  console.log(
-    'NATIONALITY AFTER:',
-    structuredClone(client.nationality)
-  );
+  console.log('NATIONALITY AFTER:', structuredClone(client.nationality));
 }
