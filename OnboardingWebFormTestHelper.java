@@ -1,150 +1,52 @@
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-class PremiumNaturalPersonRiskOnboardingTest {
+protected onHolderChanges(event: HolderChanges): void {
+  const data: IClientProfilingData | null = this.getClientProfilingData();
 
-    private static final MockedStatic<ChecklistUtils> checklistUtils =
-            Mockito.mockStatic(ChecklistUtils.class);
+  if (!data) {
+    return;
+  }
 
-    private Map<String, List<String>> overallCaseRisk;
+  const allHolderChanges: ReadonlyMap<string, Resolution> =
+    this.updateHolderSectionChanges(event);
 
-    @BeforeEach
-    void resetBeforeTest() {
-        checklistUtils.reset();
-        checklistUtils.when(() -> ChecklistUtils.getFieldById(any(ScreenDescription.class), anyString()))
-                .thenCallRealMethod();
-        checklistUtils.when(() -> ChecklistUtils.getFieldValue(any(Field.class)))
-                .thenCallRealMethod();
-
-        overallCaseRisk = new HashMap<>();
-        overallCaseRisk.put(HIGH, new ArrayList<>());
-        overallCaseRisk.put(BLOCKED, new ArrayList<>());
-    }
-
-    @AfterAll
-    static void closeStaticMocks() {
-        checklistUtils.close();
-    }
-
-    @Test
-    void premiumNaturalPerson_High_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "PH Type=Physical",
-                YES,
-                YES
+  const current: IChangeClientInformation =
+    this.pendingChangeClientInformation()
+      ? structuredClone(this.pendingChangeClientInformation()!)
+      : (
+          data.changeClientInformation
+            ? structuredClone(data.changeClientInformation)
+            : this.changeService.createEmpty(data)
         );
 
-        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
+  /*
+   * Reset only the current holder to its reference state.
+   * Policy changes and changes made to other holders are preserved.
+   */
+  const reset: IChangeClientInformation =
+    this.changeService.resetHolder(
+      current,
+      data,
+      event.thirdPartyId
+    );
 
-        assertEquals(CaseRisk.CASE_RISK_HIGH, result);
-        assertEquals(1, overallCaseRisk.get(HIGH).size());
-        assertEquals("Premium is paid from a natural person", overallCaseRisk.get(HIGH).getFirst());
-    }
+  /*
+   * Reapply the complete current state of the holder changes.
+   * Removed manual entries are no longer part of allHolderChanges,
+   * so they will not be added back.
+   */
+  const updated: IChangeClientInformation =
+    this.changeService.applyHolderChanges(
+      reset,
+      event.thirdPartyId,
+      allHolderChanges
+    );
 
-    @Test
-    void premiumNaturalPerson_Standard_WhenPhNotPhysical_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "PH Type=Moral",
-                YES,
-                YES
-        );
+  this.pendingChangeClientInformation.set(updated);
 
-        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void premiumNaturalPerson_Standard_WhenPhLegalEntityNo_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "PH Type=Physical",
-                NO,
-                YES
-        );
-
-        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @Test
-    void premiumNaturalPerson_Standard_WhenPaidFromAppointedNo_OK() {
-        ScreenDescription sd = createScreenDescription(
-                null,
-                "PH Type=Physical",
-                YES,
-                NO
-        );
-
-        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
-
-        assertEquals(CaseRisk.CASE_RISK_STANDARD, result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = { HIGH, MEDIUM, STANDARD })
-    void premiumNaturalPerson_ForcedRiskFromRiskValue_OK(String caseValue) {
-        ScreenDescription sd = createScreenDescription(
-                caseValue,
-                "PH Type=Physical",
-                YES,
-                YES
-        );
-
-        CaseRisk result = PremiumNaturalPersonRiskOnboarding.premiumNaturalPerson(sd, overallCaseRisk);
-
-        assertEquals(RulesUtils.resolveForcedCaseRisk(caseValue), result);
-        assertEquals(0, overallCaseRisk.get(HIGH).size());
-        assertEquals(0, overallCaseRisk.get(BLOCKED).size());
-    }
-
-    private ScreenDescription createScreenDescription(
-            String riskValue,
-            String phType,
-            String phLegalEntity,
-            String paidFromAppointed
-    ) {
-        List<Field> fields = new ArrayList<>();
-
-        fields.add(TextInputField.builder()
-                .fieldId(RISK_VALUE)
-                .selectedValue(riskValue)
-                .build());
-
-        fields.add(TextInputField.builder()
-                .fieldId(PH_TYPE_ASSESSMENT)
-                .selectedValue(phType)
-                .build());
-
-        fields.add(SelectInputField.builder()
-                .fieldId(PH_LEGAL_ENTITY)
-                .selectedValue(phLegalEntity)
-                .build());
-
-        fields.add(SelectInputField.builder()
-                .fieldId(PAID_FROM_APPOINTED)
-                .selectedValue(paidFromAppointed)
-                .build());
-
-        Group group = Group.builder()
-                .groupId("CASE_RISK")
-                .fields(fields)
-                .build();
-
-        Tab tab = Tab.builder()
-                .tabId("CHECKLIST")
-                .groups(new ArrayList<>(List.of(group)))
-                .build();
-
-        return ScreenDescription.builder()
-                .screenId("TEST")
-                .tabs(new ArrayList<>(List.of(tab)))
-                .build();
-    }
+  console.log('HOLDER:', event.thirdPartyId);
+  console.log('SECTION:', event.sectionId);
+  console.log('ALL HOLDER CHANGES:', allHolderChanges);
+  console.log(
+    'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE:',
+    structuredClone(updated)
+  );
 }
-xxx
