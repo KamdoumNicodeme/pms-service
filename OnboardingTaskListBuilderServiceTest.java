@@ -1,52 +1,31 @@
-protected onHolderChanges(event: HolderChanges): void {
-  const data: IClientProfilingData | null = this.getClientProfilingData();
+test('should request the document download', async () => {
+  MOCK_CASES_SERVICE.findAllDocuments.mockReturnValue(of(DOCUMENTS));
 
-  if (!data) {
-    return;
-  }
+  const blob = new Blob(['pdf content'], {
+    type: 'application/pdf'
+  });
 
-  const allHolderChanges: ReadonlyMap<string, Resolution> =
-    this.updateHolderSectionChanges(event);
+  MOCK_CASES_SERVICE.downloadDocument.mockReturnValue(of(blob));
 
-  const current: IChangeClientInformation =
-    this.pendingChangeClientInformation()
-      ? structuredClone(this.pendingChangeClientInformation()!)
-      : (
-          data.changeClientInformation
-            ? structuredClone(data.changeClientInformation)
-            : this.changeService.createEmpty(data)
-        );
+  jest.spyOn(URL, 'createObjectURL')
+    .mockReturnValue('blob:test-url');
 
-  /*
-   * Reset only the current holder to its reference state.
-   * Policy changes and changes made to other holders are preserved.
-   */
-  const reset: IChangeClientInformation =
-    this.changeService.resetHolder(
-      current,
-      data,
-      event.thirdPartyId
-    );
+  jest.spyOn(URL, 'revokeObjectURL')
+    .mockImplementation(() => undefined);
 
-  /*
-   * Reapply the complete current state of the holder changes.
-   * Removed manual entries are no longer part of allHolderChanges,
-   * so they will not be added back.
-   */
-  const updated: IChangeClientInformation =
-    this.changeService.applyHolderChanges(
-      reset,
-      event.thirdPartyId,
-      allHolderChanges
-    );
+  jest.spyOn(window.document, 'createElement')
+    .mockReturnValue({
+      href: '',
+      download: '',
+      click: jest.fn()
+    } as unknown as HTMLAnchorElement);
 
-  this.pendingChangeClientInformation.set(updated);
+  await setup();
 
-  console.log('HOLDER:', event.thirdPartyId);
-  console.log('SECTION:', event.sectionId);
-  console.log('ALL HOLDER CHANGES:', allHolderChanges);
-  console.log(
-    'CHANGE CLIENT INFORMATION AFTER HOLDER CHANGE:',
-    structuredClone(updated)
+  component.download(DOCUMENTS[0]);
+
+  expect(MOCK_CASES_SERVICE.downloadDocument).toHaveBeenCalledWith(
+    DOCUMENTS[0].caseBusinessIdentifier,
+    DOCUMENTS[0].documentId
   );
-}
+});
