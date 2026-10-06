@@ -1,26 +1,33 @@
-test('should request the document download', async () => {
+test('should download the document', async () => {
   MOCK_CASES_SERVICE.findAllDocuments.mockReturnValue(of(DOCUMENTS));
 
   const blob = new Blob(['pdf content'], {
-    type: 'application/pdf'
+    type: 'application/pdf',
   });
 
   MOCK_CASES_SERVICE.downloadDocument.mockReturnValue(of(blob));
 
-  jest.spyOn(URL, 'createObjectURL')
-    .mockReturnValue('blob:test-url');
+  await setup();
 
-  jest.spyOn(URL, 'revokeObjectURL')
-    .mockImplementation(() => undefined);
+  // JSDOM does not implement these methods
+  Object.defineProperty(URL, 'createObjectURL', {
+    writable: true,
+    value: jest.fn().mockReturnValue('blob:test-url'),
+  });
+
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    writable: true,
+    value: jest.fn(),
+  });
+
+  const click = jest.fn();
 
   jest.spyOn(window.document, 'createElement')
     .mockReturnValue({
       href: '',
       download: '',
-      click: jest.fn()
+      click,
     } as unknown as HTMLAnchorElement);
-
-  await setup();
 
   component.download(DOCUMENTS[0]);
 
@@ -28,4 +35,10 @@ test('should request the document download', async () => {
     DOCUMENTS[0].caseBusinessIdentifier,
     DOCUMENTS[0].documentId
   );
+
+  expect(URL.createObjectURL).toHaveBeenCalledWith(blob);
+
+  expect(click).toHaveBeenCalled();
+
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-url');
 });
