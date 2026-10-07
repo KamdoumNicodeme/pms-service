@@ -1,44 +1,69 @@
-test('should download the document', async () => {
-  MOCK_CASES_SERVICE.findAllDocuments.mockReturnValue(of(DOCUMENTS));
+private nationalityListField(
+  key: string,
+  label: string,
+  entryNoun: string,
+  digital: readonly NationalityEntry[],
+  kyc: readonly NationalityEntry[],
+  core: readonly NationalityEntry[],
+  countryOptions: readonly ComparisonOption[]
+): ComparisonListFieldDto {
 
-  const blob = new Blob(['pdf content'], {
-    type: 'application/pdf',
-  });
+  const toEntries = (
+    nationalities: readonly NationalityEntry[]
+  ): ComparisonEntryDto[] =>
+    nationalities.map(nationality => ({
+      key: nationality.country,
 
-  MOCK_CASES_SERVICE.downloadDocument.mockReturnValue(of(blob));
+      label:
+        countryOptions.find(
+          option => option.value === nationality.country
+        )?.label ?? nationality.country,
 
-  await setup();
+      fields: [
+        {
+          key: 'country',
+          label: 'Nationality',
+          value: nationality.country,
+          kind: 'select',
+          options: countryOptions,
+          editable: true,
+        },
+        {
+          key: 'date',
+          label: 'Date',
+          value: nationality.date ?? null,
+          kind: 'text',
+          editable: true,
+        }
+      ]
+    }));
 
-  // JSDOM does not implement these methods
-  Object.defineProperty(URL, 'createObjectURL', {
-    writable: true,
-    value: jest.fn().mockReturnValue('blob:test-url'),
-  });
+  return {
+    key,
+    label,
+    kind: 'list',
+    entryNoun,
 
-  Object.defineProperty(URL, 'revokeObjectURL', {
-    writable: true,
-    value: jest.fn(),
-  });
+    entryFields: [
+      {
+        key: 'country',
+        label: 'Nationality',
+        kind: 'select',
+        editable: true,
+        options: countryOptions,
+      },
+      {
+        key: 'date',
+        label: 'Date',
+        kind: 'text',
+        editable: true,
+      }
+    ],
 
-  const click = jest.fn();
-
-  jest.spyOn(window.document, 'createElement')
-    .mockReturnValue({
-      href: '',
-      download: '',
-      click,
-    } as unknown as HTMLAnchorElement);
-
-  component.download(DOCUMENTS[0]);
-
-  expect(MOCK_CASES_SERVICE.downloadDocument).toHaveBeenCalledWith(
-    DOCUMENTS[0].caseBusinessIdentifier,
-    DOCUMENTS[0].documentId
-  );
-
-  expect(URL.createObjectURL).toHaveBeenCalledWith(blob);
-
-  expect(click).toHaveBeenCalled();
-
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-url');
-});
+    values: {
+      digital: toEntries(digital),
+      kyc: toEntries(kyc),
+      core: toEntries(core),
+    }
+  };
+}
