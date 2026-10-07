@@ -1,42 +1,52 @@
-readonly canSubmitStructured = computed((): boolean => {
-  const definitions = this.row().entryFields ?? [];
+private applyNationalityChange(
+  client: IPhysicalPerson,
+  id: string,
+  resolution: Resolution
+): void {
 
-  if (definitions.length === 0) {
-    return false;
+  const parts = id.split(':');
+
+  // nationalities:AF
+  // nationalities:AF:country
+  // nationalities:AF:date
+
+  const previousCountry = parts[1];
+  const field = parts[2] ?? 'country';
+
+  if (!previousCountry) {
+    return;
   }
 
-  // =========================
-  // TAX INFORMATION
-  // =========================
-  if (this.row().key === 'tax-information') {
-    const taxCountry = this.fieldValue('tax-country').trim();
-    const tin = this.fieldValue('tin').trim();
-    const reason = this.fieldValue('tin-unavailable-reason').trim();
+  const nationalities = [
+    client.nationality?.first,
+    client.nationality?.second,
+    client.nationality?.third,
+  ];
 
-    if (!taxCountry) {
-      return false;
-    }
+  const nationality = nationalities.find(
+    item => item?.country === previousCountry
+  );
 
-    // Either TIN or unavailable reason is required
-    return !!tin || !!reason;
-  }
-
-  // =========================
-  // NATIONALITIES
-  // =========================
-  if (this.row().key === 'nationalities') {
-    const country = this.fieldValue('country').trim();
-    const date = this.fieldValue('date').trim();
-
-    return !!country && !!date;
-  }
-
-  // =========================
-  // DEFAULT STRUCTURED ENTRY
-  // =========================
-  return definitions
-    .filter(definition => definition.editable)
-    .every(definition =>
-      this.fieldValue(definition.key).trim() !== ''
+  if (!nationality) {
+    console.warn(
+      '[ClientProfilingChangeService] Nationality not found:',
+      previousCountry
     );
-});
+    return;
+  }
+
+  const value = this.nullableStringValue(resolution.value);
+
+  switch (field) {
+
+    case 'country':
+      if (value !== null) {
+        nationality.country = value;
+      }
+      break;
+
+    case 'date':
+      nationality.date = value;
+      break;
+  }
+}
