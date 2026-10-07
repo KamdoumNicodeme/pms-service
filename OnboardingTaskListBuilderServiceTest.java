@@ -1,30 +1,14 @@
-const toEntries = (
-  nationalities: readonly NationalityInfo[]
-): ComparisonEntryDto[] =>
-  nationalities
-    .filter(nationality => !!nationality?.country)
-    .map((nationality): ComparisonEntryDto => ({
-      key: nationality.country!,
-      label:
-        countryOptions.find(
-          option => option.value === nationality.country
-        )?.label ?? nationality.country!,
+readonly canSubmitStructured = computed((): boolean => {
+  const definitions = this.row().entryFields ?? [];
 
-      fields: [
-        {
-          key: 'country',
-          label: 'Nationality',
-          value: nationality.country!,
-          kind: 'select',
-          options: countryOptions,
-          editable: true,
-        },
-        {
-          key: 'date',
-          label: 'Date',
-          value: this.formatDate(nationality.date),
-          kind: 'text',
-          editable: true,
-        },
-      ],
-    }));
+  if (definitions.length === 0) {
+    return false;
+  }
+
+  return definitions
+    .filter(definition => definition.editable)
+    .every(definition => {
+      const value = this.fieldValue(definition.key);
+      return value.trim() !== '';
+    });
+});
