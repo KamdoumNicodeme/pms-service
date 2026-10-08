@@ -1,32 +1,24 @@
-protected readonly refreshDocuments = (): void => {
-  console.log('🔥 REFRESH DOCUMENTS REQUESTED');
+protected onDocumentValidated(document: ICaseDocument): void {
+  this.validateDocument()(document.documentId).subscribe({
+    next: (): void => {
 
-  this.documentRefresh.update(value => {
-    console.log('🔥 documentRefresh', value, '->', value + 1);
-    return value + 1;
-  });
-};
+      this.refreshDocuments()();
 
-readonly caseDocuments: Signal<ICaseDocument[]> = toSignal(
-  combineLatest([
-    toObservable(this.caseIdentifier),
-    toObservable(this.documentRefresh)
-  ]).pipe(
-
-    filter(([identifier]) => identifier !== null),
-
-    switchMap(([identifier, refresh]) => {
-      console.log(
-        '🔥 RELOAD DOCUMENTS',
-        identifier,
-        'refresh =',
-        refresh
+      this.showSaveNotification(
+        'success',
+        'Document validated',
+        'The document has been validated successfully.'
       );
+    },
 
-      return this.#caseService.findAllDocuments(identifier!);
-    })
-  ),
-  {
-    initialValue: [] as ICaseDocument[]
-  }
-);
+    error: (error: any) => {
+      console.error('Error validating document', error);
+
+      this.showSaveNotification(
+        'error',
+        'Validation failed',
+        'Unable to validate the document.'
+      );
+    }
+  });
+}
