@@ -1,23 +1,23 @@
-protected onDocumentValidated(document: ICaseDocument): void {
-  this.validateDocument(document.documentId)
+protected onDocumentRejected(document: ICaseDocument): void {
+  this.rejectDocument(document.documentId)
     .subscribe({
       next: () => {
         this.documentsRefresh.update(value => value + 1);
 
         this.showSaveNotification(
           'success',
-          'Document validated',
-          'The document has been validated successfully.'
+          'Document rejected',
+          'The document has been rejected successfully.'
         );
       },
 
       error: error => {
-        console.error('Error validating document', error);
+        console.error('Error rejecting document', error);
 
         this.showSaveNotification(
           'error',
-          'Validation failed',
-          'Unable to validate the document.'
+          'Rejection failed',
+          'Unable to reject the document.'
         );
       }
     });
