@@ -1,18 +1,19 @@
-reload(section: ComparisonSectionDto): void {
-  this.reset(section);
-}
+initialize(section: ComparisonSectionDto): void {
+  const currentSection = this.section();
 
-private reset(section: ComparisonSectionDto): void {
+  // Exactement le même objet => rien à faire
+  if (currentSection === section) {
+    return;
+  }
+
   this.section.set(section);
 
   this.overrides.set(new Map());
   this.manualEntries.set([]);
   this.manualStructuredEntries.set([]);
+  this.deletedEntries.set([]);
 
   this.expandedId.set(null);
   this.focusedId.set(null);
   this.openGroups.set(new Set());
-
-  // Si tu as bien ce signal dans ton store
-  this.deletedEntries.set([]);
 }
