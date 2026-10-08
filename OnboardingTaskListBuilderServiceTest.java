@@ -1,14 +1,13 @@
 readonly caseDocuments: Signal<ICaseDocument[]> = toSignal(
   combineLatest([
     toObservable(this.caseIdentifier),
-    toObservable(this.documentsRefresh)
+    toObservable(this.documentRefresh)
   ]).pipe(
-    filter(
-      ([identifier]): identifier is [string, number] =>
-        !!identifier
-    ),
+
+    filter(([identifier]) => identifier !== null),
+
     switchMap(([identifier]) =>
-      this.#caseService.findAllDocuments(identifier)
+      this.#caseService.findAllDocuments(identifier!)
     )
   ),
   {
