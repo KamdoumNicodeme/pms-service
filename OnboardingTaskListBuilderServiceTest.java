@@ -1,52 +1,28 @@
-protected saveChangeClientInformation(): void {
-  const changeClientInformation: IChangeClientInformation | null =
-    this.pendingChangeClientInformation();
+protected readonly section = rxResource({
+  params: () => ({
+    policyNumber: this.policyNumber(),
+    coreHolder: this.coreHolder(),
+    digitalHolder: this.digitalHolder(),
+    kycHolder: this.kycHolder(),
+    sectionId: this.sectionId(),
+  }),
 
-  if (!changeClientInformation) {
-    return;
-  }
-
-  const currentCase: ICaseDetails = this.currentCase();
-  const taskId: number =
-    this.currentTask().userTaskIdentifier;
-
-  const payload: IChangeClientInformation =
-    this.changeService.cleanForSave(
-      changeClientInformation
-    );
-
-  this.saving.set(true);
-
-  this.#caseService
-    .updateChangeClientInformation(
-      currentCase.caseBusinessIdentifier,
-      payload,
-      taskId
-    )
-    .pipe(
-      finalize(() => this.saving.set(false))
-    )
-    .subscribe({
-      next: () => {
-        console.log(
-          'ChangeClientInformation saved successfully'
-        );
-
-        // Le pending n'est plus nécessaire :
-        // les modifications sont maintenant sauvegardées.
-        this.pendingChangeClientInformation.set(null);
-
-        // Force le rechargement des données du case.
-        this.refreshClientProfiling.update(
-          value => value + 1
-        );
-      },
-
-      error: error => {
-        console.error(
-          'Error while saving ChangeClientInformation',
-          error
-        );
-      }
+  stream: ({ params }) => {
+    console.log('PROFILING SECTION RELOAD', {
+      sectionId: params.sectionId,
+      digitalHolder: params.digitalHolder,
+      kycHolder: params.kycHolder,
+      coreHolder: params.coreHolder,
     });
-}
+
+    return this.data.getSection(
+      {
+        policyNumber: params.policyNumber,
+        coreHolder: params.coreHolder,
+        digitalHolder: params.digitalHolder,
+        kycHolder: params.kycHolder,
+      },
+      params.sectionId
+    );
+  },
+});
