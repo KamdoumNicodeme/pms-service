@@ -1,68 +1,93 @@
-readonly maxEntriesReached = computed((): boolean => {
-  if (this.row().key === 'nationalities') {
-    return this.row().entries.length >= 3;
-  }
+submitStructured(): void {
 
-  return false;
-});
+  const definitions:
+    readonly ComparisonEntryFieldDefinition[] =
+    this.row().entryFields ?? [];
 
 
-readonly nationalityDuplicate = computed((): boolean => {
-  if (this.row().key !== 'nationalities') {
-    return false;
-  }
+  const fields: {
+    key: string;
+    value: string | null;
+  }[] = definitions.map(
+    (definition: ComparisonEntryFieldDefinition) => {
 
-  const country = this.fieldValue('country').trim();
+      const value =
+        this.fieldValue(definition.key).trim();
 
-  if (!country) {
-    return false;
-  }
-
-  return this.nationalityAlreadyExists(country);
-});
-
-
-private nationalityCountry(
-  entry: ComparisonEntryRow
-): string | null {
-
-  // Nouvelle structure :
-  // nationality
-  //   ├── country
-  //   └── date
-  const countryChild = entry.children.find(
-    (child: ComparisonRow) => child.key === 'country'
-  );
-
-  if (countryChild?.resolution.value) {
-    return countryChild.resolution.value;
-  }
-
-  // Ancienne / existing nationality.
-  // Exemple : entryKey = "GB"
-  if (
-    entry.entryKey &&
-    !entry.entryKey.startsWith('manual-')
-  ) {
-    return entry.entryKey;
-  }
-
-  // Dernier fallback
-  return entry.resolution.value ?? null;
-}
-
-
-private nationalityAlreadyExists(country: string): boolean {
-  return this.row().entries.some(
-    (entry: ComparisonEntryRow): boolean => {
-
-      const existingCountry =
-        this.nationalityCountry(entry);
-
-      return this.isSameValue(
-        existingCountry,
-        country
-      );
+      return {
+        key: definition.key,
+        value: value === '' ? null : value,
+      };
     }
   );
+
+
+  // =========================================
+  // NATIONALITY VALIDATION
+  // =========================================
+
+  if (this.row().key === 'nationalities') {
+
+    const country =
+      fields.find(
+        field => field.key === 'country'
+      )?.value ?? null;
+
+
+    if (!country) {
+      this.structuredError.set(
+        'Nationality is required.'
+      );
+
+      return;
+    }
+
+
+    if (this.nationalityAlreadyExists(country)) {
+      this.structuredError.set(
+        'This nationality already exists.'
+      );
+
+      return;
+    }
+  }
+
+
+  // =========================================
+  // TAX INFORMATION VALIDATION
+  // =========================================
+
+  if (this.row().key === 'tax-information') {
+
+    const taxCountry =
+      fields.find(
+        field => field.key === 'tax-country'
+      )?.value ?? null;
+
+
+    if (
+      taxCountry &&
+      this.taxCountryAlreadyExists(taxCountry)
+    ) {
+
+      this.structuredError.set(
+        'Tax Country already exists.'
+      );
+
+      return;
+    }
+  }
+
+
+  // =========================================
+  // VALID
+  // =========================================
+
+  this.structuredError.set(null);
+
+  this.addStructuredEntry.emit({
+    fields,
+  });
+
+  this.closeStructuredModal();
 }
