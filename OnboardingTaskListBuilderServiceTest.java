@@ -1,24 +1,32 @@
-protected onDocumentRejected(document: ICaseDocument): void {
-  this.rejectDocument(document.documentId)
-    .subscribe({
-      next: () => {
-        this.documentsRefresh.update(value => value + 1);
+protected readonly refreshDocuments = (): void => {
+  console.log('🔥 REFRESH DOCUMENTS REQUESTED');
 
-        this.showSaveNotification(
-          'success',
-          'Document rejected',
-          'The document has been rejected successfully.'
-        );
-      },
+  this.documentRefresh.update(value => {
+    console.log('🔥 documentRefresh', value, '->', value + 1);
+    return value + 1;
+  });
+};
 
-      error: error => {
-        console.error('Error rejecting document', error);
+readonly caseDocuments: Signal<ICaseDocument[]> = toSignal(
+  combineLatest([
+    toObservable(this.caseIdentifier),
+    toObservable(this.documentRefresh)
+  ]).pipe(
 
-        this.showSaveNotification(
-          'error',
-          'Rejection failed',
-          'Unable to reject the document.'
-        );
-      }
-    });
-}
+    filter(([identifier]) => identifier !== null),
+
+    switchMap(([identifier, refresh]) => {
+      console.log(
+        '🔥 RELOAD DOCUMENTS',
+        identifier,
+        'refresh =',
+        refresh
+      );
+
+      return this.#caseService.findAllDocuments(identifier!);
+    })
+  ),
+  {
+    initialValue: [] as ICaseDocument[]
+  }
+);
