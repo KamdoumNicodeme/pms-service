@@ -1,13 +1,52 @@
-readonly nationalityDuplicate = computed((): boolean => {
-  if (this.row().key !== 'nationalities') {
-    return false;
+protected saveChangeClientInformation(): void {
+  const changeClientInformation: IChangeClientInformation | null =
+    this.pendingChangeClientInformation();
+
+  if (!changeClientInformation) {
+    return;
   }
 
-  const country: string = this.fieldValue('country').trim();
+  const currentCase: ICaseDetails = this.currentCase();
+  const taskId: number =
+    this.currentTask().userTaskIdentifier;
 
-  if (!country) {
-    return false;
-  }
+  const payload: IChangeClientInformation =
+    this.changeService.cleanForSave(
+      changeClientInformation
+    );
 
-  return this.nationalityAlreadyExists(country);
-});
+  this.saving.set(true);
+
+  this.#caseService
+    .updateChangeClientInformation(
+      currentCase.caseBusinessIdentifier,
+      payload,
+      taskId
+    )
+    .pipe(
+      finalize(() => this.saving.set(false))
+    )
+    .subscribe({
+      next: () => {
+        console.log(
+          'ChangeClientInformation saved successfully'
+        );
+
+        // Le pending n'est plus nécessaire :
+        // les modifications sont maintenant sauvegardées.
+        this.pendingChangeClientInformation.set(null);
+
+        // Force le rechargement des données du case.
+        this.refreshClientProfiling.update(
+          value => value + 1
+        );
+      },
+
+      error: error => {
+        console.error(
+          'Error while saving ChangeClientInformation',
+          error
+        );
+      }
+    });
+}
