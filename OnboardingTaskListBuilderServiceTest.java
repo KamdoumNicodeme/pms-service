@@ -1,93 +1,54 @@
-submitStructured(): void {
-
-  const definitions:
-    readonly ComparisonEntryFieldDefinition[] =
+readonly canSubmitStructured = computed((): boolean => {
+  const definitions: readonly ComparisonEntryFieldDefinition[] =
     this.row().entryFields ?? [];
 
-
-  const fields: {
-    key: string;
-    value: string | null;
-  }[] = definitions.map(
-    (definition: ComparisonEntryFieldDefinition) => {
-
-      const value =
-        this.fieldValue(definition.key).trim();
-
-      return {
-        key: definition.key,
-        value: value === '' ? null : value,
-      };
-    }
-  );
-
+  if (definitions.length === 0) {
+    return false;
+  }
 
   // =========================================
-  // NATIONALITY VALIDATION
+  // NATIONALITY
   // =========================================
 
   if (this.row().key === 'nationalities') {
 
     const country =
-      fields.find(
-        field => field.key === 'country'
-      )?.value ?? null;
+      this.fieldValue('country').trim();
 
+    const date =
+      this.fieldValue('date').trim();
 
-    if (!country) {
-      this.structuredError.set(
-        'Nationality is required.'
-      );
-
-      return;
-    }
-
-
-    if (this.nationalityAlreadyExists(country)) {
-      this.structuredError.set(
-        'This nationality already exists.'
-      );
-
-      return;
-    }
+    return (
+      country !== '' &&
+      date !== '' &&
+      !this.nationalityDuplicate()
+    );
   }
 
 
   // =========================================
-  // TAX INFORMATION VALIDATION
+  // TAX INFORMATION
   // =========================================
 
   if (this.row().key === 'tax-information') {
 
     const taxCountry =
-      fields.find(
-        field => field.key === 'tax-country'
-      )?.value ?? null;
+      this.fieldValue('tax-country').trim();
 
+    const tin =
+      this.fieldValue('tin').trim();
 
-    if (
-      taxCountry &&
-      this.taxCountryAlreadyExists(taxCountry)
-    ) {
+    const reason =
+      this.fieldValue('tin-unavailable-reason').trim();
 
-      this.structuredError.set(
-        'Tax Country already exists.'
-      );
-
-      return;
+    if (!taxCountry) {
+      return false;
     }
+
+    // Il faut soit un TIN, soit une raison.
+    return tin !== '' || reason !== '';
   }
 
 
-  // =========================================
-  // VALID
-  // =========================================
-
-  this.structuredError.set(null);
-
-  this.addStructuredEntry.emit({
-    fields,
-  });
-
-  this.closeStructuredModal();
-}
+  return false;
+});
