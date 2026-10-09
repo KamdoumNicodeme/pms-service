@@ -1,121 +1,113 @@
-<div class="document-form">
+.document-form {
+  width: min(760px, 100%);
+  background: #fff;
+  border: 1px solid #d8c7aa;
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(62, 43, 22, 0.12);
+  overflow: hidden;
 
-  <div class="document-form__header">
-    Upload a new document
-  </div>
+  &__header {
+    padding: 12px 18px;
 
-  <div class="document-form__body">
+    color: #fff;
+    background: linear-gradient(
+      90deg,
+      #8c6a2c,
+      #aa8128
+    );
 
-    <!-- FILE -->
-    <div class="document-form__file">
-      <label class="file-button">
-        <span nz-icon nzType="upload"></span>
-        Choose a file
+    font-size: 14px;
+    font-weight: 600;
+  }
 
-        <input
-          type="file"
-          hidden
-          (change)="onFileSelected($event)"
-        />
-      </label>
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 
-      <span class="document-form__filename">
-        @if (selectedFile(); as file) {
-          {{ file.name }}
-        } @else {
-          No file chosen
-        }
-      </span>
-    </div>
+    padding: 28px 32px;
+  }
 
-    <!-- DOCUMENT TYPE -->
-    <div class="document-form__row">
+  &__file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 
-      <label>
-        <span class="required">*</span>
-        Document type:
-      </label>
+    margin-bottom: 8px;
+  }
 
-      <nz-select
-        [formControl]="form.controls.documentType"
-        nzPlaceHolder="Select a document type"
-      >
-        @for (type of documentTypes(); track type.value) {
-          <nz-option
-            [nzValue]="type.value"
-            [nzLabel]="type.label"
-          />
-        }
-      </nz-select>
+  &__filename {
+    color: #746858;
+    font-size: 12px;
+  }
 
-    </div>
+  &__row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    align-items: center;
+    gap: 18px;
 
-    <!-- FILENAME -->
-    <div class="document-form__row">
-
-      <label>
-        <span class="required">*</span>
-        Filename:
-      </label>
-
-      <input
-        nz-input
-        [formControl]="form.controls.filename"
-      />
-
-    </div>
-
-    <!-- DYNAMIC METADATA -->
-    @for (
-      metadata of metadataDefinitions();
-      track metadata.key
-    ) {
-
-      <div class="document-form__row">
-
-        <label>
-          @if (metadata.required) {
-            <span class="required">*</span>
-          }
-
-          {{ metadata.label }}:
-        </label>
-
-        <input
-          nz-input
-          [value]="metadataValues()[metadata.key] ?? ''"
-          (input)="updateMetadata(
-            metadata.key,
-            $any($event.target).value
-          )"
-        />
-
-      </div>
-
+    label {
+      color: #4f4539;
+      font-size: 13px;
     }
 
-  </div>
+    nz-select {
+      width: 100%;
+    }
+  }
 
-  <div class="document-form__footer">
+  &__footer {
+    display: flex;
+    justify-content: space-between;
 
-    <button
-      nz-button
-      type="button"
-      (click)="cancel()"
-    >
-      Cancel
-    </button>
+    padding: 18px 32px;
 
-    <button
-      nz-button
-      type="button"
-      class="document-form__submit"
-      [disabled]="!canSubmit()"
-      (click)="submit()"
-    >
-      Submit
-    </button>
+    border-top: 1px solid #eee4d5;
+    background: #fffdf9;
+  }
 
-  </div>
+  &__submit {
+    color: #fff;
+    border-color: #9b7527;
+    background: #9b7527;
 
-</div>
+    &:not(:disabled):hover {
+      color: #fff;
+      border-color: #7d5d1f;
+      background: #7d5d1f;
+    }
+  }
+}
+
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 7px 18px;
+
+  color: #7b5c21;
+  background: #fffaf0;
+
+  border: 1px solid #b89248;
+  border-radius: 3px;
+
+  cursor: pointer;
+
+  &:hover {
+    background: #f7efdf;
+  }
+}
+
+.required {
+  color: #c53f3f;
+}
+
+@media (max-width: 700px) {
+  .document-form__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
