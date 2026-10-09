@@ -1,43 +1,24 @@
-.document-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+protected onUploadDocument(request: UploadDocumentRequest): void {
+  this.uploadDocument(request).subscribe({
+    next: () => {
+      this.uploadModalVisible.set(false);
 
-  &__file {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 0 20px;
-  }
+      this.refreshDocuments();
 
-  &__filename {
-    color: #6f6253;
-    font-size: 13px;
-  }
+      this.showSaveNotification(
+        'success',
+        'Document uploaded',
+        'The document has been uploaded successfully.'
+      );
+    },
+    error: (error: unknown) => {
+      console.error('Error uploading document', error);
 
-  &__field {
-    display: grid;
-    grid-template-columns: 180px minmax(0, 1fr);
-    align-items: center;
-    gap: 20px;
-
-    input,
-    nz-select {
-      width: 100%;
+      this.showSaveNotification(
+        'error',
+        'Upload failed',
+        'Unable to upload the document.'
+      );
     }
-  }
-
-  &__actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 12px;
-    padding-top: 20px;
-    border-top: 1px solid #e5dccd;
-  }
-}
-
-.required {
-  color: #c84a4a;
-  margin-right: 4px;
+  });
 }
