@@ -1,102 +1,43 @@
-<form class="document-form">
+.document-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 
-  <div class="document-form__file">
-    <input
-      #fileInput
-      type="file"
-      hidden
-      (change)="onFileSelected($event)"
-    />
-
-    <button
-      nz-button
-      type="button"
-      (click)="fileInput.click()"
-    >
-      <span nz-icon nzType="upload"></span>
-      Choose a file
-    </button>
-
-    <span class="document-form__filename">
-      {{ selectedFile()?.name ?? 'No file chosen' }}
-    </span>
-  </div>
-
-  <div class="document-form__field">
-    <label>
-      <span class="required">*</span>
-      Document type
-    </label>
-
-    <nz-select
-      [ngModel]="selectedDocumentType()"
-      (ngModelChange)="onDocumentTypeChange($event)"
-      name="documentType"
-      nzPlaceHolder="Select a document type"
-    >
-      @for (type of documentTypes(); track type.name) {
-        <nz-option
-          [nzValue]="type.name"
-          [nzLabel]="type.name"
-        />
-      }
-    </nz-select>
-  </div>
-
-  <div class="document-form__field">
-    <label>
-      <span class="required">*</span>
-      Filename
-    </label>
-
-    <input
-      nz-input
-      [ngModel]="filename()"
-      (ngModelChange)="filename.set($event)"
-      name="filename"
-      placeholder="Filename"
-    />
-  </div>
-
-  @for (metadata of metadataFields(); track metadata.name) {
-    <div class="document-form__field">
-      <label>
-        @if (metadata.mandatory) {
-          <span class="required">*</span>
-        }
-
-        {{ metadata.name }}
-      </label>
-
-      <input
-        nz-input
-        [ngModel]="metadataValue(metadata.name)"
-        (ngModelChange)="setMetadataValue(metadata.name, $event)"
-        [name]="metadata.name"
-      />
-    </div>
+  &__file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0 20px;
   }
 
-  <div class="document-form__actions">
+  &__filename {
+    color: #6f6253;
+    font-size: 13px;
+  }
 
-    <button
-      nz-button
-      type="button"
-      (click)="cancelled.emit()"
-    >
-      Cancel
-    </button>
+  &__field {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
 
-    <button
-      nz-button
-      nzType="primary"
-      type="button"
-      [disabled]="!canSubmit()"
-      (click)="submit()"
-    >
-      Submit
-    </button>
+    input,
+    nz-select {
+      width: 100%;
+    }
+  }
 
-  </div>
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 20px;
+    border-top: 1px solid #e5dccd;
+  }
+}
 
-</form>
+.required {
+  color: #c84a4a;
+  margin-right: 4px;
+}
