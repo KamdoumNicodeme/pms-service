@@ -1,24 +1,48 @@
-protected onDocumentRejected(document: ICaseDocument): void {
-  this.rejectDocument()(document.documentId).subscribe({
-    next: (): void => {
+import { Component, signal, WritableSignal } from '@angular/core';
+import { NzIconModule } from 'ng-zorro-antd/icon';
 
-      this.refreshDocuments()();
+export type SaveNotificationType = 'success' | 'error';
 
-      this.showSaveNotification(
-        'success',
-        'Document rejected',
-        'The document has been rejected successfully.'
-      );
-    },
+export interface SaveNotification {
+  type: SaveNotificationType;
+  title: string;
+  message: string;
+}
 
-    error: (error: any) => {
-      console.error('Error rejecting document', error);
+@Component({
+  selector: 'save-notification',
+  standalone: true,
+  imports: [
+    NzIconModule
+  ],
+  templateUrl: './save-notification.component.html',
+  styleUrl: './save-notification.component.scss'
+})
+export class SaveNotificationComponent {
 
-      this.showSaveNotification(
-        'error',
-        'Rejection failed',
-        'Unable to reject the document.'
-      );
+  protected readonly notification: WritableSignal<SaveNotification | null> =
+    signal<SaveNotification | null>(null);
+
+  private notificationTimeout?: ReturnType<typeof setTimeout>;
+
+  public show(
+    type: SaveNotificationType,
+    title: string,
+    message: string
+  ): void {
+
+    if (this.notificationTimeout) {
+      clearTimeout(this.notificationTimeout);
     }
-  });
+
+    this.notification.set({
+      type,
+      title,
+      message
+    });
+
+    this.notificationTimeout = setTimeout((): void => {
+      this.notification.set(null);
+    }, 3000);
+  }
 }
