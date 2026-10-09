@@ -1,6 +1,9 @@
-protected readonly documentTypeValue = toSignal(
-  this.form.controls.documentType.valueChanges.pipe(
-    startWith(this.form.controls.documentType.value)
-  ),
-  { initialValue: this.form.controls.documentType.value }
-);
+protected readonly selectedMetadata = computed((): MetadataConfiguration[] => {
+  const documentType = this.documentTypeValue();
+
+  if (!documentType) {
+    return [];
+  }
+
+  return this.metadataConfiguration()[documentType] ?? [];
+});
