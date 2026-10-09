@@ -1,19 +1,21 @@
-const allowedTypes = ['STRING', 'DATE', 'DATETIME', 'NUMBER'];
+const documentType = this.form.controls.documentType.value;
 
-const metadata = Object.entries(request.metadata).map(([key, value]) => {
-  const type = request.metadataTypes[key];
+const configurations =
+  this.metadataConfiguration()[documentType] ?? [];
 
-  if (!type || !allowedTypes.includes(type)) {
-    throw new Error(`Invalid metadata type for ${key}: ${type}`);
-  }
+const metadataTypes = Object.fromEntries(
+  configurations.map(configuration => [
+    configuration.name,
+    configuration.type
+  ])
+);
 
-  return {
-    key,
-    type,
-    value
-  };
-});
+const request: UploadDocumentRequest = {
+  file: this.selectedFile()!,
+  documentType,
+  filename: this.form.controls.filename.value,
+  metadata: this.formMetadata(),
+  metadataTypes
+};
 
-if (metadata.length > 0) {
-  formData.append('metadata', JSON.stringify(metadata));
-}
+this.submitted.emit(request);
