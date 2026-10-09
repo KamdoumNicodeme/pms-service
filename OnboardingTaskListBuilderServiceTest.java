@@ -1,65 +1,17 @@
-@for (
-  metadata of metadataConfiguration()[form.controls.documentType.value] ?? [];
-  track metadata.name
-) {
-  <div class="document-form__row">
-    <label>
-      @if (metadata.mandatory) {
-        <span class="required">*</span>
-      }
-
-      {{ metadata.name }}:
-    </label>
-
-    <input
-      nz-input
-      [value]="metadataValue(metadata.name)"
-      [required]="metadata.mandatory"
-      [readonly]="metadata.immutable === true"
-      [pattern]="metadata.pattern ?? ''"
-      (input)="updateMetadata(
-        metadata.name,
-        $any($event.target).value
-      )"
-    />
-  </div>
+.document-form {
+  width: 100%;
+  max-width: 1100px;
+  background: #fff;
+  border: 1px solid #d8c7aa;
+  border-radius: 4px;
+  box-shadow: 0 4px 14px rgba(62, 43, 22, 0.12);
+  overflow: hidden;
 }
 
-
-      protected readonly selectedMetadata = computed(
-  (): MetadataConfiguration[] => {
-
-    const documentType =
-      this.form.controls.documentType.value;
-
-    if (!documentType) {
-      return [];
-    }
-
-    return this.metadataConfiguration()[documentType] ?? [];
-  }
-);
-
-      protected readonly canSubmit = computed((): boolean => {
-  const file = this.selectedFile();
-
-  const documentType =
-    this.form.controls.documentType.value.trim();
-
-  const filename =
-    this.form.controls.filename.value.trim();
-
-  const metadataValid =
-    this.selectedMetadata()
-      .filter(metadata => metadata.mandatory)
-      .every(metadata =>
-        !!this.metadataValue(metadata.name).trim()
-      );
-
-  return (
-    file !== null &&
-    documentType.length > 0 &&
-    filename.length > 0 &&
-    metadataValid
-  );
-});
+.documents__form-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 32px 24px;
+  box-sizing: border-box;
+}
