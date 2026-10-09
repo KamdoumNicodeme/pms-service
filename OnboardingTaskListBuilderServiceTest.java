@@ -1,9 +1,9 @@
 protected onUploadDocument(request: UploadDocumentRequest): void {
-  this.uploadDocument(request).subscribe({
+  this.uploadDocument()(request).subscribe({
     next: () => {
       this.uploadModalVisible.set(false);
 
-      this.refreshDocuments();
+      this.refreshDocuments()();
 
       this.showSaveNotification(
         'success',
