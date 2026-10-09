@@ -1,139 +1,121 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  input,
-  output,
-  signal
-} from '@angular/core';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzSelectModule } from 'ng-zorro-antd/select';
+<div class="document-form">
 
-export interface DocumentTypeOption {
-  value: string;
-  label: string;
-}
+  <div class="document-form__header">
+    Upload a new document
+  </div>
 
-export interface DocumentMetadataDefinition {
-  key: string;
-  label: string;
-  required: boolean;
-}
+  <div class="document-form__body">
 
-export interface UploadDocumentRequest {
-  file: File;
-  documentType: string;
-  filename: string;
-  metadata: Record<string, string>;
-}
+    <!-- FILE -->
+    <div class="document-form__file">
+      <label class="file-button">
+        <span nz-icon nzType="upload"></span>
+        Choose a file
 
-@Component({
-  selector: 'upload-document',
-  standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    NzButtonModule,
-    NzIconModule,
-    NzInputModule,
-    NzSelectModule
-  ],
-  templateUrl: './upload-document.component.html',
-  styleUrl: './upload-document.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class UploadDocumentComponent {
+        <input
+          type="file"
+          hidden
+          (change)="onFileSelected($event)"
+        />
+      </label>
 
-  readonly documentTypes =
-    input<readonly DocumentTypeOption[]>([]);
+      <span class="document-form__filename">
+        @if (selectedFile(); as file) {
+          {{ file.name }}
+        } @else {
+          No file chosen
+        }
+      </span>
+    </div>
 
-  readonly metadataDefinitions =
-    input<readonly DocumentMetadataDefinition[]>([]);
+    <!-- DOCUMENT TYPE -->
+    <div class="document-form__row">
 
-  readonly cancelled = output<void>();
+      <label>
+        <span class="required">*</span>
+        Document type:
+      </label>
 
-  readonly submitted =
-    output<UploadDocumentRequest>();
+      <nz-select
+        [formControl]="form.controls.documentType"
+        nzPlaceHolder="Select a document type"
+      >
+        @for (type of documentTypes(); track type.value) {
+          <nz-option
+            [nzValue]="type.value"
+            [nzLabel]="type.label"
+          />
+        }
+      </nz-select>
 
-  protected readonly selectedFile =
-    signal<File | null>(null);
+    </div>
 
-  protected readonly metadataValues =
-    signal<Record<string, string>>({});
+    <!-- FILENAME -->
+    <div class="document-form__row">
 
-  protected readonly form = new FormGroup({
-    documentType: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
+      <label>
+        <span class="required">*</span>
+        Filename:
+      </label>
 
-    filename: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    })
-  });
+      <input
+        nz-input
+        [formControl]="form.controls.filename"
+      />
 
-  protected readonly canSubmit = computed(() => {
-    return (
-      this.selectedFile() !== null &&
-      this.form.valid &&
-      this.metadataDefinitions()
-        .filter(definition => definition.required)
-        .every(definition =>
-          !!this.metadataValues()[definition.key]?.trim()
-        )
-    );
-  });
+    </div>
 
-  protected onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    <!-- DYNAMIC METADATA -->
+    @for (
+      metadata of metadataDefinitions();
+      track metadata.key
+    ) {
 
-    this.selectedFile.set(file);
+      <div class="document-form__row">
 
-    if (file && !this.form.controls.filename.value.trim()) {
-      this.form.controls.filename.setValue(file.name);
-    }
-  }
+        <label>
+          @if (metadata.required) {
+            <span class="required">*</span>
+          }
 
-  protected updateMetadata(
-    key: string,
-    value: string
-  ): void {
-    this.metadataValues.update(current => ({
-      ...current,
-      [key]: value
-    }));
-  }
+          {{ metadata.label }}:
+        </label>
 
-  protected cancel(): void {
-    this.cancelled.emit();
-  }
+        <input
+          nz-input
+          [value]="metadataValues()[metadata.key] ?? ''"
+          (input)="updateMetadata(
+            metadata.key,
+            $any($event.target).value
+          )"
+        />
 
-  protected submit(): void {
-    if (!this.canSubmit()) {
-      this.form.markAllAsTouched();
-      return;
+      </div>
+
     }
 
-    const file = this.selectedFile();
+  </div>
 
-    if (!file) {
-      return;
-    }
+  <div class="document-form__footer">
 
-    this.submitted.emit({
-      file,
-      documentType: this.form.controls.documentType.value,
-      filename: this.form.controls.filename.value.trim(),
-      metadata: this.metadataValues()
-    });
-  }
-}
+    <button
+      nz-button
+      type="button"
+      (click)="cancel()"
+    >
+      Cancel
+    </button>
+
+    <button
+      nz-button
+      type="button"
+      class="document-form__submit"
+      [disabled]="!canSubmit()"
+      (click)="submit()"
+    >
+      Submit
+    </button>
+
+  </div>
+
+</div>
