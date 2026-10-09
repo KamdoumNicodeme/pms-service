@@ -1,19 +1,18 @@
-<div class="document-form">
-  <div class="document-form__header">
-    Upload a new document
-  </div>
+.documents__form-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 32px 24px;
+  box-sizing: border-box;
+}
 
-  <div class="document-form__body">
-    TEST UPLOAD COMPONENT
-  </div>
-
-  <div class="document-form__footer">
-    <button
-      nz-button
-      type="button"
-      (click)="cancel()"
-    >
-      Cancel
-    </button>
-  </div>
-</div>
+.document-form {
+  width: 100%;
+  max-width: 950px;
+  background: #fff;
+  border: 1px solid #d8c7aa;
+  border-radius: 4px;
+  box-shadow:
+    0 4px 14px rgba(62, 43, 22, 0.12);
+  overflow: hidden;
+}
