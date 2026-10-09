@@ -1,174 +1,101 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  input,
-  output,
-  signal
-} from '@angular/core';
-import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
-import {
-  toObservable,
-  toSignal
-} from '@angular/core/rxjs-interop';
-import {
-  Observable,
-  switchMap
-} from 'rxjs';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzSelectModule } from 'ng-zorro-antd/select';
+<div class="document-form">
+  <div class="document-form__header">
+    Upload a new document
+  </div>
 
-import {
-  DocumentTypeConfiguration,
-  MetadataConfiguration
-} from 'YOUR_MODEL_PATH';
+  <div class="document-form__body">
+    <div class="document-form__file">
+      <label class="file-button">
+        <span nz-icon nzType="upload"></span>
+        Choose a file
 
-export interface UploadDocumentRequest {
-  file: File;
-  documentType: string;
-  filename: string;
-  metadata: Record<string, string>;
-}
+        <input
+          type="file"
+          hidden
+          (change)="onFileSelected($event)"
+        />
+      </label>
 
-@Component({
-  selector: 'upload-document',
-  standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    NzButtonModule,
-    NzIconModule,
-    NzInputModule,
-    NzSelectModule
-  ],
-  templateUrl: './upload-document.component.html',
-  styleUrl: './upload-document.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class UploadDocumentComponent {
+      <span class="document-form__filename">
+        @if (selectedFile(); as file) {
+          {{ file.name }}
+        } @else {
+          No file chosen
+        }
+      </span>
+    </div>
 
-  readonly getDocumentConfigType = input.required<
-    () => Observable<DocumentTypeConfiguration[]>
-  >();
+    <div class="document-form__row">
+      <label>
+        <span class="required">*</span>
+        Document type:
+      </label>
 
-  readonly getDocumentMetadata = input.required<
-    () => Observable<Record<string, MetadataConfiguration[]>>
-  >();
+      <nz-select
+        [formControl]="form.controls.documentType"
+        nzPlaceHolder="Select a document type"
+        (ngModelChange)="onDocumentTypeChanged($event)"
+      >
+        @for (type of documentTypes(); track $index) {
+          <nz-option
+            [nzValue]="type"
+            [nzLabel]="type"
+          />
+        }
+      </nz-select>
+    </div>
 
-  readonly cancelled = output<void>();
-  readonly submitted = output<UploadDocumentRequest>();
+    <div class="document-form__row">
+      <label>
+        <span class="required">*</span>
+        Filename:
+      </label>
 
-  protected readonly selectedFile = signal<File | null>(null);
+      <input
+        nz-input
+        [formControl]="form.controls.filename"
+        placeholder="Filename"
+      />
+    </div>
 
-  protected readonly metadataValues =
-    signal<Record<string, string>>({});
-
-  protected readonly form = new FormGroup({
-    documentType: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
-    filename: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    })
-  });
-
-  protected readonly documentTypes = toSignal(
-    toObservable(this.getDocumentConfigType).pipe(
-      switchMap(getDocumentConfigType =>
-        getDocumentConfigType()
-      )
-    ),
-    {
-      initialValue: [] as DocumentTypeConfiguration[]
-    }
-  );
-
-  protected readonly metadataConfiguration = toSignal(
-    toObservable(this.getDocumentMetadata).pipe(
-      switchMap(getDocumentMetadata =>
-        getDocumentMetadata()
-      )
-    ),
-    {
-      initialValue:
-        {} as Record<string, MetadataConfiguration[]>
-    }
-  );
-
-  protected readonly canSubmit = computed((): boolean => {
-    return (
-      this.selectedFile() !== null &&
-      this.form.controls.documentType.value.trim().length > 0 &&
-      this.form.controls.filename.value.trim().length > 0
-    );
-  });
-
-  protected onFileSelected(event: Event): void {
-    const element = event.target as HTMLInputElement;
-    const file = element.files?.[0] ?? null;
-
-    this.selectedFile.set(file);
-
-    if (
-      file &&
-      !this.form.controls.filename.value.trim()
+    @for (
+      metadata of metadataConfiguration()[form.controls.documentType.value] ?? [];
+      track $index
     ) {
-      this.form.controls.filename.setValue(file.name);
+      <div class="document-form__row">
+        <label>
+          {{ metadata }}:
+        </label>
+
+        <input
+          nz-input
+          [value]="metadataValue($any(metadata))"
+          (input)="updateMetadata(
+            $any(metadata),
+            $any($event.target).value
+          )"
+        />
+      </div>
     }
-  }
+  </div>
 
-  protected onDocumentTypeChanged(
-    documentType: string
-  ): void {
-    this.form.controls.documentType.setValue(documentType);
-    this.metadataValues.set({});
-  }
+  <div class="document-form__footer">
+    <button
+      nz-button
+      type="button"
+      (click)="cancel()"
+    >
+      Cancel
+    </button>
 
-  protected updateMetadata(
-    key: string,
-    value: string
-  ): void {
-    this.metadataValues.update(current => ({
-      ...current,
-      [key]: value
-    }));
-  }
-
-  protected metadataValue(key: string): string {
-    return this.metadataValues()[key] ?? '';
-  }
-
-  protected cancel(): void {
-    this.cancelled.emit();
-  }
-
-  protected submit(): void {
-    if (!this.canSubmit()) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    const file = this.selectedFile();
-
-    if (!file) {
-      return;
-    }
-
-    this.submitted.emit({
-      file,
-      documentType: this.form.controls.documentType.value,
-      filename: this.form.controls.filename.value.trim(),
-      metadata: {
-        ...this.metadataValues()
-      }
-    });
-  }
-}
+    <button
+      nz-button
+      type="button"
+      class="document-form__submit"
+      [disabled]="!canSubmit()"
+      (click)="submit()"
+    >
+      Submit
+    </button>
+  </div>
+</div>
