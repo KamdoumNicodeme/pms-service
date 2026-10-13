@@ -1,9 +1,17 @@
-protected readonly selectedMetadata = computed((): MetadataConfiguration[] => {
-  const documentType = this.documentTypeValue();
+@Getter
+@AllArgsConstructor
+public enum TargetNetPremiumType {
 
-  if (!documentType) {
-    return [];
-  }
+    ONE_HUNDRED_FIVE_PERC_OF_PREMIUMS("105%"),
+    ONE_HUNDRED_TEN_PERC_OF_PREMIUMS("110%"),
+    ONE_HUNDRED_FIFTEEN_PERC_OF_PREMIUMS("115%"),
+    ONE_HUNDRED_TWENTY_PERC_OF_PREMIUMS("120%"),
+    ONE_HUNDRED_TWENTY_FIVE_PERC_OF_PREMIUMS("125%"),
+    ONE_HUNDRED_THIRTY_PERC_OF_PREMIUMS("130%"),
+    ONE_HUNDRED_THIRTY_FIVE_PERC_OF_PREMIUMS("135%"),
+    ONE_HUNDRED_FORTY_PERC_OF_PREMIUMS("140%"),
+    ONE_HUNDRED_FORTY_FIVE_PERC_OF_PREMIUMS("145%"),
+    ONE_HUNDRED_FIFTY_PERC_OF_PREMIUMS("150%");
 
-  return this.metadataConfiguration()[documentType] ?? [];
-});
+    private final String value;
+}
