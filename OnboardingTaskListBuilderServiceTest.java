@@ -1,114 +1,118 @@
-<form
-  class="edit-document"
-  [formGroup]="form"
-  (ngSubmit)="submit()"
->
-  <div class="edit-document__body">
+:host {
+  display: block;
+  width: 100%;
+}
 
-    <div class="edit-document__file">
-      <label class="edit-document__file-button">
-        <span nz-icon nzType="upload"></span>
-        Choose a new file
+.edit-document {
+  width: 100%;
+  background: #fff;
 
-        <input
-          type="file"
-          hidden
-          (change)="onFileSelected($event)"
-        />
-      </label>
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 28px 32px;
+  }
 
-      <span class="edit-document__file-name">
-        @if (selectedFile(); as file) {
-          {{ file.name }}
-        } @else {
-          No new file selected
-        }
-      </span>
-    </div>
+  &__file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
 
-    <div class="edit-document__row">
-      <label>
-        <span class="required">*</span>
-        Document type:
-      </label>
+  &__file-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 18px;
+    color: #966b22;
+    background: #fffaf1;
+    border: 1px solid #c99a45;
+    border-radius: 4px;
+    cursor: pointer;
 
-      <nz-select
-        formControlName="documentType"
-        nzPlaceHolder="Select a document type"
-        [nzShowSearch]="true"
-        [nzAllowClear]="false"
-      >
-        @for (type of documentTypes(); track type.name) {
-          <nz-option
-            [nzLabel]="type.displayName"
-            [nzValue]="type.name"
-          />
-        }
-      </nz-select>
-    </div>
-
-    <div class="edit-document__row">
-      <label>
-        <span class="required">*</span>
-        Filename:
-      </label>
-
-      <input
-        nz-input
-        formControlName="filename"
-        placeholder="Filename"
-      />
-    </div>
-
-    @for (metadata of selectedMetadata(); track metadata.name) {
-      <div class="edit-document__row">
-        <label>
-          @if (metadata.mandatory) {
-            <span class="required">*</span>
-          }
-          {{ metadata.name }}:
-        </label>
-
-        <input
-          nz-input
-          [type]="metadataInputType(metadata.type)"
-          [value]="metadataValue(metadata.name)"
-          [disabled]="metadata.immutable === true"
-          [required]="metadata.mandatory"
-          [attr.pattern]="metadata.type === 'STRING' ? metadata.pattern ?? null : null"
-          (input)="updateMetadata(metadata.name, $any($event.target).value)"
-        />
-      </div>
+    &:hover {
+      background: #f7ebd5;
     }
 
-    <div class="edit-document__row">
-      <label>Status:</label>
+    input {
+      display: none;
+    }
+  }
 
-      <nz-select
-        formControlName="status"
-        nzPlaceHolder="Select a status"
-        [nzAllowClear]="true"
-      >
-        <nz-option nzValue="Validated" nzLabel="Validated" />
-        <nz-option nzValue="Rejected" nzLabel="Rejected" />
-        <nz-option nzValue="Replaced" nzLabel="Replaced" />
-      </nz-select>
-    </div>
+  &__file-name {
+    color: #8c7a64;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
 
-  </div>
+  &__row {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
 
-  <div class="edit-document__footer">
-    <button nz-button type="button" (click)="cancel()">
-      Cancel
-    </button>
+    label {
+      color: #5c4426;
+      font-size: 13px;
+    }
 
-    <button
-      nz-button
-      nzType="primary"
-      type="submit"
-      [disabled]="!canSubmit()"
-    >
-      Save changes
-    </button>
-  </div>
-</form>
+    input,
+    nz-select {
+      width: 100%;
+      min-width: 0;
+    }
+
+    input:disabled {
+      background: #f6f3ef;
+      color: #7e756a;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 18px 32px;
+    background: #fffcf8;
+    border-top: 1px solid #e8dac3;
+
+    button {
+      min-width: 95px;
+      border-radius: 4px;
+    }
+
+    button[nzType='primary'] {
+      background: #a47a25;
+      border-color: #a47a25;
+      color: #fff;
+
+      &:hover:not(:disabled) {
+        background: #8b641d;
+      }
+    }
+  }
+
+  .required {
+    margin-right: 4px;
+    color: #cf4b43;
+  }
+}
+
+@media (max-width: 700px) {
+  .edit-document {
+    &__body {
+      padding: 20px 16px;
+    }
+
+    &__row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    &__footer {
+      padding: 16px;
+    }
+  }
+}
