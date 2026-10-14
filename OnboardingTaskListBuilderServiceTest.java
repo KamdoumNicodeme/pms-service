@@ -1,195 +1,114 @@
-@Component({
-  selector: 'edit-document',
-  standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    NzButtonModule,
-    NzIconModule,
-    NzInputModule,
-    NzSelectModule
-  ],
-  templateUrl: './edit-document.component.html',
-  styleUrl: './edit-document.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class EditDocumentComponent {
+<form
+  class="edit-document"
+  [formGroup]="form"
+  (ngSubmit)="submit()"
+>
+  <div class="edit-document__body">
 
-  readonly document = input.required<ICaseDocument>();
+    <div class="edit-document__file">
+      <label class="edit-document__file-button">
+        <span nz-icon nzType="upload"></span>
+        Choose a new file
 
-  readonly getDocumentConfigType =
-    input.required<() => Observable<DocumentTypeConfiguration[]>>();
+        <input
+          type="file"
+          hidden
+          (change)="onFileSelected($event)"
+        />
+      </label>
 
-  readonly getDocumentMetadata =
-    input.required<() => Observable<Record<string, MetadataConfiguration[]>>>();
-
-  readonly cancelled = output<void>();
-  readonly submitted = output<EditDocumentRequest>();
-
-  protected readonly selectedFile = signal<File | null>(null);
-
-  protected readonly metadataValues =
-    signal<Record<string, string>>({});
-
-  protected readonly form = new FormGroup({
-    documentType: new FormControl<string | null>(null, {
-      validators: [Validators.required]
-    }),
-    filename: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
-    status: new FormControl<string | null>(null)
-  });
-
-  protected readonly documentTypes = toSignal(
-    toObservable(this.getDocumentConfigType).pipe(
-      switchMap(getDocumentConfigType => getDocumentConfigType())
-    ),
-    {
-      initialValue: [] as DocumentTypeConfiguration[]
-    }
-  );
-
-  protected readonly metadataConfiguration = toSignal(
-    toObservable(this.getDocumentMetadata).pipe(
-      switchMap(getDocumentMetadata => getDocumentMetadata())
-    ),
-    {
-      initialValue: {} as Record<string, MetadataConfiguration[]>
-    }
-  );
-
-  protected readonly documentTypeValue = toSignal(
-    this.form.controls.documentType.valueChanges.pipe(
-      startWith(this.form.controls.documentType.value)
-    ),
-    {
-      initialValue: this.form.controls.documentType.value
-    }
-  );
-
-  protected readonly selectedMetadata = computed((): MetadataConfiguration[] => {
-    const documentType = this.documentTypeValue();
-
-    if (!documentType) {
-      return [];
-    }
-
-    return this.metadataConfiguration()[documentType] ?? [];
-  });
-
-  protected readonly canSubmit = computed((): boolean => {
-    const documentType = this.documentTypeValue();
-    const filename = this.form.controls.filename.value.trim();
-
-    const metadataValid = this.selectedMetadata()
-      .filter(metadata => metadata.mandatory)
-      .every(metadata => !!this.metadataValue(metadata.name).trim());
-
-    return !!documentType && filename.length > 0 && metadataValid;
-  });
-
-  constructor() {
-    effect(() => {
-      const document = this.document();
-
-      this.form.patchValue({
-        documentType: document.documentType,
-        filename: document.name,
-        status: document.status ?? null
-      }, { emitEvent: true });
-
-      const values: Record<string, string> = {};
-
-      for (const [key, value] of Object.entries(document.metadata ?? {})) {
-        values[key] = String(value ?? '');
-      }
-
-      this.metadataValues.set(values);
-      this.selectedFile.set(null);
-    });
-
-    this.form.controls.documentType.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(documentType => {
-        if (documentType) {
-          this.onDocumentTypeChanged(documentType);
+      <span class="edit-document__file-name">
+        @if (selectedFile(); as file) {
+          {{ file.name }}
+        } @else {
+          No new file selected
         }
-      });
-  }
+      </span>
+    </div>
 
-  protected onFileSelected(event: Event): void {
-    const element = event.target as HTMLInputElement;
-    const file = element.files?.[0] ?? null;
+    <div class="edit-document__row">
+      <label>
+        <span class="required">*</span>
+        Document type:
+      </label>
 
-    this.selectedFile.set(file);
+      <nz-select
+        formControlName="documentType"
+        nzPlaceHolder="Select a document type"
+        [nzShowSearch]="true"
+        [nzAllowClear]="false"
+      >
+        @for (type of documentTypes(); track type.name) {
+          <nz-option
+            [nzLabel]="type.displayName"
+            [nzValue]="type.name"
+          />
+        }
+      </nz-select>
+    </div>
 
-    if (file) {
-      this.form.controls.filename.setValue(file.name);
+    <div class="edit-document__row">
+      <label>
+        <span class="required">*</span>
+        Filename:
+      </label>
+
+      <input
+        nz-input
+        formControlName="filename"
+        placeholder="Filename"
+      />
+    </div>
+
+    @for (metadata of selectedMetadata(); track metadata.name) {
+      <div class="edit-document__row">
+        <label>
+          @if (metadata.mandatory) {
+            <span class="required">*</span>
+          }
+          {{ metadata.name }}:
+        </label>
+
+        <input
+          nz-input
+          [type]="metadataInputType(metadata.type)"
+          [value]="metadataValue(metadata.name)"
+          [disabled]="metadata.immutable === true"
+          [required]="metadata.mandatory"
+          [attr.pattern]="metadata.type === 'STRING' ? metadata.pattern ?? null : null"
+          (input)="updateMetadata(metadata.name, $any($event.target).value)"
+        />
+      </div>
     }
-  }
 
-  protected onDocumentTypeChanged(documentType: string): void {
-    this.form.controls.documentType.setValue(
-      documentType,
-      { emitEvent: false }
-    );
+    <div class="edit-document__row">
+      <label>Status:</label>
 
-    if (documentType !== this.document().documentType) {
-      this.metadataValues.set({});
-    }
-  }
+      <nz-select
+        formControlName="status"
+        nzPlaceHolder="Select a status"
+        [nzAllowClear]="true"
+      >
+        <nz-option nzValue="Validated" nzLabel="Validated" />
+        <nz-option nzValue="Rejected" nzLabel="Rejected" />
+        <nz-option nzValue="Replaced" nzLabel="Replaced" />
+      </nz-select>
+    </div>
 
-  protected updateMetadata(key: string, value: string): void {
-    this.metadataValues.update(current => ({
-      ...current,
-      [key]: value
-    }));
-  }
+  </div>
 
-  protected metadataValue(key: string): string {
-    return this.metadataValues()[key] ?? '';
-  }
+  <div class="edit-document__footer">
+    <button nz-button type="button" (click)="cancel()">
+      Cancel
+    </button>
 
-  protected metadataInputType(type: string): string {
-    switch (type) {
-      case 'DATE':
-        return 'date';
-      case 'DATETIME':
-        return 'datetime-local';
-      case 'NUMBER':
-        return 'number';
-      default:
-        return 'text';
-    }
-  }
-
-  protected cancel(): void {
-    this.cancelled.emit();
-  }
-
-  protected submit(): void {
-    if (!this.canSubmit()) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    const metadata = this.selectedMetadata()
-      .filter(configuration =>
-        this.metadataValue(configuration.name).trim().length > 0
-      )
-      .map(configuration => ({
-        key: configuration.name,
-        type: configuration.type,
-        value: this.metadataValue(configuration.name).trim()
-      }));
-
-    this.submitted.emit({
-      file: this.selectedFile(),
-      name: this.form.controls.filename.value.trim(),
-      type: this.form.controls.documentType.value ?? '',
-      metadata,
-      status: this.form.controls.status.value
-    });
-  }
-}
+    <button
+      nz-button
+      nzType="primary"
+      type="submit"
+      [disabled]="!canSubmit()"
+    >
+      Save changes
+    </button>
+  </div>
+</form>
