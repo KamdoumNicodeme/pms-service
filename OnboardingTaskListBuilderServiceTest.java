@@ -1,40 +1,35 @@
-uploadDocument(
+replacementDocument(
   caseId: string,
-  request: UploadDocumentRequest,
+  documentId: string,
+  request: EditDocumentRequest,
   userTaskIdentifier?: number
 ): Observable<IDocumentAttachInformation> {
-  const allowedTypes = new Set([
-    'STRING',
-    'DATE',
-    'DATETIME',
-    'NUMBER',
-  ]);
-
-  const metadata = request.metadata.map(item => {
-    if (!allowedTypes.has(item.type)) {
-      throw new Error(
-        `Invalid metadata type for ${item.key}: ${item.type}`
-      );
-    }
-
-    return {
-      key: item.key,
-      type: item.type,
-      value: item.value,
-    };
-  });
-
   const additionalProps = new Map<string, SafeAny>();
 
-  additionalProps.set(
-    'type',
-    request.documentType ?? ''
-  );
+  additionalProps.set('name', request.name);
+  additionalProps.set('type', request.type);
 
-  if (metadata.length > 0) {
+  request.metadata.forEach((metadata, index) => {
     additionalProps.set(
-      'metadata',
-      JSON.stringify(metadata)
+      `metadata[${index}].key`,
+      metadata.key
+    );
+
+    additionalProps.set(
+      `metadata[${index}].type`,
+      metadata.type
+    );
+
+    additionalProps.set(
+      `metadata[${index}].value`,
+      metadata.value
+    );
+  });
+
+  if (request.status) {
+    additionalProps.set(
+      'status',
+      request.status
     );
   }
 
@@ -51,7 +46,7 @@ uploadDocument(
   );
 
   return this.#httpClient.post<IDocumentAttachInformation>(
-    `${environment.apiUrls.get('caseManagement')}/cases/${caseId}/documents`,
+    `${environment.apiUrls.get('caseManagement')}/cases/${caseId}/documents/${documentId}/replace`,
     formData
   );
 }
