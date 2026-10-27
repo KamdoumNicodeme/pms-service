@@ -15,10 +15,10 @@
   &__state {
     font-size: 0.8rem;
     color: #2cc12c;
-  }
 
-  &__state_pending {
-    color: var(--cmp-drift, #d98e04);
+    &_pending {
+      color: var(--cmp-drift, #d98e04);
+    }
   }
 
   &[data-state='pending'] &__state {
@@ -61,14 +61,16 @@
 
 
 // ==========================================================
-// ROOT LAYOUT
+// GLOBAL CCI LAYOUT
 // ==========================================================
 
 .change-client-information__layout {
   display: flex;
 
+  flex: 1 1 auto;
+
   width: 100%;
-  height: 100%;
+  min-width: 0;
   min-height: 0;
 
   gap: 1rem;
@@ -78,7 +80,7 @@
 
 
 // ==========================================================
-// LEFT / MAIN AREA
+// LEFT SIDE
 // ==========================================================
 
 .change-client-information__main {
@@ -95,7 +97,7 @@
 
 
 // ==========================================================
-// CHECKS - RIGHT SIDE
+// RIGHT SIDE - CHECKS AND CONTROLS
 // ==========================================================
 
 .change-client-information__checks {
@@ -103,59 +105,40 @@
 
   width: 40rem;
   min-width: 40rem;
-
   min-height: 0;
 
   padding-right: 1.75rem;
 
   /*
    * IMPORTANT:
-   * no margin-top: 5.8rem here.
+   * no margin-top here.
    *
-   * This was creating the large vertical offset,
-   * especially on large screens.
+   * The old margin-top: 5.8rem was responsible
+   * for part of the vertical offset.
    */
   margin-top: 0;
 
-  overflow-y: auto;
   overflow-x: hidden;
-}
-
-
-// ==========================================================
-// DOCUMENTS
-// ==========================================================
-
-.documents-container {
-  flex: 1 1 auto;
-
-  min-height: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  overflow: auto;
-
-  > * {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
+  overflow-y: auto;
 }
 
 
 // ==========================================================
 // NG-ZORRO TABS
+// ==========================================================
 //
-// nz-tabs creates several internal containers.
-// Every container in the chain must propagate the available
-// height otherwise the tab content uses its natural height
-// and no internal scroll can happen.
+// We need the complete NG-ZORRO hierarchy to propagate
+// the available height down to .client-profiling__content.
+//
+// The actual scrollbar is NOT here.
 // ==========================================================
 
 :host ::ng-deep {
+
   .ant-tabs {
     flex: 1 1 auto;
 
+    min-width: 0;
     min-height: 0;
 
     display: flex;
@@ -164,33 +147,23 @@
     overflow: hidden;
   }
 
+
   // --------------------------------------------------------
-  // Tab navigation/header
+  // Tabs header
   // --------------------------------------------------------
 
   .ant-tabs-nav {
     flex: 0 0 auto;
+
+    margin-bottom: 0;
   }
 
+
   // --------------------------------------------------------
-  // Container under the tab navigation
+  // Content holder
   // --------------------------------------------------------
 
   .ant-tabs-content-holder {
-    flex: 1 1 auto;
-
-    min-height: 0;
-
-    display: flex;
-
-    overflow: hidden;
-  }
-
-  // --------------------------------------------------------
-  // Container containing the panes
-  // --------------------------------------------------------
-
-  .ant-tabs-content {
     flex: 1 1 auto;
 
     min-width: 0;
@@ -200,6 +173,25 @@
 
     overflow: hidden;
   }
+
+
+  // --------------------------------------------------------
+  // Content
+  // --------------------------------------------------------
+
+  .ant-tabs-content {
+    flex: 1 1 auto;
+
+    width: 100%;
+
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+
+    overflow: hidden;
+  }
+
 
   // --------------------------------------------------------
   // Active pane
@@ -209,7 +201,6 @@
     flex: 1 1 auto;
 
     width: 100%;
-    height: 100%;
 
     min-width: 0;
     min-height: 0;
@@ -220,8 +211,9 @@
     overflow: hidden;
   }
 
+
   // --------------------------------------------------------
-  // Hidden panes
+  // Inactive panes
   // --------------------------------------------------------
 
   .ant-tabs-tabpane-hidden {
@@ -231,20 +223,21 @@
 
 
 // ==========================================================
-// CONTENT OF EACH TAB
+// CONTENT INSIDE EACH TAB
 // ==========================================================
 //
-// Your HTML has:
+// THIS IS THE SCROLLING AREA.
+//
+// HTML:
 //
 // <nz-tab>
-//   ...
 //   <section class="client-profiling__content">
-//      <holder-profiling ... />
+//      <holder-profiling />
 //   </section>
 // </nz-tab>
 //
-// The section receives the remaining height.
-// The component inside it becomes the scrolling area.
+// The tab itself stays fixed.
+// The content inside the tab scrolls.
 // ==========================================================
 
 .client-profiling__content {
@@ -255,20 +248,25 @@
   min-width: 0;
   min-height: 0;
 
-  display: flex;
-  flex-direction: column;
+  display: block;
 
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  scrollbar-gutter: stable;
 }
 
 
 // ==========================================================
-// HOLDER / POLICY / DOCUMENTS COMPONENTS
+// ANGULAR CHILD COMPONENTS
 // ==========================================================
 //
-// Angular custom elements are inline by default.
-// We explicitly make them flex containers capable of
-// receiving the available height.
+// Do NOT put flex: 1 here.
+//
+// Their natural height must be allowed to become larger
+// than .client-profiling__content.
+//
+// That's what creates the scrollbar.
 // ==========================================================
 
 holder-profiling,
@@ -276,51 +274,81 @@ policy-profiling-tab,
 documents {
   display: block;
 
-  flex: 1 1 auto;
-
   width: 100%;
-
   min-width: 0;
-  min-height: 0;
+}
+
+
+// ==========================================================
+// DOCUMENTS
+// ==========================================================
+
+.documents-container {
+  width: 100%;
+  min-width: 0;
 }
 
 
 // ==========================================================
 // RESPONSIVE
 // ==========================================================
-//
-// 40rem for Checks and controls is fine on large screens,
-// but we shouldn't force it on smaller screens.
-// ==========================================================
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+
   .change-client-information__checks {
-    flex-basis: 32rem;
+    flex: 0 0 32rem;
 
     width: 32rem;
     min-width: 32rem;
   }
 }
 
+
+@media (max-width: 1100px) {
+
+  .change-client-information__checks {
+    flex: 0 0 26rem;
+
+    width: 26rem;
+    min-width: 26rem;
+
+    padding-right: 1rem;
+  }
+}
+
+
 @media (max-width: 900px) {
+
   .change-client-information__layout {
     flex-direction: column;
-    overflow: auto;
+
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
+
   .change-client-information__main {
-    flex: none;
+    flex: 0 0 auto;
+
+    min-height: auto;
+
     overflow: visible;
   }
 
+
   .change-client-information__checks {
-    flex: none;
+    flex: 0 0 auto;
 
     width: 100%;
     min-width: 0;
 
     padding-right: 0;
 
+    overflow: visible;
+  }
+
+
+  .client-profiling__content {
     overflow: visible;
   }
 }
