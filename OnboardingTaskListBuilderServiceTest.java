@@ -1,118 +1,118 @@
-:host {
-  display: block;
+.client-profiling {
+  display: flex;
+  flex-direction: column;
+
   width: 100%;
-}
+  height: 100%;
+  min-height: 0;
 
-.edit-document {
-  width: 100%;
-  background: #fff;
+  overflow: hidden;
 
-  &__body {
+  // =========================================================
+  // HEADER
+  // =========================================================
+
+  &__header {
+    flex: 0 0 auto;
+
     display: flex;
-    flex-direction: column;
-    gap: 18px;
-    padding: 28px 32px;
-  }
-
-  &__file {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-
-  &__file-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 9px 18px;
-    color: #966b22;
-    background: #fffaf1;
-    border: 1px solid #c99a45;
-    border-radius: 4px;
-    cursor: pointer;
-
-    &:hover {
-      background: #f7ebd5;
-    }
-
-    input {
-      display: none;
-    }
-  }
-
-  &__file-name {
-    color: #8c7a64;
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
-
-  &__row {
-    display: grid;
-    grid-template-columns: 190px minmax(0, 1fr);
-    align-items: center;
-    gap: 18px;
-
-    label {
-      color: #5c4426;
-      font-size: 13px;
-    }
-
-    input,
-    nz-select {
-      width: 100%;
-      min-width: 0;
-    }
-
-    input:disabled {
-      background: #f6f3ef;
-      color: #7e756a;
-    }
-  }
-
-  &__footer {
-    display: flex;
     justify-content: space-between;
-    padding: 18px 32px;
-    background: #fffcf8;
-    border-top: 1px solid #e8dac3;
 
-    button {
-      min-width: 95px;
-      border-radius: 4px;
+    height: 3.75rem;
+
+    h1 {
+      margin: 0;
+
+      font-size: 1.1rem;
+      line-height: 1;
+
+      color: var(--ant-primary-7);
     }
 
-    button[nzType='primary'] {
-      background: #a47a25;
-      border-color: #a47a25;
-      color: #fff;
+    &__actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
 
-      &:hover:not(:disabled) {
-        background: #8b641d;
+      button {
+        height: 2.25rem;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
     }
   }
 
-  .required {
-    margin-right: 4px;
-    color: #cf4b43;
+  // =========================================================
+  // SUMMARY
+  // =========================================================
+
+  &__summary {
+    flex: 0 0 auto;
+
+    display: block;
+
+    width: 100%;
+
+    list-style-type: none;
+  }
+
+  // =========================================================
+  // CONTENT
+  // =========================================================
+
+  &__content {
+    flex: 1 1 auto;
+
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    min-height: 0;
+
+    margin-top: 0.85rem;
+
+    overflow: hidden;
+  }
+
+  // =========================================================
+  // TASK
+  // Container around @switch(...)
+  // =========================================================
+
+  &__task {
+    flex: 1 1 auto;
+
+    width: 100%;
+    min-height: 0;
+
+    overflow: hidden;
   }
 }
 
-@media (max-width: 700px) {
-  .edit-document {
-    &__body {
-      padding: 20px 16px;
-    }
 
-    &__row {
-      grid-template-columns: 1fr;
-      gap: 6px;
-    }
+// ===========================================================
+// CHANGE CLIENT INFORMATION HOST
+// ===========================================================
+//
+// Important:
+// Angular creates:
+//
+// <change-client-information>
+//     ...
+// </change-client-information>
+//
+// The component must receive the available height from
+// client-profiling__task.
+// ===========================================================
 
-    &__footer {
-      padding: 16px;
-    }
-  }
+change-client-information {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  min-height: 0;
 }
