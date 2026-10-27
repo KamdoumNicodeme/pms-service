@@ -1,25 +1,57 @@
-protected readonly pageIndex = signal(1);
-protected readonly pageSize = signal(10);
+uploadDocument(
+  caseId: string,
+  request: UploadDocumentRequest,
+  userTaskIdentifier?: number
+): Observable<IDocumentAttachInformation> {
+  const allowedTypes = new Set([
+    'STRING',
+    'DATE',
+    'DATETIME',
+    'NUMBER',
+  ]);
 
-protected readonly paginatedDocuments = computed(() => {
-  const documents = this.documents();
+  const metadata = request.metadata.map(item => {
+    if (!allowedTypes.has(item.type)) {
+      throw new Error(
+        `Invalid metadata type for ${item.key}: ${item.type}`
+      );
+    }
 
-  const start = (this.pageIndex() - 1) * this.pageSize();
-  const end = start + this.pageSize();
+    return {
+      key: item.key,
+      type: item.type,
+      value: item.value,
+    };
+  });
 
-  return documents.slice(start, end);
-});
+  const additionalProps = new Map<string, SafeAny>();
 
-protected onPageSizeChange(pageSize: number): void {
-  this.pageSize.set(pageSize);
-  this.pageIndex.set(1);
-}
+  additionalProps.set(
+    'type',
+    request.documentType ?? ''
+  );
 
-.documents__pagination {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
+  if (metadata.length > 0) {
+    additionalProps.set(
+      'metadata',
+      JSON.stringify(metadata)
+    );
+  }
 
-  padding: 1rem 0;
-  flex: none;
+  if (userTaskIdentifier != null) {
+    additionalProps.set(
+      'userTaskIdentifier',
+      userTaskIdentifier.toString()
+    );
+  }
+
+  const formData = toMultipartFormData(
+    request.file,
+    additionalProps
+  );
+
+  return this.#httpClient.post<IDocumentAttachInformation>(
+    `${environment.apiUrls.get('caseManagement')}/cases/${caseId}/documents`,
+    formData
+  );
 }
