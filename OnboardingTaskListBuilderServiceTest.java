@@ -1,465 +1,814 @@
-<section class="documents">
-
-  <header class="documents__header">
-    <div class="documents__heading">
-      <div class="documents__title-row">
-        <span
-          class="documents__title-icon"
-          nz-icon
-          nzType="file-text"
-          nzTheme="outline">
-        </span>
-
-        <h2 class="documents__title">
-          Documents
-        </h2>
-      </div>
-
-      <span class="documents__count">
-        {{ documentCount() }}
-        {{ documentCount() === 1 ? 'document' : 'documents' }}
-      </span>
-    </div>
-
-    <button
-      nz-button
-      nzType="primary"
-      type="button"
-      class="documents__add-button"
-      (click)="openUploadModal()">
-
-      <span
-        nz-icon
-        nzType="plus"
-        nzTheme="outline">
-      </span>
-
-      Add document
-    </button>
-  </header>
-
-
-  <div class="documents__filters">
-
-    <div class="documents__filter">
-
-      <label
-        for="metadata-filter"
-        class="documents__filter-label">
-        Filter by metadata
-      </label>
-
-      <nz-input-group
-        [nzPrefix]="searchIcon"
-        [nzSuffix]="clearIcon">
-
-        <input
-          id="metadata-filter"
-          nz-input
-          type="text"
-          placeholder="Search metadata key or value"
-          [ngModel]="metadataFilter()"
-          (ngModelChange)="onMetadataFilterChange($event)"
-        />
-
-      </nz-input-group>
-
-      <ng-template #searchIcon>
-        <span
-          nz-icon
-          nzType="search"
-          nzTheme="outline">
-        </span>
-      </ng-template>
-
-      <ng-template #clearIcon>
-        @if (metadataFilter()) {
-          <button
-            type="button"
-            class="documents__clear-filter"
-            aria-label="Clear metadata filter"
-            (click)="clearMetadataFilter()">
-
-            <span
-              nz-icon
-              nzType="close-circle"
-              nzTheme="fill">
-            </span>
-
-          </button>
-        }
-      </ng-template>
-
-    </div>
-
-    @if (metadataFilter()) {
-      <span class="documents__filter-result">
-        {{ filteredDocumentCount() }}
-        {{ filteredDocumentCount() === 1 ? 'result' : 'results' }}
-      </span>
-    }
-
-  </div>
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
 
+.documents {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
 
-  <div class="documents__table-container">
 
-    <nz-table
-      #documentsTable
-      nzSize="middle"
-      [nzData]="filteredDocuments()"
-      [nzFrontPagination]="true"
-      [nzPageIndex]="pageIndex()"
-      [nzPageSize]="pageSize"
-      [nzShowSizeChanger]="false"
-      [nzShowPagination]="filteredDocuments().length > pageSize"
-      [nzHideOnSinglePage]="true"
-      (nzPageIndexChange)="pageIndex.set($event)">
+/* ============================================================
+   HEADER
+   ============================================================ */
 
-      <thead>
-        <tr>
-          <th class="documents__column-filename">
-            Filename
-          </th>
+.documents__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 
-          <th class="documents__column-type">
-            Document type
-          </th>
+  margin-bottom: 1rem;
+}
 
-          <th class="documents__column-metadata">
-            Metadata
-          </th>
+.documents__heading {
+  min-width: 0;
+}
 
-          <th class="documents__column-source">
-            Source
-          </th>
+.documents__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-          <th class="documents__column-status">
-            Status
-          </th>
+.documents__title-icon {
+  color: #8a6534;
+  font-size: 1.25rem;
+}
 
-          <th class="documents__column-actions">
-            Actions
-          </th>
-        </tr>
-      </thead>
+.documents__title {
+  margin: 0;
 
+  color: #5c4426;
 
-      <tbody>
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
 
-        @for (
-          document of documentsTable.data;
-          track document.documentId
-        ) {
+.documents__count {
+  display: block;
 
-          <tr>
+  margin-top: 0.25rem;
 
-            <td>
-              <div class="document-file">
+  color: #8b8175;
 
-                <span
-                  class="document-file__icon"
-                  nz-icon
-                  nzType="file-text"
-                  nzTheme="outline">
-                </span>
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
 
-                <div class="document-file__content">
+.documents__add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
 
-                  <button
-                    type="button"
-                    class="document-file__name"
-                    nz-tooltip
-                    [nzTooltipTitle]="document.name"
-                    (click)="onDownload(document)">
-                    {{ document.name }}
-                  </button>
+  flex: none;
 
-                  <span class="document-file__id">
-                    {{ document.documentId }}
-                  </span>
+  min-height: 36px;
 
-                </div>
+  border-color: #8a6534;
+  background: #8a6534;
 
-              </div>
-            </td>
+  box-shadow: none;
 
+  font-weight: 600;
+}
 
-            <td>
-              <span class="document-type">
-                {{ displayDocumentType(document.type) }}
-              </span>
-            </td>
+.documents__add-button:hover,
+.documents__add-button:focus {
+  border-color: #725229;
+  background: #725229;
+}
 
 
-            <td>
+/* ============================================================
+   FILTERS
+   ============================================================ */
 
-              @if (metadataEntries(document.metadata).length > 0) {
+.documents__filters {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
 
-                <div class="document-metadata">
+  margin-bottom: 1rem;
+}
 
-                  @for (
-                    metadata of metadataEntries(document.metadata);
-                    track metadata[0]
-                  ) {
+.documents__filter {
+  width: min(420px, 100%);
+}
 
-                    <div class="document-metadata__item">
+.documents__filter-label {
+  display: block;
 
-                      <span class="document-metadata__key">
-                        {{ metadata[0] }}:
-                      </span>
+  margin-bottom: 0.375rem;
 
-                      <span
-                        class="document-metadata__value"
-                        nz-tooltip
-                        [nzTooltipTitle]="metadata[1]">
-                        {{ metadata[1] }}
-                      </span>
+  color: #5c4426;
 
-                    </div>
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
 
-                  }
+.documents__filter-result {
+  flex: none;
 
-                </div>
+  padding-bottom: 0.5rem;
 
-              } @else {
+  color: #8b8175;
 
-                <span class="documents__empty-value">
-                  -
-                </span>
+  font-size: 0.8125rem;
+}
 
-              }
+.documents__clear-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-            </td>
+  padding: 0;
 
+  border: 0;
 
-            <td>
-              <span class="document-source">
-                {{ displaySource(document.source) }}
-              </span>
-            </td>
+  background: transparent;
 
+  color: #a0978d;
 
-            <td>
+  cursor: pointer;
+}
 
-              <span
-                class="document-status"
-                [ngClass]="statusClass(document.status)">
+.documents__clear-filter:hover {
+  color: #725229;
+}
 
-                <span class="document-status__dot"></span>
+:host ::ng-deep .documents__filter .ant-input-affix-wrapper {
+  min-height: 38px;
 
-                {{ displayStatus(document.status) }}
+  border-color: #ddd4c8;
+  border-radius: 4px;
 
-              </span>
+  box-shadow: none;
+}
 
-            </td>
+:host ::ng-deep .documents__filter .ant-input-affix-wrapper:hover {
+  border-color: #a98a61;
+}
 
+:host ::ng-deep .documents__filter .ant-input-affix-wrapper-focused {
+  border-color: #8a6534;
 
-            <td class="documents__actions-cell">
+  box-shadow: 0 0 0 2px rgb(138 101 52 / 10%);
+}
 
-              <button
-                nz-button
-                nzType="text"
-                nz-dropdown
-                nzTrigger="click"
-                nzPlacement="bottomRight"
-                [nzDropdownMenu]="documentActions"
-                type="button"
-                class="document-actions-button">
+:host ::ng-deep .documents__filter .ant-input-prefix {
+  margin-right: 0.5rem;
 
-                <span
-                  nz-icon
-                  nzType="more"
-                  nzTheme="outline">
-                </span>
+  color: #9b9186;
+}
 
-              </button>
+:host ::ng-deep .documents__filter .ant-input {
+  color: #554b40;
+}
 
+:host ::ng-deep .documents__filter .ant-input::placeholder {
+  color: #aaa198;
+}
 
-              <nz-dropdown-menu
-                #documentActions="nzDropdownMenu">
 
-                <ul
-                  nz-menu
-                  class="document-actions-menu">
+/* ============================================================
+   TABLE CONTAINER
+   ============================================================ */
 
-                  <li
-                    nz-menu-item
-                    (click)="onDownload(document)">
+.documents__table-container {
+  width: 100%;
+  min-width: 0;
 
-                    <span
-                      nz-icon
-                      nzType="download"
-                      nzTheme="outline">
-                    </span>
+  overflow: visible;
+}
 
-                    <span>
-                      Download
-                    </span>
 
-                  </li>
+/* ============================================================
+   NZ TABLE
+   ============================================================ */
 
+:host ::ng-deep .ant-table-wrapper {
+  width: 100%;
+  min-width: 0;
+}
 
-                  <li
-                    nz-menu-item
-                    (click)="openEditDocument(document)">
+:host ::ng-deep .ant-table {
+  width: 100%;
 
-                    <span
-                      nz-icon
-                      nzType="edit"
-                      nzTheme="outline">
-                    </span>
+  overflow: visible;
 
-                    <span>
-                      Edit
-                    </span>
+  border: 1px solid #e5ddd2;
+  border-radius: 6px;
 
-                  </li>
+  background: #ffffff;
 
+  box-shadow: none;
+}
 
-                  <li nz-menu-divider></li>
+:host ::ng-deep .ant-table-container {
+  overflow: visible !important;
 
+  border-radius: 6px;
+}
 
-                  <li
-                    nz-menu-item
-                    (click)="onValidate(document)">
+:host ::ng-deep .ant-table-content {
+  overflow: visible !important;
+}
 
-                    <span
-                      nz-icon
-                      nzType="check-circle"
-                      nzTheme="outline">
-                    </span>
+:host ::ng-deep .ant-table-content table {
+  width: 100%;
 
-                    <span>
-                      Validate
-                    </span>
+  table-layout: fixed;
+}
 
-                  </li>
 
+/* ============================================================
+   TABLE HEADER
+   ============================================================ */
 
-                  <li
-                    nz-menu-item
-                    (click)="onReject(document)">
+:host ::ng-deep .ant-table-thead > tr > th {
+  padding: 0.75rem 1rem;
 
-                    <span
-                      nz-icon
-                      nzType="close-circle"
-                      nzTheme="outline">
-                    </span>
+  border-bottom: 1px solid #ded4c7;
 
-                    <span>
-                      Reject
-                    </span>
+  background: #f4f0ea;
 
-                  </li>
+  color: #60492d;
 
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
 
-                  <li nz-menu-divider></li>
+  white-space: nowrap;
+}
 
+:host ::ng-deep .ant-table-thead > tr > th::before {
+  display: none;
+}
 
-                  <li
-                    nz-menu-item
-                    nzDanger
-                    (click)="onRemove(document)">
 
-                    <span
-                      nz-icon
-                      nzType="delete"
-                      nzTheme="outline">
-                    </span>
+/* ============================================================
+   TABLE BODY
+   ============================================================ */
 
-                    <span>
-                      Remove
-                    </span>
+:host ::ng-deep .ant-table-tbody > tr > td {
+  padding: 0.75rem 1rem;
 
-                  </li>
+  border-bottom: 1px solid #eee8e0;
 
-                </ul>
+  background: #ffffff;
 
-              </nz-dropdown-menu>
+  color: #5f554a;
 
-            </td>
+  font-size: 0.8125rem;
+  line-height: 1.4;
 
-          </tr>
+  vertical-align: middle;
+}
 
-        }
+:host ::ng-deep .ant-table-tbody > tr:last-child > td {
+  border-bottom: 0;
+}
 
-      </tbody>
+:host ::ng-deep .ant-table-tbody > tr:hover > td {
+  background: #fcfaf7;
+}
 
-    </nz-table>
 
+/* ============================================================
+   COLUMNS
+   ============================================================ */
 
-    @if (filteredDocuments().length === 0) {
+.documents__column-filename {
+  width: 25%;
+}
 
-      <div class="documents__empty">
+.documents__column-type {
+  width: 15%;
+}
 
-        <span
-          class="documents__empty-icon"
-          nz-icon
-          nzType="file-search"
-          nzTheme="outline">
-        </span>
+.documents__column-metadata {
+  width: 25%;
+}
 
+.documents__column-source {
+  width: 12%;
+}
 
-        @if (metadataFilter()) {
+.documents__column-status {
+  width: 13%;
+}
 
-          <strong>
-            No matching documents
-          </strong>
+.documents__column-actions {
+  width: 10%;
 
-          <span>
-            No document matches "{{ metadataFilter() }}".
-          </span>
+  text-align: center;
+}
 
-          <button
-            nz-button
-            nzType="link"
-            type="button"
-            (click)="clearMetadataFilter()">
-            Clear filter
-          </button>
 
-        } @else {
+/* ============================================================
+   FILE
+   ============================================================ */
 
-          <strong>
-            No documents
-          </strong>
+.document-file {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
 
-          <span>
-            No document is currently associated with this case.
-          </span>
+  min-width: 0;
+}
 
-        }
+.document-file__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-      </div>
+  flex: 0 0 32px;
 
-    }
+  width: 32px;
+  height: 32px;
 
-  </div>
+  border-radius: 4px;
 
+  background: #f3eee7;
 
-  @if (uploadModalVisible()) {
+  color: #8a6534;
 
-    <upload-document
-      [getDocumentConfigType]="getDocumentConfigType()"
-      [getDocumentMetadata]="getDocumentMetadata()"
-      (uploadDocument)="onUploadDocument($event)"
-      (closeModal)="closeUploadModal()">
-    </upload-document>
+  font-size: 1rem;
+}
 
+.document-file__content {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+.document-file__name {
+  display: block;
+
+  width: 100%;
+  max-width: 220px;
+
+  padding: 0;
+
+  overflow: hidden;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #60492d;
+
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+
+  text-align: left;
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.document-file__name:hover {
+  color: #8a6534;
+
+  text-decoration: underline;
+}
+
+.document-file__name:focus {
+  outline: none;
+
+  color: #8a6534;
+}
+
+.document-file__id {
+  display: block;
+
+  max-width: 220px;
+
+  margin-top: 0.125rem;
+
+  overflow: hidden;
+
+  color: #a0978d;
+
+  font-size: 0.6875rem;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   DOCUMENT TYPE
+   ============================================================ */
+
+.document-type {
+  display: block;
+
+  overflow: hidden;
+
+  color: #62574c;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   METADATA
+   ============================================================ */
+
+.document-metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+
+  min-width: 0;
+}
+
+.document-metadata__item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+
+  min-width: 0;
+}
+
+.document-metadata__key {
+  flex: none;
+
+  color: #806b52;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.document-metadata__value {
+  display: block;
+
+  min-width: 0;
+
+  overflow: hidden;
+
+  color: #62584e;
+
+  font-size: 0.75rem;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.documents__empty-value {
+  color: #aaa198;
+}
+
+
+/* ============================================================
+   SOURCE
+   ============================================================ */
+
+.document-source {
+  display: block;
+
+  overflow: hidden;
+
+  color: #62584e;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+.document-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  padding: 0.25rem 0.5rem;
+
+  border-radius: 999px;
+
+  background: #f5f1eb;
+
+  color: #76634d;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.document-status__dot {
+  display: block;
+
+  flex: none;
+
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #c18b2e;
+}
+
+.document-status--pending {
+  background: #f8f3e8;
+
+  color: #8a651d;
+}
+
+.document-status--pending .document-status__dot {
+  background: #c18b2e;
+}
+
+.document-status--validated {
+  background: #edf7f0;
+
+  color: #34754a;
+}
+
+.document-status--validated .document-status__dot {
+  background: #4b9a64;
+}
+
+.document-status--rejected {
+  background: #fbefef;
+
+  color: #a44040;
+}
+
+.document-status--rejected .document-status__dot {
+  background: #c75050;
+}
+
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+
+.documents__actions-cell {
+  text-align: center;
+}
+
+.document-actions-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+
+  padding: 0;
+
+  border: 0;
+
+  border-radius: 4px;
+
+  background: transparent;
+
+  color: #766653;
+}
+
+.document-actions-button:hover,
+.document-actions-button:focus {
+  background: #f3eee7;
+
+  color: #8a6534;
+}
+
+
+/* ============================================================
+   DROPDOWN
+   ============================================================ */
+
+:host ::ng-deep .document-actions-menu {
+  min-width: 150px;
+}
+
+:host ::ng-deep .document-actions-menu .ant-dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  color: #5f554a;
+
+  font-size: 0.8125rem;
+}
+
+:host ::ng-deep .document-actions-menu .ant-dropdown-menu-item:hover {
+  background: #f7f3ed;
+}
+
+:host ::ng-deep .document-actions-menu .anticon {
+  color: #806b52;
+}
+
+
+/* ============================================================
+   PAGINATION
+   ============================================================ */
+
+:host ::ng-deep .ant-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  margin: 1rem 0 0 !important;
+}
+
+:host ::ng-deep .ant-pagination-item {
+  border-color: #ded5ca;
+
+  border-radius: 4px;
+}
+
+:host ::ng-deep .ant-pagination-item a {
+  color: #62584e;
+}
+
+:host ::ng-deep .ant-pagination-item:hover {
+  border-color: #8a6534;
+}
+
+:host ::ng-deep .ant-pagination-item:hover a {
+  color: #8a6534;
+}
+
+:host ::ng-deep .ant-pagination-item-active {
+  border-color: #8a6534;
+
+  background: #8a6534;
+}
+
+:host ::ng-deep .ant-pagination-item-active a {
+  color: #ffffff;
+}
+
+:host ::ng-deep .ant-pagination-item-active:hover a {
+  color: #ffffff;
+}
+
+:host ::ng-deep .ant-pagination-prev button,
+:host ::ng-deep .ant-pagination-next button {
+  border-radius: 4px;
+
+  color: #62584e;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.documents__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 180px;
+
+  padding: 2rem;
+
+  box-sizing: border-box;
+
+  border: 1px solid #e5ddd2;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+
+  background: #ffffff;
+
+  color: #8b8175;
+
+  text-align: center;
+}
+
+.documents__empty-icon {
+  margin-bottom: 0.75rem;
+
+  color: #b39a79;
+
+  font-size: 2rem;
+}
+
+.documents__empty strong {
+  margin-bottom: 0.25rem;
+
+  color: #60492d;
+
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.documents__empty > span:not(.documents__empty-icon) {
+  color: #948a7e;
+
+  font-size: 0.8125rem;
+}
+
+.documents__empty button {
+  margin-top: 0.5rem;
+
+  color: #8a6534;
+}
+
+
+/* ============================================================
+   TOOLTIP / TEXT
+   ============================================================ */
+
+:host ::ng-deep .ant-tooltip-inner {
+  font-size: 0.75rem;
+}
+
+
+/* ============================================================
+   NO INTERNAL SCROLL
+   ============================================================ */
+
+:host ::ng-deep .ant-table-body,
+:host ::ng-deep .ant-table-content,
+:host ::ng-deep .ant-table-container {
+  max-height: none !important;
+
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .documents__column-filename {
+    width: 24%;
   }
 
-
-  @if (editingDocument(); as document) {
-
-    <edit-document
-      [document]="document"
-      [getDocumentConfigType]="getDocumentConfigType()"
-      [getDocumentMetadata]="getDocumentMetadata()"
-      (editDocument)="onEditDocumentSubmitted($event)"
-      (closeModal)="closeEditDocument()">
-    </edit-document>
-
+  .documents__column-type {
+    width: 15%;
   }
 
-</section>
+  .documents__column-metadata {
+    width: 27%;
+  }
+
+  .documents__column-source {
+    width: 11%;
+  }
+
+  .documents__column-status {
+    width: 14%;
+  }
+
+  .documents__column-actions {
+    width: 9%;
+  }
+
+  .document-file__name,
+  .document-file__id {
+    max-width: 160px;
+  }
+}
+
+@media (max-width: 900px) {
+  .documents__header {
+    align-items: flex-start;
+  }
+
+  .documents__filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .documents__filter {
+    width: 100%;
+  }
+
+  .documents__filter-result {
+    padding-bottom: 0;
+  }
+
+  .document-file__name,
+  .document-file__id {
+    max-width: 120px;
+  }
+}
