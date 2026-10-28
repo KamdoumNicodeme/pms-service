@@ -1,899 +1,369 @@
-:host {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  height: 100%;
-}
-
-.documents {
-  display: flex;
-  flex-direction: column;
-
-  width: 100%;
-  min-width: 0;
-  height: 100%;
-
-  box-sizing: border-box;
-}
-
-
-/* ============================================================
-   HEADER
-   ============================================================ */
-
-.documents__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-
-  min-height: 82px;
-
-  margin-bottom: 1rem;
-}
-
-.documents__heading {
-  min-width: 0;
-}
-
-.documents__title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
-
-.documents__title-icon {
-  color: #8a6534;
-
-  font-size: 1.25rem;
-}
-
-.documents__title {
-  margin: 0;
-
-  color: #5c4426;
-
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.documents__count {
-  display: block;
-
-  margin-top: 0.375rem;
-
-  color: #8b8175;
-
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.documents__add-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  flex: none;
-
-  min-width: 168px;
-  height: 40px;
-
-  padding: 0 1.125rem;
-
-  border-color: #8a6534;
-  border-radius: 3px;
-
-  background: #8a6534;
-
-  box-shadow: none;
-
-  color: #ffffff;
-
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.documents__add-button:hover,
-.documents__add-button:focus {
-  border-color: #725229;
-
-  background: #725229;
-
-  color: #ffffff;
-}
-
-
-/* ============================================================
-   FILTERS
-   ============================================================ */
-
-.documents__filters {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-
-  margin-bottom: 1rem;
-}
-
-.documents__filter {
-  width: min(520px, 100%);
-}
-
-.documents__filter-label {
-  display: block;
-
-  margin-bottom: 0.5rem;
-
-  color: #5c4426;
-
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.documents__filter-result {
-  flex: none;
-
-  padding-bottom: 0.625rem;
-
-  color: #8b8175;
-
-  font-size: 0.8125rem;
-}
-
-.documents__clear-filter {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border: 0;
-
-  background: transparent;
-
-  color: #a0978d;
-
-  cursor: pointer;
-}
-
-.documents__clear-filter:hover {
-  color: #725229;
-}
-
-:host ::ng-deep .documents__filter .ant-input-affix-wrapper {
-  min-height: 42px;
-
-  padding-right: 0.75rem;
-  padding-left: 0.75rem;
-
-  border-color: #ddd4c8;
-  border-radius: 4px;
-
-  box-shadow: none;
-}
-
-:host ::ng-deep .documents__filter .ant-input-affix-wrapper:hover {
-  border-color: #a98a61;
-}
-
-:host ::ng-deep .documents__filter .ant-input-affix-wrapper-focused {
-  border-color: #8a6534;
-
-  box-shadow: 0 0 0 2px rgb(138 101 52 / 10%);
-}
-
-:host ::ng-deep .documents__filter .ant-input-prefix {
-  margin-right: 0.5rem;
-
-  color: #9b9186;
-}
-
-:host ::ng-deep .documents__filter .ant-input {
-  color: #554b40;
-
-  font-size: 0.875rem;
-}
-
-:host ::ng-deep .documents__filter .ant-input::placeholder {
-  color: #aaa198;
-}
-
-
-/* ============================================================
-   TABLE CONTAINER
-   ============================================================ */
-
-.documents__table-container {
-  width: 100%;
-  min-width: 0;
-
-  overflow: visible;
-}
-
-
-/* ============================================================
-   TABLE
-   ============================================================ */
-
-:host ::ng-deep .ant-table-wrapper {
-  width: 100%;
-  min-width: 0;
-}
-
-:host ::ng-deep .ant-table {
-  width: 100%;
-
-  overflow: visible;
-
-  border: 1px solid #e5ddd2;
-  border-radius: 6px;
-
-  background: #ffffff;
-
-  box-shadow: none;
-}
-
-:host ::ng-deep .ant-table-container {
-  overflow: visible !important;
-
-  border-radius: 6px;
-}
-
-:host ::ng-deep .ant-table-content {
-  overflow: visible !important;
-}
-
-:host ::ng-deep .ant-table-content table {
-  width: 100%;
-
-  table-layout: fixed;
-}
-
-
-/* ============================================================
-   TABLE HEADER
-   ============================================================ */
-
-:host ::ng-deep .ant-table-thead > tr > th {
-  height: 46px;
-
-  padding: 0.75rem 1rem;
-
-  border-bottom: 1px solid #ded4c7;
-
-  background: #f4f0ea;
-
-  color: #60492d;
-
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1.4;
-
-  vertical-align: middle;
-
-  white-space: nowrap;
-}
-
-:host ::ng-deep .ant-table-thead > tr > th::before {
-  display: none;
-}
-
-
-/* ============================================================
-   TABLE BODY
-   ============================================================ */
-
-:host ::ng-deep .ant-table-tbody > tr > td {
-  height: 58px;
-
-  padding: 0.75rem 1rem;
-
-  border-bottom: 1px solid #eee8e0;
-
-  background: #ffffff;
-
-  color: #5f554a;
-
-  font-size: 0.8125rem;
-  line-height: 1.4;
-
-  vertical-align: middle;
-}
-
-:host ::ng-deep .ant-table-tbody > tr:last-child > td {
-  border-bottom: 0;
-}
-
-:host ::ng-deep .ant-table-tbody > tr:hover > td {
-  background: #fcfaf7;
-}
-
-
-/* ============================================================
-   COLUMNS
-   ============================================================ */
-
-.documents__column-filename {
-  width: 26%;
-}
-
-.documents__column-type {
-  width: 15%;
-}
-
-.documents__column-metadata {
-  width: 25%;
-}
-
-.documents__column-source {
-  width: 12%;
-}
-
-.documents__column-status {
-  width: 14%;
-}
-
-.documents__column-actions {
-  width: 8%;
-
-  text-align: center;
-}
-
-
-/* ============================================================
-   FILE
-   ============================================================ */
-
-.document-file {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-
-  min-width: 0;
-}
-
-.document-file__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 36px;
-
-  width: 36px;
-  height: 36px;
-
-  border-radius: 5px;
-
-  background: #f3eee7;
-
-  color: #8a6534;
-
-  font-size: 1rem;
-}
-
-.document-file__content {
-  display: flex;
-  flex-direction: column;
-
-  min-width: 0;
-}
-
-.document-file__name {
-  display: block;
-
-  width: 100%;
-  max-width: 260px;
-
-  padding: 0;
-
-  overflow: hidden;
-
-  border: 0;
-
-  background: transparent;
-
-  color: #60492d;
-
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  line-height: 1.4;
-
-  text-align: left;
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-
-  cursor: pointer;
-}
-
-.document-file__name:hover {
-  color: #8a6534;
-
-  text-decoration: underline;
-}
-
-.document-file__name:focus {
-  outline: none;
-
-  color: #8a6534;
-}
-
-.document-file__id {
-  display: block;
-
-  width: 100%;
-  max-width: 260px;
-
-  margin-top: 0.25rem;
-
-  overflow: hidden;
-
-  color: #a0978d;
-
-  font-size: 0.6875rem;
-  line-height: 1.3;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-/* ============================================================
-   DOCUMENT TYPE
-   ============================================================ */
-
-.document-type {
-  display: block;
-
-  overflow: hidden;
-
-  color: #62574c;
-
-  font-size: 0.8125rem;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-/* ============================================================
-   METADATA
-   ============================================================ */
-
-.document-metadata {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.25rem;
-
-  min-width: 0;
-}
-
-.document-metadata__item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.25rem;
-
-  min-width: 0;
-}
-
-.document-metadata__key {
-  flex: none;
-
-  color: #806b52;
-
-  font-size: 0.75rem;
-  font-weight: 600;
-
-  white-space: nowrap;
-}
-
-.document-metadata__value {
-  display: block;
-
-  min-width: 0;
-
-  overflow: hidden;
-
-  color: #62584e;
-
-  font-size: 0.75rem;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.documents__empty-value {
-  color: #aaa198;
-}
-
-
-/* ============================================================
-   SOURCE
-   ============================================================ */
-
-.document-source {
-  display: block;
-
-  overflow: hidden;
-
-  color: #62584e;
-
-  font-size: 0.8125rem;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-/* ============================================================
-   STATUS
-   ============================================================ */
-
-.document-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-
-  min-height: 26px;
-
-  padding: 0.25rem 0.625rem;
-
-  border-radius: 999px;
-
-  background: #f5f1eb;
-
-  color: #76634d;
-
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-
-  white-space: nowrap;
-}
-
-.document-status__dot {
-  display: block;
-
-  flex: none;
-
-  width: 7px;
-  height: 7px;
-
-  border-radius: 50%;
-
-  background: #c18b2e;
-}
-
-.document-status--pending {
-  background: #f8f3e8;
-
-  color: #8a651d;
-}
-
-.document-status--pending .document-status__dot {
-  background: #c18b2e;
-}
-
-.document-status--validated {
-  background: #edf7f0;
-
-  color: #34754a;
-}
-
-.document-status--validated .document-status__dot {
-  background: #4b9a64;
-}
-
-.document-status--rejected {
-  background: #fbefef;
-
-  color: #a44040;
-}
-
-.document-status--rejected .document-status__dot {
-  background: #c75050;
-}
-
-
-/* ============================================================
-   ACTIONS
-   ============================================================ */
-
-.documents__actions-cell {
-  text-align: center;
-}
-
-.document-actions-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 4px;
-
-  background: transparent;
-
-  color: #766653;
-
-  font-size: 1rem;
-}
-
-.document-actions-button:hover,
-.document-actions-button:focus {
-  background: #f3eee7;
-
-  color: #8a6534;
-}
-
-
-/* ============================================================
-   DROPDOWN
-   ============================================================ */
-
-:host ::ng-deep .document-actions-menu {
-  min-width: 160px;
-}
-
-:host ::ng-deep .document-actions-menu .ant-dropdown-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  min-height: 36px;
-
-  color: #5f554a;
-
-  font-size: 0.8125rem;
-}
-
-:host ::ng-deep .document-actions-menu .ant-dropdown-menu-item:hover {
-  background: #f7f3ed;
-}
-
-:host ::ng-deep .document-actions-menu .anticon {
-  color: #806b52;
-}
-
-
-/* ============================================================
-   PAGINATION
-   ============================================================ */
-
-:host ::ng-deep .ant-table-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  min-height: 42px;
-
-  margin: 1rem 0 0 !important;
-}
-
-:host ::ng-deep .ant-pagination-item {
-  border-color: #ded5ca;
-
-  border-radius: 4px;
-}
-
-:host ::ng-deep .ant-pagination-item a {
-  color: #62584e;
-}
-
-:host ::ng-deep .ant-pagination-item:hover {
-  border-color: #8a6534;
-}
-
-:host ::ng-deep .ant-pagination-item:hover a {
-  color: #8a6534;
-}
-
-:host ::ng-deep .ant-pagination-item-active {
-  border-color: #8a6534;
-
-  background: #8a6534;
-}
-
-:host ::ng-deep .ant-pagination-item-active a {
-  color: #ffffff;
-}
-
-:host ::ng-deep .ant-pagination-item-active:hover {
-  border-color: #725229;
-
-  background: #725229;
-}
-
-:host ::ng-deep .ant-pagination-item-active:hover a {
-  color: #ffffff;
-}
-
-:host ::ng-deep .ant-pagination-prev button,
-:host ::ng-deep .ant-pagination-next button {
-  border-radius: 4px;
-
-  color: #62584e;
-}
-
-:host ::ng-deep .ant-pagination-prev:hover button,
-:host ::ng-deep .ant-pagination-next:hover button {
-  color: #8a6534;
-}
-
-
-/* ============================================================
-   EMPTY STATE
-   ============================================================ */
-
-.documents__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  width: 100%;
-  min-height: 290px;
-
-  padding: 2rem;
-
-  box-sizing: border-box;
-
-  border: 1px solid #e5ddd2;
-  border-top: 0;
-  border-radius: 0 0 6px 6px;
-
-  background: #ffffff;
-
-  color: #8b8175;
-
-  text-align: center;
-}
-
-.documents__empty-icon {
-  margin-bottom: 0.75rem;
-
-  color: #b39a79;
-
-  font-size: 2rem;
-}
-
-.documents__empty strong {
-  margin-bottom: 0.25rem;
-
-  color: #60492d;
-
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.documents__empty > span:not(.documents__empty-icon) {
-  color: #948a7e;
-
-  font-size: 0.8125rem;
-}
-
-.documents__empty button {
-  margin-top: 0.5rem;
-
-  color: #8a6534;
-}
-
-
-/* ============================================================
-   TOOLTIP
-   ============================================================ */
-
-:host ::ng-deep .ant-tooltip-inner {
-  font-size: 0.75rem;
-}
-
-
-/* ============================================================
-   NO INTERNAL SCROLL
-   ============================================================ */
-
-:host ::ng-deep .ant-table-body,
-:host ::ng-deep .ant-table-content,
-:host ::ng-deep .ant-table-container {
-  max-height: none !important;
-
-  overflow-x: visible !important;
-  overflow-y: visible !important;
-}
-
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-
-@media (max-width: 1200px) {
-  .documents__column-filename {
-    width: 25%;
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
+import { NgClass } from '@angular/common';
+import { Observable } from 'rxjs';
+
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzMenuModule } from 'ng-zorro-antd/menu';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+
+import { ICaseDocument } from '...';
+import { DocumentTypeConfiguration } from '...';
+import { MetadataConfiguration } from '...';
+import { UploadDocumentRequest } from '...';
+import { EditDocumentRequest } from '...';
+
+import { UploadDocumentComponent } from '...';
+import { EditDocumentComponent } from '...';
+
+@Component({
+  selector: 'documents',
+  standalone: true,
+  imports: [
+    NgClass,
+    NzButtonModule,
+    NzDropDownModule,
+    NzIconModule,
+    NzMenuModule,
+    NzTableModule,
+    NzToolTipModule,
+    UploadDocumentComponent,
+    EditDocumentComponent,
+  ],
+  templateUrl: './documents.html',
+  styleUrl: './documents.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class DocumentsComponent {
+
+  readonly documents =
+    input<readonly ICaseDocument[]>([]);
+
+  readonly downloadDocument =
+    output<ICaseDocument>();
+
+  readonly rejectDocument =
+    output<ICaseDocument>();
+
+  readonly removeDocument =
+    output<ICaseDocument>();
+
+  readonly validateDocument =
+    output<ICaseDocument>();
+
+  readonly deleteDocument =
+    output<ICaseDocument>();
+
+  readonly getDocumentConfigType =
+    input.required<
+      () => Observable<DocumentTypeConfiguration[]>
+    >();
+
+  readonly getDocumentMetadata =
+    input.required<
+      () => Observable<Record<string, MetadataConfiguration[]>>
+    >();
+
+  readonly uploadDocument =
+    output<UploadDocumentRequest>();
+
+  protected readonly refreshDocuments =
+    input<() => void>(() => {});
+
+  readonly documentSaved =
+    input<number>(0);
+
+  readonly documentEdited =
+    input<number>(0);
+
+  readonly editDocument = output<{
+    documentId: string;
+    request: EditDocumentRequest;
+  }>();
+
+  protected readonly editingDocument =
+    signal<ICaseDocument | null>(null);
+
+  protected readonly uploadModalVisible =
+    signal(false);
+
+  protected readonly pageIndex =
+    signal(1);
+
+  protected readonly pageSize = 5;
+
+  protected readonly documentCount =
+    computed(() => this.documents().length);
+
+  protected readonly sortByDocumentType = (
+    a: ICaseDocument,
+    b: ICaseDocument
+  ): number => {
+    return this.displayDocumentType(a.type)
+      .localeCompare(
+        this.displayDocumentType(b.type)
+      );
+  };
+
+  protected readonly sortBySource = (
+    a: ICaseDocument,
+    b: ICaseDocument
+  ): number => {
+    return this.displaySource(a.source)
+      .localeCompare(
+        this.displaySource(b.source)
+      );
+  };
+
+  protected readonly sortByStatus = (
+    a: ICaseDocument,
+    b: ICaseDocument
+  ): number => {
+    return this.displayStatus(a.status)
+      .localeCompare(
+        this.displayStatus(b.status)
+      );
+  };
+
+  constructor() {
+    effect((): void => {
+      const saved = this.documentSaved();
+      const documents = this.documents();
+
+      if (saved === 0) {
+        return;
+      }
+
+      const lastPage = Math.max(
+        1,
+        Math.ceil(
+          documents.length / this.pageSize
+        )
+      );
+
+      untracked((): void => {
+        this.closeUploadModal();
+        this.pageIndex.set(lastPage);
+      });
+    });
+
+    effect((): void => {
+      const edited = this.documentEdited();
+
+      if (edited === 0) {
+        return;
+      }
+
+      untracked((): void => {
+        this.closeEditDocument();
+      });
+    });
   }
 
-  .documents__column-type {
-    width: 14%;
+  protected metadataEntries(
+    metadata?: Record<string, string> | null
+  ): [string, string][] {
+    if (!metadata) {
+      return [];
+    }
+
+    const entries = Object.entries(metadata).filter(
+      ([_, value]: [string, string]): boolean =>
+        value !== null &&
+        value !== undefined &&
+        value !== ''
+    );
+
+    return entries.sort(
+      (
+        [keyA]: [string, string],
+        [keyB]: [string, string]
+      ): number =>
+        this.metadataPriority(keyA) -
+        this.metadataPriority(keyB)
+    );
   }
 
-  .documents__column-metadata {
-    width: 27%;
+  protected primaryMetadata(
+    metadata?: Record<string, string> | null
+  ): [string, string] | null {
+    const entries = this.metadataEntries(metadata);
+
+    return entries.length > 0
+      ? entries[0]
+      : null;
   }
 
-  .documents__column-source {
-    width: 11%;
+  protected remainingMetadata(
+    metadata?: Record<string, string> | null
+  ): [string, string][] {
+    return this.metadataEntries(metadata).slice(1);
   }
 
-  .documents__column-status {
-    width: 15%;
+  protected displayDocumentType(
+    type?: string | null
+  ): string {
+    if (!type) {
+      return '-';
+    }
+
+    return type
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .replace(
+        /\b\w/g,
+        (character: string): string =>
+          character.toUpperCase()
+      );
   }
 
-  .documents__column-actions {
-    width: 8%;
+  protected displaySource(
+    source?: string | null
+  ): string {
+    if (!source) {
+      return '-';
+    }
+
+    return source
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .replace(
+        /\b\w/g,
+        (character: string): string =>
+          character.toUpperCase()
+      );
   }
 
-  .document-file__name,
-  .document-file__id {
-    max-width: 200px;
-  }
-}
+  protected displayStatus(
+    status?: string | null
+  ): string {
+    if (!status) {
+      return 'Pending';
+    }
 
-@media (max-width: 1000px) {
-  .documents__header {
-    min-height: 72px;
-  }
+    switch (status.toUpperCase()) {
+      case 'VALIDATED':
+        return 'Validated';
 
-  .documents__filter {
-    width: min(450px, 100%);
-  }
+      case 'REJECTED':
+        return 'Rejected';
 
-  .document-file__name,
-  .document-file__id {
-    max-width: 160px;
-  }
+      case 'REPLACED':
+        return 'Replaced';
 
-  :host ::ng-deep .ant-table-tbody > tr > td {
-    padding-right: 0.75rem;
-    padding-left: 0.75rem;
-  }
+      case 'PENDING':
+        return 'Pending';
 
-  :host ::ng-deep .ant-table-thead > tr > th {
-    padding-right: 0.75rem;
-    padding-left: 0.75rem;
-  }
-}
-
-@media (max-width: 900px) {
-  .documents__header {
-    align-items: flex-start;
+      default:
+        return status;
+    }
   }
 
-  .documents__filters {
-    align-items: stretch;
-    flex-direction: column;
+  protected statusClass(
+    status?: string | null
+  ): string {
+    switch (status?.toUpperCase()) {
+      case 'VALIDATED':
+        return 'document-status--validated';
+
+      case 'REJECTED':
+        return 'document-status--rejected';
+
+      case 'REPLACED':
+        return 'document-status--replaced';
+
+      default:
+        return 'document-status--pending';
+    }
   }
 
-  .documents__filter {
-    width: 100%;
+  protected onUploadDocument(
+    request: UploadDocumentRequest
+  ): void {
+    this.uploadDocument.emit(request);
   }
 
-  .documents__filter-result {
-    padding-bottom: 0;
+  protected onDownload(
+    document: ICaseDocument
+  ): void {
+    this.downloadDocument.emit(document);
   }
 
-  .document-file__name,
-  .document-file__id {
-    max-width: 120px;
+  protected onEditDocumentSubmitted(
+    request: EditDocumentRequest
+  ): void {
+    const document =
+      this.editingDocument();
+
+    if (!document) {
+      return;
+    }
+
+    this.editDocument.emit({
+      documentId: document.documentId,
+      request,
+    });
+  }
+
+  protected openEditDocument(
+    document: ICaseDocument
+  ): void {
+    this.editingDocument.set(document);
+  }
+
+  protected closeEditDocument(): void {
+    this.editingDocument.set(null);
+  }
+
+  protected onReject(
+    document: ICaseDocument
+  ): void {
+    this.rejectDocument.emit(document);
+  }
+
+  protected onRemove(
+    document: ICaseDocument
+  ): void {
+    this.removeDocument.emit(document);
+  }
+
+  protected onValidate(
+    document: ICaseDocument
+  ): void {
+    this.validateDocument.emit(document);
+  }
+
+  protected openUploadModal(): void {
+    this.uploadModalVisible.set(true);
+  }
+
+  protected closeUploadModal(): void {
+    this.uploadModalVisible.set(false);
+  }
+
+  private metadataPriority(
+    key: string
+  ): number {
+    switch (key.toLowerCase()) {
+      case 'thirdpartyid':
+        return 0;
+
+      case 'policynumber':
+        return 1;
+
+      default:
+        return 2;
+    }
   }
 }
