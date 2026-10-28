@@ -1,369 +1,402 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  input,
-  output,
-  signal,
-  untracked,
-} from '@angular/core';
-import { NgClass } from '@angular/common';
-import { Observable } from 'rxjs';
+<section class="documents">
 
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzMenuModule } from 'ng-zorro-antd/menu';
-import { NzTableModule } from 'ng-zorro-antd/table';
-import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+  <header class="documents__header">
 
-import { ICaseDocument } from '...';
-import { DocumentTypeConfiguration } from '...';
-import { MetadataConfiguration } from '...';
-import { UploadDocumentRequest } from '...';
-import { EditDocumentRequest } from '...';
+    <div class="documents__heading">
 
-import { UploadDocumentComponent } from '...';
-import { EditDocumentComponent } from '...';
+      <div class="documents__title-row">
 
-@Component({
-  selector: 'documents',
-  standalone: true,
-  imports: [
-    NgClass,
-    NzButtonModule,
-    NzDropDownModule,
-    NzIconModule,
-    NzMenuModule,
-    NzTableModule,
-    NzToolTipModule,
-    UploadDocumentComponent,
-    EditDocumentComponent,
-  ],
-  templateUrl: './documents.html',
-  styleUrl: './documents.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-export class DocumentsComponent {
+        <span
+          class="documents__title-icon"
+          nz-icon
+          nzType="file-text"
+          nzTheme="outline">
+        </span>
 
-  readonly documents =
-    input<readonly ICaseDocument[]>([]);
+        <h2 class="documents__title">
+          Documents
+        </h2>
 
-  readonly downloadDocument =
-    output<ICaseDocument>();
+      </div>
 
-  readonly rejectDocument =
-    output<ICaseDocument>();
+      <span class="documents__count">
+        {{ documentCount() }}
+        {{ documentCount() === 1 ? 'document' : 'documents' }}
+      </span>
 
-  readonly removeDocument =
-    output<ICaseDocument>();
+    </div>
 
-  readonly validateDocument =
-    output<ICaseDocument>();
+    <button
+      nz-button
+      nzType="primary"
+      type="button"
+      class="documents__add-button"
+      (click)="openUploadModal()">
 
-  readonly deleteDocument =
-    output<ICaseDocument>();
+      <span
+        nz-icon
+        nzType="plus"
+        nzTheme="outline">
+      </span>
 
-  readonly getDocumentConfigType =
-    input.required<
-      () => Observable<DocumentTypeConfiguration[]>
-    >();
+      Add document
 
-  readonly getDocumentMetadata =
-    input.required<
-      () => Observable<Record<string, MetadataConfiguration[]>>
-    >();
+    </button>
 
-  readonly uploadDocument =
-    output<UploadDocumentRequest>();
+  </header>
 
-  protected readonly refreshDocuments =
-    input<() => void>(() => {});
 
-  readonly documentSaved =
-    input<number>(0);
+  <div class="documents__table-container">
 
-  readonly documentEdited =
-    input<number>(0);
+    <nz-table
+      #documentsTable
+      nzSize="middle"
+      [nzData]="documents()"
+      [nzFrontPagination]="true"
+      [nzPageIndex]="pageIndex()"
+      [nzPageSize]="pageSize"
+      [nzShowSizeChanger]="false"
+      [nzHideOnSinglePage]="true"
+      (nzPageIndexChange)="pageIndex.set($event)">
 
-  readonly editDocument = output<{
-    documentId: string;
-    request: EditDocumentRequest;
-  }>();
+      <thead>
 
-  protected readonly editingDocument =
-    signal<ICaseDocument | null>(null);
+        <tr>
 
-  protected readonly uploadModalVisible =
-    signal(false);
+          <th class="documents__column-filename">
+            Filename
+          </th>
 
-  protected readonly pageIndex =
-    signal(1);
+          <th
+            class="documents__column-type"
+            [nzSortFn]="sortByDocumentType">
+            Document type
+          </th>
 
-  protected readonly pageSize = 5;
+          <th class="documents__column-metadata">
+            Metadata
+          </th>
 
-  protected readonly documentCount =
-    computed(() => this.documents().length);
+          <th
+            class="documents__column-source"
+            [nzSortFn]="sortBySource">
+            Source
+          </th>
 
-  protected readonly sortByDocumentType = (
-    a: ICaseDocument,
-    b: ICaseDocument
-  ): number => {
-    return this.displayDocumentType(a.type)
-      .localeCompare(
-        this.displayDocumentType(b.type)
-      );
-  };
+          <th
+            class="documents__column-status"
+            [nzSortFn]="sortByStatus">
+            Status
+          </th>
 
-  protected readonly sortBySource = (
-    a: ICaseDocument,
-    b: ICaseDocument
-  ): number => {
-    return this.displaySource(a.source)
-      .localeCompare(
-        this.displaySource(b.source)
-      );
-  };
+          <th class="documents__column-actions">
+            Actions
+          </th>
 
-  protected readonly sortByStatus = (
-    a: ICaseDocument,
-    b: ICaseDocument
-  ): number => {
-    return this.displayStatus(a.status)
-      .localeCompare(
-        this.displayStatus(b.status)
-      );
-  };
+        </tr>
 
-  constructor() {
-    effect((): void => {
-      const saved = this.documentSaved();
-      const documents = this.documents();
+      </thead>
 
-      if (saved === 0) {
-        return;
-      }
 
-      const lastPage = Math.max(
-        1,
-        Math.ceil(
-          documents.length / this.pageSize
-        )
-      );
+      <tbody>
 
-      untracked((): void => {
-        this.closeUploadModal();
-        this.pageIndex.set(lastPage);
-      });
-    });
+        @for (
+          document of documentsTable.data;
+          track document.documentId
+        ) {
 
-    effect((): void => {
-      const edited = this.documentEdited();
+          <tr>
 
-      if (edited === 0) {
-        return;
-      }
+            <td>
 
-      untracked((): void => {
-        this.closeEditDocument();
-      });
-    });
+              <div class="document-file">
+
+                <span
+                  class="document-file__icon"
+                  nz-icon
+                  nzType="file-text"
+                  nzTheme="outline">
+                </span>
+
+                <div class="document-file__content">
+
+                  <button
+                    type="button"
+                    class="document-file__name"
+                    nz-tooltip
+                    [nzTooltipTitle]="document.name"
+                    (click)="onDownload(document)">
+
+                    {{ document.name }}
+
+                  </button>
+
+                  <span
+                    class="document-file__id"
+                    nz-tooltip
+                    [nzTooltipTitle]="document.documentId">
+
+                    {{ document.documentId }}
+
+                  </span>
+
+                </div>
+
+              </div>
+
+            </td>
+
+
+            <td>
+
+              <span
+                class="document-type"
+                nz-tooltip
+                [nzTooltipTitle]="displayDocumentType(document.type)">
+
+                {{ displayDocumentType(document.type) }}
+
+              </span>
+
+            </td>
+
+
+            <td>
+
+              @if (
+                primaryMetadata(document.metadata);
+                as metadata
+              ) {
+
+                <div
+                  class="document-metadata"
+                  nz-tooltip
+                  [nzTooltipTitle]="metadataTooltip">
+
+                  <div class="document-metadata__primary">
+
+                    <span class="document-metadata__key">
+                      {{ metadata[0] }}:
+                    </span>
+
+                    <span class="document-metadata__value">
+                      {{ metadata[1] }}
+                    </span>
+
+                    @if (
+                      remainingMetadata(document.metadata).length > 0
+                    ) {
+
+                      <span class="document-metadata__more">
+                        +{{ remainingMetadata(document.metadata).length }}
+                      </span>
+
+                    }
+
+                  </div>
+
+                </div>
+
+
+                <ng-template #metadataTooltip>
+
+                  <div class="document-metadata-tooltip">
+
+                    @for (
+                      item of metadataEntries(document.metadata);
+                      track item[0]
+                    ) {
+
+                      <div class="document-metadata-tooltip__item">
+
+                        <strong>
+                          {{ item[0] }}:
+                        </strong>
+
+                        <span>
+                          {{ item[1] }}
+                        </span>
+
+                      </div>
+
+                    }
+
+                  </div>
+
+                </ng-template>
+
+              } @else {
+
+                <span class="documents__empty-value">
+                  -
+                </span>
+
+              }
+
+            </td>
+
+
+            <td>
+
+              <span class="document-source">
+                {{ displaySource(document.source) }}
+              </span>
+
+            </td>
+
+
+            <td>
+
+              <span
+                class="document-status"
+                [ngClass]="statusClass(document.status)">
+
+                <span class="document-status__dot"></span>
+
+                {{ displayStatus(document.status) }}
+
+              </span>
+
+            </td>
+
+
+            <td class="documents__actions-cell">
+
+              <button
+                nz-button
+                nzType="text"
+                nz-dropdown
+                nzTrigger="click"
+                nzPlacement="bottomRight"
+                [nzDropdownMenu]="documentActions"
+                type="button"
+                class="document-actions-button">
+
+                <span
+                  nz-icon
+                  nzType="more"
+                  nzTheme="outline">
+                </span>
+
+              </button>
+
+
+              <nz-dropdown-menu
+                #documentActions="nzDropdownMenu">
+
+                <ul
+                  nz-menu
+                  class="document-actions-menu">
+
+                  <li
+                    nz-menu-item
+                    (click)="onDownload(document)">
+
+                    <span
+                      nz-icon
+                      nzType="download"
+                      nzTheme="outline">
+                    </span>
+
+                    Download
+
+                  </li>
+
+
+                  <li
+                    nz-menu-item
+                    (click)="openEditDocument(document)">
+
+                    <span
+                      nz-icon
+                      nzType="edit"
+                      nzTheme="outline">
+                    </span>
+
+                    Edit
+
+                  </li>
+
+
+                  <li nz-menu-divider></li>
+
+
+                  <li
+                    nz-menu-item
+                    (click)="onValidate(document)">
+
+                    <span
+                      nz-icon
+                      nzType="check-circle"
+                      nzTheme="outline">
+                    </span>
+
+                    Validate
+
+                  </li>
+
+
+                  <li
+                    nz-menu-item
+                    (click)="onReject(document)">
+
+                    <span
+                      nz-icon
+                      nzType="close-circle"
+                      nzTheme="outline">
+                    </span>
+
+                    Reject
+
+                  </li>
+
+
+                  <li nz-menu-divider></li>
+
+
+                  <li
+                    nz-menu-item
+                    nzDanger
+                    (click)="onRemove(document)">
+
+                    <span
+                      nz-icon
+                      nzType="delete"
+                      nzTheme="outline">
+                    </span>
+
+                    Remove
+
+                  </li>
+
+                </ul>
+
+              </nz-dropdown-menu>
+
+            </td>
+
+          </tr>
+
+        }
+
+      </tbody>
+
+    </nz-table>
+
+  </div>
+
+
+  @if (uploadModalVisible()) {
+
+    <!-- KEEP YOUR EXISTING UPLOAD MODAL EXACTLY HERE -->
+
   }
 
-  protected metadataEntries(
-    metadata?: Record<string, string> | null
-  ): [string, string][] {
-    if (!metadata) {
-      return [];
-    }
 
-    const entries = Object.entries(metadata).filter(
-      ([_, value]: [string, string]): boolean =>
-        value !== null &&
-        value !== undefined &&
-        value !== ''
-    );
+  @if (editingDocument(); as document) {
 
-    return entries.sort(
-      (
-        [keyA]: [string, string],
-        [keyB]: [string, string]
-      ): number =>
-        this.metadataPriority(keyA) -
-        this.metadataPriority(keyB)
-    );
+    <!-- KEEP YOUR EXISTING EDIT MODAL EXACTLY HERE -->
+
   }
 
-  protected primaryMetadata(
-    metadata?: Record<string, string> | null
-  ): [string, string] | null {
-    const entries = this.metadataEntries(metadata);
-
-    return entries.length > 0
-      ? entries[0]
-      : null;
-  }
-
-  protected remainingMetadata(
-    metadata?: Record<string, string> | null
-  ): [string, string][] {
-    return this.metadataEntries(metadata).slice(1);
-  }
-
-  protected displayDocumentType(
-    type?: string | null
-  ): string {
-    if (!type) {
-      return '-';
-    }
-
-    return type
-      .replaceAll('_', ' ')
-      .toLowerCase()
-      .replace(
-        /\b\w/g,
-        (character: string): string =>
-          character.toUpperCase()
-      );
-  }
-
-  protected displaySource(
-    source?: string | null
-  ): string {
-    if (!source) {
-      return '-';
-    }
-
-    return source
-      .replaceAll('_', ' ')
-      .toLowerCase()
-      .replace(
-        /\b\w/g,
-        (character: string): string =>
-          character.toUpperCase()
-      );
-  }
-
-  protected displayStatus(
-    status?: string | null
-  ): string {
-    if (!status) {
-      return 'Pending';
-    }
-
-    switch (status.toUpperCase()) {
-      case 'VALIDATED':
-        return 'Validated';
-
-      case 'REJECTED':
-        return 'Rejected';
-
-      case 'REPLACED':
-        return 'Replaced';
-
-      case 'PENDING':
-        return 'Pending';
-
-      default:
-        return status;
-    }
-  }
-
-  protected statusClass(
-    status?: string | null
-  ): string {
-    switch (status?.toUpperCase()) {
-      case 'VALIDATED':
-        return 'document-status--validated';
-
-      case 'REJECTED':
-        return 'document-status--rejected';
-
-      case 'REPLACED':
-        return 'document-status--replaced';
-
-      default:
-        return 'document-status--pending';
-    }
-  }
-
-  protected onUploadDocument(
-    request: UploadDocumentRequest
-  ): void {
-    this.uploadDocument.emit(request);
-  }
-
-  protected onDownload(
-    document: ICaseDocument
-  ): void {
-    this.downloadDocument.emit(document);
-  }
-
-  protected onEditDocumentSubmitted(
-    request: EditDocumentRequest
-  ): void {
-    const document =
-      this.editingDocument();
-
-    if (!document) {
-      return;
-    }
-
-    this.editDocument.emit({
-      documentId: document.documentId,
-      request,
-    });
-  }
-
-  protected openEditDocument(
-    document: ICaseDocument
-  ): void {
-    this.editingDocument.set(document);
-  }
-
-  protected closeEditDocument(): void {
-    this.editingDocument.set(null);
-  }
-
-  protected onReject(
-    document: ICaseDocument
-  ): void {
-    this.rejectDocument.emit(document);
-  }
-
-  protected onRemove(
-    document: ICaseDocument
-  ): void {
-    this.removeDocument.emit(document);
-  }
-
-  protected onValidate(
-    document: ICaseDocument
-  ): void {
-    this.validateDocument.emit(document);
-  }
-
-  protected openUploadModal(): void {
-    this.uploadModalVisible.set(true);
-  }
-
-  protected closeUploadModal(): void {
-    this.uploadModalVisible.set(false);
-  }
-
-  private metadataPriority(
-    key: string
-  ): number {
-    switch (key.toLowerCase()) {
-      case 'thirdpartyid':
-        return 0;
-
-      case 'policynumber':
-        return 1;
-
-      default:
-        return 2;
-    }
-  }
-}
+</section>
