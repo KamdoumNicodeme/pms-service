@@ -2,11 +2,17 @@
   display: block;
   width: 100%;
   min-width: 0;
+  height: 100%;
 }
 
 .documents {
+  display: flex;
+  flex-direction: column;
+
   width: 100%;
   min-width: 0;
+  height: 100%;
+
   box-sizing: border-box;
 }
 
@@ -21,6 +27,8 @@
   justify-content: space-between;
   gap: 1rem;
 
+  min-height: 82px;
+
   margin-bottom: 1rem;
 }
 
@@ -31,11 +39,12 @@
 .documents__title-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
 }
 
 .documents__title-icon {
   color: #8a6534;
+
   font-size: 1.25rem;
 }
 
@@ -44,7 +53,7 @@
 
   color: #5c4426;
 
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.4;
 }
@@ -52,11 +61,11 @@
 .documents__count {
   display: block;
 
-  margin-top: 0.25rem;
+  margin-top: 0.375rem;
 
   color: #8b8175;
 
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.4;
 }
 
@@ -64,24 +73,35 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
 
   flex: none;
 
-  min-height: 36px;
+  min-width: 168px;
+  height: 40px;
+
+  padding: 0 1.125rem;
 
   border-color: #8a6534;
+  border-radius: 3px;
+
   background: #8a6534;
 
   box-shadow: none;
 
+  color: #ffffff;
+
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .documents__add-button:hover,
 .documents__add-button:focus {
   border-color: #725229;
+
   background: #725229;
+
+  color: #ffffff;
 }
 
 
@@ -99,24 +119,25 @@
 }
 
 .documents__filter {
-  width: min(420px, 100%);
+  width: min(520px, 100%);
 }
 
 .documents__filter-label {
   display: block;
 
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.5rem;
 
   color: #5c4426;
 
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .documents__filter-result {
   flex: none;
 
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.625rem;
 
   color: #8b8175;
 
@@ -144,7 +165,10 @@
 }
 
 :host ::ng-deep .documents__filter .ant-input-affix-wrapper {
-  min-height: 38px;
+  min-height: 42px;
+
+  padding-right: 0.75rem;
+  padding-left: 0.75rem;
 
   border-color: #ddd4c8;
   border-radius: 4px;
@@ -170,6 +194,8 @@
 
 :host ::ng-deep .documents__filter .ant-input {
   color: #554b40;
+
+  font-size: 0.875rem;
 }
 
 :host ::ng-deep .documents__filter .ant-input::placeholder {
@@ -190,7 +216,7 @@
 
 
 /* ============================================================
-   NZ TABLE
+   TABLE
    ============================================================ */
 
 :host ::ng-deep .ant-table-wrapper {
@@ -233,6 +259,8 @@
    ============================================================ */
 
 :host ::ng-deep .ant-table-thead > tr > th {
+  height: 46px;
+
   padding: 0.75rem 1rem;
 
   border-bottom: 1px solid #ded4c7;
@@ -241,9 +269,11 @@
 
   color: #60492d;
 
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.4;
+
+  vertical-align: middle;
 
   white-space: nowrap;
 }
@@ -258,6 +288,8 @@
    ============================================================ */
 
 :host ::ng-deep .ant-table-tbody > tr > td {
+  height: 58px;
+
   padding: 0.75rem 1rem;
 
   border-bottom: 1px solid #eee8e0;
@@ -286,7 +318,7 @@
    ============================================================ */
 
 .documents__column-filename {
-  width: 25%;
+  width: 26%;
 }
 
 .documents__column-type {
@@ -302,11 +334,11 @@
 }
 
 .documents__column-status {
-  width: 13%;
+  width: 14%;
 }
 
 .documents__column-actions {
-  width: 10%;
+  width: 8%;
 
   text-align: center;
 }
@@ -319,7 +351,7 @@
 .document-file {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.75rem;
 
   min-width: 0;
 }
@@ -329,12 +361,12 @@
   align-items: center;
   justify-content: center;
 
-  flex: 0 0 32px;
+  flex: 0 0 36px;
 
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
 
-  border-radius: 4px;
+  border-radius: 5px;
 
   background: #f3eee7;
 
@@ -354,7 +386,7 @@
   display: block;
 
   width: 100%;
-  max-width: 220px;
+  max-width: 260px;
 
   padding: 0;
 
@@ -369,6 +401,7 @@
   font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1.4;
 
   text-align: left;
   text-overflow: ellipsis;
@@ -393,15 +426,17 @@
 .document-file__id {
   display: block;
 
-  max-width: 220px;
+  width: 100%;
+  max-width: 260px;
 
-  margin-top: 0.125rem;
+  margin-top: 0.25rem;
 
   overflow: hidden;
 
   color: #a0978d;
 
   font-size: 0.6875rem;
+  line-height: 1.3;
 
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -419,6 +454,8 @@
 
   color: #62574c;
 
+  font-size: 0.8125rem;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -431,7 +468,8 @@
 .document-metadata {
   display: flex;
   flex-direction: column;
-  gap: 0.1875rem;
+  justify-content: center;
+  gap: 0.25rem;
 
   min-width: 0;
 }
@@ -486,6 +524,8 @@
 
   color: #62584e;
 
+  font-size: 0.8125rem;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -498,9 +538,12 @@
 .document-status {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.375rem;
 
-  padding: 0.25rem 0.5rem;
+  min-height: 26px;
+
+  padding: 0.25rem 0.625rem;
 
   border-radius: 999px;
 
@@ -510,6 +553,7 @@
 
   font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1;
 
   white-space: nowrap;
 }
@@ -571,19 +615,20 @@
   align-items: center;
   justify-content: center;
 
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
 
   padding: 0;
 
   border: 0;
-
   border-radius: 4px;
 
   background: transparent;
 
   color: #766653;
+
+  font-size: 1rem;
 }
 
 .document-actions-button:hover,
@@ -599,13 +644,15 @@
    ============================================================ */
 
 :host ::ng-deep .document-actions-menu {
-  min-width: 150px;
+  min-width: 160px;
 }
 
 :host ::ng-deep .document-actions-menu .ant-dropdown-menu-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+
+  min-height: 36px;
 
   color: #5f554a;
 
@@ -629,6 +676,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+
+  min-height: 42px;
 
   margin: 1rem 0 0 !important;
 }
@@ -661,6 +710,12 @@
   color: #ffffff;
 }
 
+:host ::ng-deep .ant-pagination-item-active:hover {
+  border-color: #725229;
+
+  background: #725229;
+}
+
 :host ::ng-deep .ant-pagination-item-active:hover a {
   color: #ffffff;
 }
@@ -670,6 +725,11 @@
   border-radius: 4px;
 
   color: #62584e;
+}
+
+:host ::ng-deep .ant-pagination-prev:hover button,
+:host ::ng-deep .ant-pagination-next:hover button {
+  color: #8a6534;
 }
 
 
@@ -684,7 +744,7 @@
   justify-content: center;
 
   width: 100%;
-  min-height: 180px;
+  min-height: 290px;
 
   padding: 2rem;
 
@@ -732,7 +792,7 @@
 
 
 /* ============================================================
-   TOOLTIP / TEXT
+   TOOLTIP
    ============================================================ */
 
 :host ::ng-deep .ant-tooltip-inner {
@@ -758,13 +818,13 @@
    RESPONSIVE
    ============================================================ */
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .documents__column-filename {
-    width: 24%;
+    width: 25%;
   }
 
   .documents__column-type {
-    width: 15%;
+    width: 14%;
   }
 
   .documents__column-metadata {
@@ -776,16 +836,41 @@
   }
 
   .documents__column-status {
-    width: 14%;
+    width: 15%;
   }
 
   .documents__column-actions {
-    width: 9%;
+    width: 8%;
+  }
+
+  .document-file__name,
+  .document-file__id {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .documents__header {
+    min-height: 72px;
+  }
+
+  .documents__filter {
+    width: min(450px, 100%);
   }
 
   .document-file__name,
   .document-file__id {
     max-width: 160px;
+  }
+
+  :host ::ng-deep .ant-table-tbody > tr > td {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+
+  :host ::ng-deep .ant-table-thead > tr > th {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
   }
 }
 
