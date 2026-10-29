@@ -1,48 +1,23 @@
-@Component({
-  selector: 'completion-confirmation',
-  standalone: true,
-  imports: [
-    NzButtonModule,
-    NzIconModule,
-  ],
-  template: `
-    <div class="completion-confirmation">
-      <p>
-        Are you sure you want to complete this task?
-      </p>
+private completeSignOff(
+  caseId: string,
+  taskId: number,
+  onSuccess: () => void
+): void {
+  this.#completionConfirmationModalService
+    .openConfirmationModal()
+    .afterClose
+    .subscribe((confirmed: boolean): void => {
+      if (!confirmed) {
+        return;
+      }
 
-      <div class="completion-confirmation__actions">
-        <button
-          nz-button
-          type="button"
-          (click)="cancel()"
-        >
-          Cancel
-        </button>
-
-        <button
-          nz-button
-          nzType="primary"
-          type="button"
-          (click)="confirm()"
-        >
-          Confirm
-        </button>
-      </div>
-    </div>
-  `,
-  styleUrl: './completion-confirmation.component.scss',
-})
-export class CompletionConfirmationComponent {
-
-  private readonly modalRef =
-    inject(NzModalRef<CompletionConfirmationComponent>);
-
-  protected cancel(): void {
-    this.modalRef.close(false);
-  }
-
-  protected confirm(): void {
-    this.modalRef.close(true);
-  }
+      this.#caseService
+        .completeTask(
+          caseId,
+          taskId,
+          TaskType.CHANGE_CLIENT_INFORMATION_SIGNOFF,
+          {}
+        )
+        .subscribe((): void => onSuccess());
+    });
 }
