@@ -1,27 +1,37 @@
-protected onPolicyChanges(event: ComparisonChanges): void {
-  const data = this.getClientProfilingData();
+save(
+  caseId: string,
+  taskId: number,
+  onSuccess: () => void
+): void {
 
-  if (!data) {
+  const model = this.changeClientInformationForm.getRawValue();
+
+  if (!model.policy || this.saving()) {
     return;
   }
 
-  const allPolicyChanges =
-    this.updatePolicySectionChanges(event);
+  this.saving.set(true);
 
-  const policy =
-    this.changeClientInformationForm.controls.policy.value;
-
-  const current: IChangeClientInformation = policy
-    ? { policy: structuredClone(policy) }
-    : data.changeClientInformation
-      ? structuredClone(data.changeClientInformation)
-      : this.changeService.createEmpty(data);
-
-  const updated = this.changeService.applyPolicyChanges(
-    current,
-    allPolicyChanges
-  );
-
-  this.changeClientInformationForm.patchValueCustom(updated);
-  this.changeClientInformationForm.markAsDirty();
+  this.#caseService
+    .saveTask(
+      caseId,
+      taskId,
+      TaskType.CHANGE_CLIENT_INFORMATION,
+      model
+    )
+    .pipe(
+      finalize(() => this.saving.set(false))
+    )
+    .subscribe({
+      next: () => {
+        this.changeClientInformationForm.markAsPristine();
+        onSuccess();
+      },
+      error: error => {
+        console.error(
+          'Error saving Change Client Information',
+          error
+        );
+      }
+    });
 }
