@@ -1,37 +1,32 @@
-save(
-  caseId: string,
-  taskId: number,
-  onSuccess: () => void
-): void {
+protected onHolderChanges(event: ComparisonChanges): void {
+  const data = this.getClientProfilingData();
 
-  const model = this.changeClientInformationForm.getRawValue();
-
-  if (!model.policy || this.saving()) {
+  if (!data) {
     return;
   }
 
-  this.saving.set(true);
+  const allHolderChanges =
+    this.updateHolderSectionChanges(event);
 
-  this.#caseService
-    .saveTask(
-      caseId,
-      taskId,
-      TaskType.CHANGE_CLIENT_INFORMATION,
-      model
-    )
-    .pipe(
-      finalize(() => this.saving.set(false))
-    )
-    .subscribe({
-      next: () => {
-        this.changeClientInformationForm.markAsPristine();
-        onSuccess();
-      },
-      error: error => {
-        console.error(
-          'Error saving Change Client Information',
-          error
-        );
-      }
-    });
+  const currentPolicy =
+    this.changeClientInformationForm.controls.policy.value;
+
+  const current: IChangeClientInformation = currentPolicy
+    ? { policy: structuredClone(currentPolicy) }
+    : data.changeClientInformation
+      ? structuredClone(data.changeClientInformation)
+      : this.changeService.createEmpty(data);
+
+  const updated = this.changeService.applyHolderChanges(
+    structuredClone(current),
+    allHolderChanges
+  );
+
+  this.changeClientInformationForm.patchValueCustom(updated);
+  this.changeClientInformationForm.markAsDirty();
+
+  console.log(
+    'HOLDER UPDATED FORM',
+    this.changeClientInformationForm.getRawValue()
+  );
 }
