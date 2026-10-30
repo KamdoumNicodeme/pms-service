@@ -1,63 +1,40 @@
-private completeSignOff(
-  caseId: string,
+private updateTaskAction(
+  caseBusinessIdentifier: string,
   taskId: number,
-  onSuccess: () => void
-): void {
-  const manualChangeRequired = this.hasAddressChanged();
+  taskType: TaskType,
+  taskAction: TaskAction,
+  manualChangeRequired?: boolean
+): Observable<any> {
+  let addParams: Map<string, boolean> | undefined;
 
-  this.#completionConfirmationModalService
-    .openConfirmation()
-    .afterClose
-    .subscribe((confirmed: boolean): void => {
-      if (!confirmed) {
-        return;
-      }
+  const validationParam = getValidationParam(taskType);
 
-      if (manualChangeRequired) {
-        this.#assignmentService
-          .openAssignmentModal(
-            this.teams(),
-            'Manual change assignment',
-            {
-              displayName: this.currentCase()?.ownerTeam,
-              value: this.currentCase()?.ownerTeam,
-            } as Assignee,
-            {
-              displayName: this.currentCase()?.ownerDetails?.displayName,
-              value: this.currentCase()?.ownerDetails?.username,
-            } as Assignee
-          )
-          .afterClose.pipe(
-            filter(Boolean),
-            switchMap((owner: AssigneeInput) =>
-              this.#caseService.completeTask(
-                caseId,
-                taskId,
-                TaskType.CHANGE_CLIENT_INFORMATION_SIGNOFF,
-                {
-                  signOffAssignment: {
-                    user: owner.assignee,
-                    team: owner.team,
-                  },
-                  manualChangeRequired,
-                }
-              )
-            )
-          )
-          .subscribe(() => onSuccess());
+  if (validationParam) {
+    addParams = new Map<string, boolean>([
+      [validationParam, taskAction === TaskAction.COMPLETE]
+    ]);
+  }
 
-        return;
-      }
+  if (
+    taskType === TaskType.CHANGE_CLIENT_INFORMATION_SIGNOFF &&
+    taskAction === TaskAction.COMPLETE
+  ) {
+    addParams ??= new Map<string, boolean>();
 
-      this.#caseService
-        .completeTask(
-          caseId,
-          taskId,
-          TaskType.CHANGE_CLIENT_INFORMATION_SIGNOFF,
-          {
-            manualChangeRequired,
-          }
-        )
-        .subscribe(() => onSuccess());
-    });
+    addParams.set(
+      'cciManualChangeRequired',
+      manualChangeRequired ?? false
+    );
+  }
+
+  return this.#dataCasesService
+    .updateTaskAction(taskId, taskAction, addParams)
+    .pipe(
+      switchMap((result: any) =>
+        forkJoin([
+          this.#dataTasksService.updateTimestamp(taskId),
+          this.#dataCasesService.updateTimestamp(caseBusinessIdentifier),
+        ]).pipe(map(() => result))
+      )
+    );
 }
