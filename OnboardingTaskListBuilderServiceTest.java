@@ -1,23 +1,23 @@
-@if (rejectionReason) {
-  <section class="rejection-alert">
-    <nz-alert
-      nzShowIcon
-      nzType="error"
-      [nzMessage]="alert"
-    />
-  </section>
+private hasAddressChanged(): boolean {
+  const portalAddress =
+    this.getClientProfilingData()?.clientPortalBusinessData?.policy.holder.sendingAddress?.address;
+
+  const changedAddress =
+    this.getClientProfilingData()?.changeClientInformation?.policy.holder.sendingAddress?.address;
+
+  if (!portalAddress && !changedAddress) {
+    return false;
+  }
+
+  if (!portalAddress || !changedAddress) {
+    return true;
+  }
+
+  return (
+    portalAddress.number !== changedAddress.number ||
+    portalAddress.street !== changedAddress.street ||
+    portalAddress.postcode !== changedAddress.postcode ||
+    portalAddress.city !== changedAddress.city ||
+    portalAddress.country !== changedAddress.country
+  );
 }
-
-<ng-template #alert>
-  <div class="rejection-alert__content">
-    <span class="rejection-alert__title">
-      Rejected by PSA during Sign off
-    </span>
-
-    <span class="rejection-alert__separator">—</span>
-
-    <span class="rejection-alert__reason">
-      {{ rejectionReason }}
-    </span>
-  </div>
-</ng-template>
