@@ -1,32 +1,40 @@
-protected onHolderChanges(event: ComparisonChanges): void {
-  const data = this.getClientProfilingData();
+.rejection-alert {
+  width: 100%;
 
-  if (!data) {
-    return;
+  &__content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
   }
 
-  const allHolderChanges =
-    this.updateHolderSectionChanges(event);
+  &__title {
+    font-weight: 600;
+    white-space: nowrap;
+  }
 
-  const currentPolicy =
-    this.changeClientInformationForm.controls.policy.value;
+  &__separator {
+    flex-shrink: 0;
+  }
 
-  const current: IChangeClientInformation = currentPolicy
-    ? { policy: structuredClone(currentPolicy) }
-    : data.changeClientInformation
-      ? structuredClone(data.changeClientInformation)
-      : this.changeService.createEmpty(data);
+  &__reason {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-  const updated = this.changeService.applyHolderChanges(
-    structuredClone(current),
-    allHolderChanges
-  );
+  ::ng-deep .ant-alert {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+  }
 
-  this.changeClientInformationForm.patchValueCustom(updated);
-  this.changeClientInformationForm.markAsDirty();
+  ::ng-deep .ant-alert-icon {
+    position: static;
+    margin-right: 10px;
+  }
 
-  console.log(
-    'HOLDER UPDATED FORM',
-    this.changeClientInformationForm.getRawValue()
-  );
+  ::ng-deep .ant-alert-message {
+    margin: 0;
+  }
 }
