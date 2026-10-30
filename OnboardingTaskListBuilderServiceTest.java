@@ -1,40 +1,49 @@
-private updateTaskAction(
+completeTask(
   caseBusinessIdentifier: string,
   taskId: number,
   taskType: TaskType,
-  taskAction: TaskAction,
-  manualChangeRequired?: boolean
-): Observable<any> {
-  let addParams: Map<string, boolean> | undefined;
+  request?: SafeAny
+): Observable<ITaskDetails> {
+  console.log('request .....', request);
 
-  const validationParam = getValidationParam(taskType);
-
-  if (validationParam) {
-    addParams = new Map<string, boolean>([
-      [validationParam, taskAction === TaskAction.COMPLETE]
-    ]);
-  }
-
-  if (
-    taskType === TaskType.CHANGE_CLIENT_INFORMATION_SIGNOFF &&
-    taskAction === TaskAction.COMPLETE
-  ) {
-    addParams ??= new Map<string, boolean>();
-
-    addParams.set(
-      'cciManualChangeRequired',
-      manualChangeRequired ?? false
-    );
-  }
-
-  return this.#dataCasesService
-    .updateTaskAction(taskId, taskAction, addParams)
-    .pipe(
-      switchMap((result: any) =>
-        forkJoin([
-          this.#dataTasksService.updateTimestamp(taskId),
-          this.#dataCasesService.updateTimestamp(caseBusinessIdentifier),
-        ]).pipe(map(() => result))
+  if (isTaskUpdatable(taskType)) {
+    return (
+      Boolean(request)
+        ? this.saveTask(
+            caseBusinessIdentifier,
+            taskId,
+            taskType,
+            request
+          )
+        : of({})
+    ).pipe(
+      switchMap(
+        (): Observable<ITaskDetails> =>
+          this.updateTaskAction(
+            caseBusinessIdentifier,
+            taskId,
+            taskType,
+            TaskAction.COMPLETE
+          ).pipe(
+            switchMap(
+              (): Observable<ITaskDetails> =>
+                this.#dataCasesService.findTaskById(taskId)
+            )
+          )
       )
     );
+  }
+
+  return this.updateTaskAction(
+    caseBusinessIdentifier,
+    taskId,
+    taskType,
+    TaskAction.COMPLETE,
+    request?.manualChangeRequired
+  ).pipe(
+    switchMap(
+      (): Observable<ITaskDetails> =>
+        this.#dataCasesService.findTaskById(taskId)
+    )
+  );
 }
