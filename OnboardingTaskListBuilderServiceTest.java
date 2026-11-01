@@ -1,49 +1,32 @@
-completeTask(
-  caseBusinessIdentifier: string,
-  taskId: number,
-  taskType: TaskType,
-  request?: SafeAny
-): Observable<ITaskDetails> {
-  console.log('request .....', request);
+private hasAddressChanged(): boolean {
+  const portalAddress =
+    this.getClientProfilingData()
+      ?.clientPortalBusinessData
+      ?.policy.holder
+      ?.sendingAddress
+      ?.address;
 
-  if (isTaskUpdatable(taskType)) {
-    return (
-      Boolean(request)
-        ? this.saveTask(
-            caseBusinessIdentifier,
-            taskId,
-            taskType,
-            request
-          )
-        : of({})
-    ).pipe(
-      switchMap(
-        (): Observable<ITaskDetails> =>
-          this.updateTaskAction(
-            caseBusinessIdentifier,
-            taskId,
-            taskType,
-            TaskAction.COMPLETE
-          ).pipe(
-            switchMap(
-              (): Observable<ITaskDetails> =>
-                this.#dataCasesService.findTaskById(taskId)
-            )
-          )
-      )
-    );
+  const changedAddress =
+    this.getClientProfilingData()
+      ?.changeClientInformation
+      ?.policy.holder
+      ?.sendingAddress
+      ?.address;
+
+  return this.normalizeAddress(portalAddress) !==
+         this.normalizeAddress(changedAddress);
+}
+
+private normalizeAddress(address?: IAddressSending): string {
+  if (!address) {
+    return '';
   }
 
-  return this.updateTaskAction(
-    caseBusinessIdentifier,
-    taskId,
-    taskType,
-    TaskAction.COMPLETE,
-    request?.manualChangeRequired
-  ).pipe(
-    switchMap(
-      (): Observable<ITaskDetails> =>
-        this.#dataCasesService.findTaskById(taskId)
+  return JSON.stringify(
+    Object.fromEntries(
+      Object.entries(address)
+        .filter(([, value]) => value !== null && value !== undefined && value !== '')
+        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
     )
   );
 }
