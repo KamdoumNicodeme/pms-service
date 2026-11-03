@@ -1,32 +1,35 @@
-private hasAddressChanged(): boolean {
-  const portalAddress =
-    this.getClientProfilingData()
-      ?.clientPortalBusinessData
-      ?.policy.holder
-      ?.sendingAddress
-      ?.address;
+&__title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap;
 
-  const changedAddress =
-    this.getClientProfilingData()
-      ?.changeClientInformation
-      ?.policy.holder
-      ?.sendingAddress
-      ?.address;
-
-  return this.normalizeAddress(portalAddress) !==
-         this.normalizeAddress(changedAddress);
+  h1 {
+    margin: 0;
+    flex: 0 0 auto;
+  }
 }
 
-private normalizeAddress(address?: IAddressSending): string {
-  if (!address) {
-    return '';
-  }
+&__status {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
 
-  return JSON.stringify(
-    Object.fromEntries(
-      Object.entries(address)
-        .filter(([, value]) => value !== null && value !== undefined && value !== '')
-        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-    )
-  );
+  span {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+
+    em {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      white-space: nowrap;
+    }
+  }
 }
