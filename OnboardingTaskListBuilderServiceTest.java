@@ -1,47 +1,21 @@
-private applyTaxInformationChange(
-  client: IThirdParty,
-  sourceHolder: IThirdParty,
-  id: string,
-  resolution: Resolution
-): void {
-  const parts = id.split(':');
-  if (parts.length < 3) return;
+protected readonly progress = computed(() => {
+  const values = this.formValues();
 
-  const taxKey = parts[1];
-  const field = parts.slice(2).join(':');
-
-  client.taxInformations ??= [];
-
-  let taxInformation = client.taxInformations.find(
-    tax => tax.taxCountry === taxKey
+  const activeChecks = this.checkRegistry.filter(check =>
+    check.isVisible(values)
   );
 
-  if (!taxInformation) {
-    const sourceTaxInformation = sourceHolder.taxInformations?.find(
-      tax => tax.taxCountry === taxKey
-    );
+  const total = activeChecks.length;
 
-    if (!sourceTaxInformation) return;
+  const completed = activeChecks.filter(check => {
+    const value = values[check.name as keyof typeof values];
 
-    taxInformation = structuredClone(sourceTaxInformation);
-    client.taxInformations.push(taxInformation);
-  }
+    return typeof value === 'boolean'
+      ? value
+      : !UNANSWERED.includes(
+          (value ?? '').toString().trim().toLowerCase()
+        );
+  }).length;
 
-  const val = this.stringValue(resolution.value);
-
-  if (field === 'tax-country') {
-    taxInformation.taxCountry = val;
-  }
-
-  if (field === 'tin') {
-    taxInformation.taxNumber = val;
-  }
-
-  if (field === 'tin-unavailable-reason') {
-    taxInformation.missingTaxNumberReason = val;
-  }
-
-  if (field === 'is-default') {
-    taxInformation.preferred = val === 'true';
-  }
-}
+  return { total, completed };
+});
