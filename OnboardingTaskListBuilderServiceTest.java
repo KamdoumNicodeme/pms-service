@@ -1,43 +1,31 @@
-private applyChangeReasons(
-  result: IChangeClientInformation,
+private getNationalityReasonKey(
   sourceHolder: IThirdParty,
-  changes: ReadonlyMap<string, Resolution>
-): void {
-  result.changeReasons ??= {};
-
-  changes.forEach((resolution: Resolution, id: string): void => {
-    if (!resolution.reason) {
-      return;
-    }
-
-    const reasonKey = this.getReasonKey(
-      sourceHolder,
-      id
-    );
-
-    if (!reasonKey) {
-      return;
-    }
-
-    result.changeReasons[reasonKey] = {
-      reason: resolution.reason,
-      comment: resolution.comment ?? ''
-    };
-  });
-}
-
-private getReasonKey(
-  sourceHolder: IThirdParty,
-  id: string
+  parsedId: ChangeIdParser
 ): string | null {
-  const parsedId: ChangeIdParser = ChangeIdParser.parse(id);
-
-  if (parsedId.prefix === 'nationalities') {
-    return this.getNationalityReasonKey(
-      sourceHolder,
-      parsedId
-    );
+  if (!this.isPhysicalPerson(sourceHolder)) {
+    return null;
   }
 
-  return `policy_clients_${sourceHolder.thirdPartyId}_${parsedId.prefix}`;
+  const country = parsedId.parts[1];
+  const field = parsedId.parts[2];
+
+  if (!country || !field) {
+    return null;
+  }
+
+  const position = this.getNationalityPosition(
+    sourceHolder,
+    country
+  );
+
+  if (!position) {
+    return null;
+  }
+
+  const backendField =
+    field === 'date'
+      ? 'fromDate'
+      : field;
+
+  return `policy_clients_${sourceHolder.thirdPartyId}_nationality_${position}_${backendField}`;
 }
