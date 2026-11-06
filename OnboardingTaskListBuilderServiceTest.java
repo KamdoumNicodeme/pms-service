@@ -1,16 +1,17 @@
-private applyChangeReason(
-  result: IChangeClientInformation,
-  id: string,
-  resolution: Resolution
+private applyChangeReasons(
+  changeClientInformation: IChangeClientInformation,
+  changes: ReadonlyMap<string, Resolution>
 ): void {
-  if (!resolution.reason && !resolution.comment) {
-    return;
-  }
+  changeClientInformation.changeReasons ??= {};
 
-  result.changeReasons ??= {};
+  changes.forEach((resolution: Resolution, id: string): void => {
+    if (!resolution.reason && !resolution.comment) {
+      return;
+    }
 
-  result.changeReasons[id] = {
-    reason: resolution.reason,
-    comment: resolution.comment,
-  };
+    changeClientInformation.changeReasons[id] = {
+      reason: resolution.reason,
+      comment: resolution.comment,
+    };
+  });
 }
