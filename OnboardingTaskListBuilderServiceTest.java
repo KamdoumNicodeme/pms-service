@@ -1,44 +1,37 @@
-private getManualNationalityPosition(
-  client: IThirdParty,
-  manualId: string
+private getNationalityReasonKey(
+  thirdPartyId: string,
+  client: IPhysicalPerson,
+  parsedId: ChangeIdParser
 ): string | null {
-  if (!this.isPhysicalPerson(client)) {
+  const country = parsedId.parts[1];
+  const field = parsedId.parts[2];
+
+  const position = this.findNationalityPosition(client, country);
+
+  if (!position) {
     return null;
   }
 
-  const manualIndex = Number(manualId.replace('manual-', '')) - 1;
+  const backendField = field === 'date' ? 'fromDate' : field;
 
-  if (Number.isNaN(manualIndex) || manualIndex < 0) {
-    return null;
+  return `policy_clients_${thirdPartyId}_nationality_${position}_${backendField}`;
+}
+
+private findNationalityPosition(
+  client: IPhysicalPerson,
+  country: string
+): 'first' | 'second' | 'third' | null {
+  if (client.nationality?.first?.country === country) {
+    return 'first';
   }
 
-  const nationality = client.nationality;
-
-  if (!nationality) {
-    return null;
+  if (client.nationality?.second?.country === country) {
+    return 'second';
   }
 
-  const positions: Array<{
-    name: string;
-    value: NationalityInfo | null | undefined;
-  }> = [
-    {
-      name: 'first',
-      value: nationality.first
-    },
-    {
-      name: 'second',
-      value: nationality.second
-    },
-    {
-      name: 'third',
-      value: nationality.third
-    }
-  ];
+  if (client.nationality?.third?.country === country) {
+    return 'third';
+  }
 
-  const populatedPositions = positions.filter(
-    position => position.value != null
-  );
-
-  return populatedPositions[manualIndex]?.name ?? null;
+  return null;
 }
