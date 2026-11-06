@@ -1,17 +1,48 @@
-private getReasonKey(
+private getNationalityReasonKey(
+  client: IThirdParty,
   sourceHolder: IThirdParty,
-  id: string
+  parsedId: ChangeIdParser
 ): string | null {
-  const parsedId: ChangeIdParser = ChangeIdParser.parse(id);
-
-  if (parsedId.prefix === 'nationalities') {
-    return this.getNationalityReasonKey(
-      sourceHolder,
-      parsedId
-    );
+  if (
+    !this.isPhysicalPerson(sourceHolder) ||
+    !this.isPhysicalPerson(client)
+  ) {
+    return null;
   }
 
-  const field = this.getSimpleFieldName(parsedId.prefix);
+  const identifier: string = parsedId.parts[1];
+  const field: string = parsedId.parts[2];
 
-  return `policy_clients_${sourceHolder.thirdPartyId}_${field}`;
+  if (!identifier || !field) {
+    return null;
+  }
+
+  const position:
+    | 'first'
+    | 'second'
+    | 'third'
+    | null = parsedId.isManual()
+      ? this.getManualNationalityPosition(
+          client,
+          sourceHolder,
+          parsedId
+        )
+      : this.getNationalityPosition(
+          sourceHolder,
+          identifier
+        ) ?? this.getNationalityPosition(
+          client,
+          identifier
+        );
+
+  if (!position) {
+    return null;
+  }
+
+  const backendField: string =
+    field === 'date'
+      ? 'fromDate'
+      : field;
+
+  return `policy_clients_${sourceHolder.thirdPartyId}_nationality_${position}_${backendField}`;
 }
