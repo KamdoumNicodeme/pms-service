@@ -1,48 +1,14 @@
-private getNationalityReasonKey(
-  client: IThirdParty,
-  sourceHolder: IThirdParty,
+private getManualNationalityPosition(
+  client: IPhysicalPerson,
+  sourceHolder: IPhysicalPerson,
   parsedId: ChangeIdParser
-): string | null {
-  if (
-    !this.isPhysicalPerson(sourceHolder) ||
-    !this.isPhysicalPerson(client)
-  ) {
-    return null;
-  }
+): 'first' | 'second' | 'third' | null {
+  const manualIndex: number =
+    this.getManualNationalityIndex(parsedId);
 
-  const identifier: string = parsedId.parts[1];
-  const field: string = parsedId.parts[2];
+  const availablePositions:
+    ('first' | 'second' | 'third')[] =
+      this.getAvailableNationalityPositions(sourceHolder);
 
-  if (!identifier || !field) {
-    return null;
-  }
-
-  const position:
-    | 'first'
-    | 'second'
-    | 'third'
-    | null = parsedId.isManual()
-      ? this.getManualNationalityPosition(
-          client,
-          sourceHolder,
-          parsedId
-        )
-      : this.getNationalityPosition(
-          sourceHolder,
-          identifier
-        ) ?? this.getNationalityPosition(
-          client,
-          identifier
-        );
-
-  if (!position) {
-    return null;
-  }
-
-  const backendField: string =
-    field === 'date'
-      ? 'fromDate'
-      : field;
-
-  return `policy_clients_${sourceHolder.thirdPartyId}_nationality_${position}_${backendField}`;
+  return availablePositions[manualIndex] ?? null;
 }
