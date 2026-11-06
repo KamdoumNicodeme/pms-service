@@ -1,28 +1,44 @@
-private getNationalityPosition(index: string): string | null {
-  switch (index) {
-    case '0':
-      return 'first';
-
-    case '1':
-      return 'second';
-
-    case '2':
-      return 'third';
-
-    default:
-      return null;
+private getManualNationalityPosition(
+  client: IThirdParty,
+  manualId: string
+): string | null {
+  if (!this.isPhysicalPerson(client)) {
+    return null;
   }
-}
-private getNationalityField(field: string): string | null {
-  switch (field) {
-    case 'country':
-      return 'country';
 
-    case 'date':
-    case 'fromDate':
-      return 'fromDate';
+  const manualIndex = Number(manualId.replace('manual-', '')) - 1;
 
-    default:
-      return null;
+  if (Number.isNaN(manualIndex) || manualIndex < 0) {
+    return null;
   }
+
+  const nationality = client.nationality;
+
+  if (!nationality) {
+    return null;
+  }
+
+  const positions: Array<{
+    name: string;
+    value: NationalityInfo | null | undefined;
+  }> = [
+    {
+      name: 'first',
+      value: nationality.first
+    },
+    {
+      name: 'second',
+      value: nationality.second
+    },
+    {
+      name: 'third',
+      value: nationality.third
+    }
+  ];
+
+  const populatedPositions = positions.filter(
+    position => position.value != null
+  );
+
+  return populatedPositions[manualIndex]?.name ?? null;
 }
