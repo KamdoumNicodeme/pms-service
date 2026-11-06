@@ -1,17 +1,43 @@
-private getNationalityReasonKey(parsedId: ChangeIdParser): string {
-  const position = parsedId.parts[1];
+private applyChangeReasons(
+  result: IChangeClientInformation,
+  sourceHolder: IThirdParty,
+  changes: ReadonlyMap<string, Resolution>
+): void {
+  result.changeReasons ??= {};
 
-  switch (position) {
-    case 'first':
-      return 'nationality_first';
+  changes.forEach((resolution: Resolution, id: string): void => {
+    if (!resolution.reason) {
+      return;
+    }
 
-    case 'second':
-      return 'nationality_second';
+    const reasonKey = this.getReasonKey(
+      sourceHolder,
+      id
+    );
 
-    case 'third':
-      return 'nationality_third';
+    if (!reasonKey) {
+      return;
+    }
 
-    default:
-      return 'nationality';
+    result.changeReasons[reasonKey] = {
+      reason: resolution.reason,
+      comment: resolution.comment ?? ''
+    };
+  });
+}
+
+private getReasonKey(
+  sourceHolder: IThirdParty,
+  id: string
+): string | null {
+  const parsedId: ChangeIdParser = ChangeIdParser.parse(id);
+
+  if (parsedId.prefix === 'nationalities') {
+    return this.getNationalityReasonKey(
+      sourceHolder,
+      parsedId
+    );
   }
+
+  return `policy_clients_${sourceHolder.thirdPartyId}_${parsedId.prefix}`;
 }
