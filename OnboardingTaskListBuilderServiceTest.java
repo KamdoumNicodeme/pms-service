@@ -1,45 +1,44 @@
-private applyClientChangeReasons(
-  changeReasons: Record<string, IChangeReason>,
-  sourceHolder: IThirdParty,
-  changes: ReadonlyMap<string, Resolution>,
-  client: IThirdParty
-): void {
-  changes.forEach((resolution: Resolution, id: string): void => {
-    if (!resolution.reason) {
-      return;
-    }
+private getSimpleChangeReasonPath(
+  parsedId: ChangeIdParser
+): string {
+  const fields: Record<string, string> = {
+    thirdPartyId: 'thirdPartyId',
+    salutation: 'salutation',
+    lastname: 'lastname',
+    firstname: 'firstName',
+    'birth-date': 'birthDate',
+    'birth-country': 'birthCountry',
+    'spouse-name': 'spouseName',
+    status: 'civilStatus_status',
+    profession: 'professionalDetails_profession',
+    'profession-status': 'professionalDetails_status',
+    'employer-name': 'professionalDetails_companyName',
+    sector: 'professionalDetails_sector'
+  };
 
-    const key = this.getClientChangeReasonKey(
-      sourceHolder.thirdPartyId,
-      id,
-      client
-    );
-
-    if (!key) {
-      return;
-    }
-
-    changeReasons[key] = {
-      reason: resolution.reason,
-      comment: resolution.comment ?? ''
-    };
-  });
+  return fields[parsedId.prefix] ?? parsedId.prefix;
 }
 
-private getClientChangeReasonKey(
-  thirdPartyId: string,
-  id: string,
+private getNationalityChangeReasonPath(
+  parsedId: ChangeIdParser,
   client: IThirdParty
 ): string | null {
-  const parsedId: ChangeIdParser = ChangeIdParser.parse(id);
+  const rawPosition = parsedId.parts[1];
+  const rawField = parsedId.parts[2];
 
-  const fieldPath = parsedId.prefix === 'nationalities'
-    ? this.getNationalityChangeReasonPath(parsedId, client)
-    : this.getSimpleChangeReasonPath(parsedId);
+  const position = rawPosition.startsWith('manual-')
+    ? this.getManualNationalityPosition(client, rawPosition)
+    : this.getNationalityPosition(rawPosition);
 
-  if (!fieldPath) {
+  if (!position) {
     return null;
   }
 
-  return `policy_clients_${thirdPartyId}_${fieldPath}`;
+  const field = this.getNationalityField(rawField);
+
+  if (!field) {
+    return null;
+  }
+
+  return `nationality_${position}_${field}`;
 }
