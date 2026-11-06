@@ -1,31 +1,18 @@
-private getNationalityReasonKey(
-  sourceHolder: IThirdParty,
-  parsedId: ChangeIdParser
-): string | null {
-  if (!this.isPhysicalPerson(sourceHolder)) {
-    return null;
+private getNationalityPosition(
+  holder: IPhysicalPerson,
+  country: string
+): 'first' | 'second' | 'third' | null {
+  if (holder.nationality?.first?.country === country) {
+    return 'first';
   }
 
-  const country = parsedId.parts[1];
-  const field = parsedId.parts[2];
-
-  if (!country || !field) {
-    return null;
+  if (holder.nationality?.second?.country === country) {
+    return 'second';
   }
 
-  const position = this.getNationalityPosition(
-    sourceHolder,
-    country
-  );
-
-  if (!position) {
-    return null;
+  if (holder.nationality?.third?.country === country) {
+    return 'third';
   }
 
-  const backendField =
-    field === 'date'
-      ? 'fromDate'
-      : field;
-
-  return `policy_clients_${sourceHolder.thirdPartyId}_nationality_${position}_${backendField}`;
+  return null;
 }
