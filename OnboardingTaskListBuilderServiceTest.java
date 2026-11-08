@@ -1,31 +1,45 @@
-const toEntries = (
-  nationalities: readonly NationalityEntry[]
-): ComparisonEntryDto[] =>
-  nationalities
-    .filter(entry => !!entry.value?.country)
-    .map(entry => ({
-      key: entry.key,
-      label:
-        countryOptions.find(
-          (option: ComparisonOption) =>
-            option.value === entry.value.country
-        )?.label ?? entry.value.country,
+private applyNationalityChange(
+  client: IPhysicalPerson,
+  sourceHolder: IPhysicalPerson,
+  parsedId: ChangedIdParser,
+  resolution: Resolution
+): void {
+  const position = parsedId.subType as 'first' | 'second' | 'third';
+  const field = parsedId.field ?? 'country';
 
-      fields: [
-        {
-          key: 'country',
-          label: 'Nationality',
-          value: entry.value.country,
-          kind: 'select',
-          options: countryOptions,
-          editable: true,
-        },
-        {
-          key: 'date',
-          label: 'Obtaining date',
-          value: this.formatDate(entry.value.fromDate),
-          kind: 'date',
-          editable: true,
-        },
-      ],
-    }));
+  if (!position || !['first', 'second', 'third'].includes(position)) {
+    return;
+  }
+
+  client.nationality ??= {} as NonNullable<IPhysicalPerson['nationality']>;
+
+  if (!client.nationality[position]) {
+    const sourceNationality = sourceHolder.nationality?.[position];
+
+    if (!sourceNationality) {
+      return;
+    }
+
+    client.nationality[position] = structuredClone(sourceNationality);
+  }
+
+  const nationality = client.nationality[position];
+
+  if (!nationality) {
+    return;
+  }
+
+  const value = this.nullableStringValue(resolution.value);
+
+  if (field === 'country' && value !== null) {
+    nationality.country = value;
+  }
+
+  if (field === 'date') {
+    const date = this.toIsoDate(value);
+
+    if (date) {
+      nationality.fromDate = date;
+    }
+  }
+}
