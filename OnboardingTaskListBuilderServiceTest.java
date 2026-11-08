@@ -1,35 +1,31 @@
-private getManualNationalityIndex(
-  parsedId: ChangeIdParser
-): number {
-  const identifier: string = parsedId.parts[1];
+const toEntries = (
+  nationalities: readonly NationalityEntry[]
+): ComparisonEntryDto[] =>
+  nationalities
+    .filter(entry => !!entry.value?.country)
+    .map(entry => ({
+      key: entry.key,
+      label:
+        countryOptions.find(
+          (option: ComparisonOption) =>
+            option.value === entry.value.country
+        )?.label ?? entry.value.country,
 
-  const match: RegExpMatchArray | null =
-    identifier.match(/^manual-(\d+)$/);
-
-  if (!match) {
-    return 0;
-  }
-
-  return Math.max(Number(match[1]) - 1, 0);
-}
-
-private getAvailableNationalityPositions(
-  holder: IPhysicalPerson
-): ('first' | 'second' | 'third')[] {
-  const positions:
-    ('first' | 'second' | 'third')[] = [];
-
-  if (!holder.nationality?.first) {
-    positions.push('first');
-  }
-
-  if (!holder.nationality?.second) {
-    positions.push('second');
-  }
-
-  if (!holder.nationality?.third) {
-    positions.push('third');
-  }
-
-  return positions;
-}
+      fields: [
+        {
+          key: 'country',
+          label: 'Nationality',
+          value: entry.value.country,
+          kind: 'select',
+          options: countryOptions,
+          editable: true,
+        },
+        {
+          key: 'date',
+          label: 'Obtaining date',
+          value: this.formatDate(entry.value.fromDate),
+          kind: 'date',
+          editable: true,
+        },
+      ],
+    }));
