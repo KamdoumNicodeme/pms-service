@@ -1,34 +1,34 @@
-private applyTaxInformationChange(
-  taxInformationByKey: ReadonlyMap<string, ITaxInformation>,
-  parsedId: ChangeIdParsed,
-  resolution: Resolution
-): void {
-  if (!parsedId.subType) {
-    return;
-  }
+readonly choices = computed<readonly SourceChoice[]>(() => {
+  const values = this.values();
+  const availableSources = this.availableSources();
 
-  const taxInformation: ITaxInformation | undefined =
-    taxInformationByKey.get(parsedId.subType);
+  const choices: SourceChoice[] = [
+    {
+      source: 'portal',
+      label: CLIENT_PORTAL_DATA_SOURCE_NAME,
+      value: values.portal,
+      shortcut: '1'
+    },
+    {
+      source: 'core',
+      label: CORE_SYSTEM_DATA_SOURCE_NAME,
+      value: values.core,
+      shortcut: '2'
+    },
+    {
+      source: 'manual',
+      label: 'Type another value',
+      value: this.manualValue() || null,
+      shortcut: '3'
+    }
+  ];
 
-  if (!taxInformation) {
-    return;
-  }
+  const filteredChoices = availableSources?.length
+    ? choices.filter(choice => availableSources.includes(choice.source))
+    : choices;
 
-  const value: string = this.stringValue(resolution.value);
-
-  if (parsedId.field === 'tax-country') {
-    taxInformation.taxCountry = value;
-  }
-
-  if (parsedId.field === 'tin') {
-    taxInformation.taxNumber = value;
-  }
-
-  if (parsedId.field === 'tin-unavailable-reason') {
-    taxInformation.missingTaxNumberReason = value;
-  }
-
-  if (parsedId.field === 'is-default') {
-    taxInformation.preferred = value === 'true';
-  }
-}
+  return filteredChoices.map((choice, index) => ({
+    ...choice,
+    shortcut: `${index + 1}`
+  }));
+});
