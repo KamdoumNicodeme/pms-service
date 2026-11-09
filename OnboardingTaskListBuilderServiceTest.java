@@ -1,17 +1,34 @@
-public getReasonOptions(key: string): Signal<ComparisonOption[]> {
-  return computed((): ComparisonOption[] => {
-    const allReferences = this.references();
-    const references = allReferences[key] ?? [];
+private applyTaxInformationChange(
+  taxInformationByKey: ReadonlyMap<string, ITaxInformation>,
+  parsedId: ChangeIdParsed,
+  resolution: Resolution
+): void {
+  if (!parsedId.subType) {
+    return;
+  }
 
-    console.log('ALL REFERENCES', allReferences);
-    console.log('REQUESTED KEY', key);
-    console.log('REFERENCES FOR KEY', references);
+  const taxInformation: ITaxInformation | undefined =
+    taxInformationByKey.get(parsedId.subType);
 
-    return references.map(
-      (ref: IReference): ComparisonOption => ({
-        value: ref.value,
-        label: ref.key,
-      })
-    );
-  });
+  if (!taxInformation) {
+    return;
+  }
+
+  const value: string = this.stringValue(resolution.value);
+
+  if (parsedId.field === 'tax-country') {
+    taxInformation.taxCountry = value;
+  }
+
+  if (parsedId.field === 'tin') {
+    taxInformation.taxNumber = value;
+  }
+
+  if (parsedId.field === 'tin-unavailable-reason') {
+    taxInformation.missingTaxNumberReason = value;
+  }
+
+  if (parsedId.field === 'is-default') {
+    taxInformation.preferred = value === 'true';
+  }
 }
