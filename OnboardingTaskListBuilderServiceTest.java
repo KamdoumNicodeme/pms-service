@@ -1,34 +1,20 @@
-readonly choices = computed<readonly SourceChoice[]>(() => {
-  const values = this.values();
-  const availableSources = this.availableSources();
+export function computeStatusWithoutPortal(
+  values: Record<ComparisonSourceId, string | null>
+): ComparisonStatus {
+  const core = values.core;
+  const snapshot = values.snapshot;
 
-  const choices: SourceChoice[] = [
-    {
-      source: 'portal',
-      label: CLIENT_PORTAL_DATA_SOURCE_NAME,
-      value: values.portal,
-      shortcut: '1'
-    },
-    {
-      source: 'core',
-      label: CORE_SYSTEM_DATA_SOURCE_NAME,
-      value: values.core,
-      shortcut: '2'
-    },
-    {
-      source: 'manual',
-      label: 'Type another value',
-      value: this.manualValue() || null,
-      shortcut: '3'
-    }
-  ];
+  if (isBlank(core) && isBlank(snapshot)) {
+    return 'aligned';
+  }
 
-  const filteredChoices = availableSources?.length
-    ? choices.filter(choice => availableSources.includes(choice.source))
-    : choices;
+  if (!isBlank(core) && isBlank(snapshot)) {
+    return 'aligned';
+  }
 
-  return filteredChoices.map((choice, index) => ({
-    ...choice,
-    shortcut: `${index + 1}`
-  }));
-});
+  if (sameValue(core, snapshot)) {
+    return 'aligned';
+  }
+
+  return 'drift';
+}
