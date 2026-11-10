@@ -1,11 +1,8 @@
-readonly searchItalianBirthTownCodes = (
-  search: string,
-  page = 0,
-  size = 20
-): Observable<IPageable<IReference>> =>
-  this.#referenceService.searchReferences(
-    'IT_BIRTH_CODE',
-    search,
-    page,
-    size
-  );
+private mapItalianBirthTownCodes(
+  references: IReference[]
+): ComparisonOption[] {
+  return references.map(reference => ({
+    value: reference.key,
+    label: reference.value
+  }));
+}
