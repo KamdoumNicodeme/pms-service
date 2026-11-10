@@ -1,16 +1,18 @@
-readonly displayValue = computed<string | null>(() => {
-  const value = this.resolution().value;
+export function buildAnnotations(
+  values: Readonly<Record<ComparisonSourceId, string | null>>,
+  retained: string | null,
+  options: readonly ComparisonOption[] = []
+): readonly SourceAnnotation[] {
+  return COMPARISON_SOURCES
+    .filter(source => shouldDisplaySourceValue(source.id, values, retained))
+    .map(source => {
+      const value = values[source.id];
 
-  if (!value) {
-    return null;
-  }
-
-  const option = this.options().find(
-    option => option.value === value
-  );
-
-  console.log('Resolution value:', value);
-  console.log('Matching option:', option);
-
-  return option?.label ?? value;
-});
+      return {
+        source: source.id,
+        label: source.label,
+        value: options.find(option => option.value === value)?.label ?? value,
+        tone: computeTone(source.id, values),
+      };
+    });
+}
