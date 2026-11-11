@@ -1,18 +1,22 @@
-export function buildAnnotations(
-  values: Readonly<Record<ComparisonSourceId, string | null>>,
-  retained: string | null,
-  options: readonly ComparisonOption[] = []
-): readonly SourceAnnotation[] {
-  return COMPARISON_SOURCES
-    .filter(source => shouldDisplaySourceValue(source.id, values, retained))
-    .map(source => {
-      const value = values[source.id];
+private readonly italianBirthTownLabels =
+  signal<ComparisonOption[]>([]);
 
-      return {
-        source: source.id,
-        label: source.label,
-        value: options.find(option => option.value === value)?.label ?? value,
-        tone: computeTone(source.id, values),
-      };
-    });
+readonly getItalianBirthTownLabels =
+  this.italianBirthTownLabels.asReadonly();
+
+addItalianBirthTownOptions(references: IReference[]): void {
+  const options: ComparisonOption[] = references.map(reference => ({
+    value: reference.value,
+    label: reference.key
+  }));
+
+  this.italianBirthTownLabels.update(current => {
+    const merged = new Map(
+      current.map(option => [option.value, option])
+    );
+
+    options.forEach(option => merged.set(option.value, option));
+
+    return [...merged.values()];
+  });
 }
