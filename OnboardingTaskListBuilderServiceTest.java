@@ -1,22 +1,22 @@
-private readonly italianBirthTownLabels =
-  signal<ComparisonOption[]>([]);
+private applyItalianBirthTownCodeVisibility(
+  rows: readonly ComparisonRow[]
+): ComparisonRow[] {
+  const nationalityRow = rows.find(row => row.key === 'nationalities');
 
-readonly getItalianBirthTownLabels =
-  this.italianBirthTownLabels.asReadonly();
+  if (!nationalityRow) {
+    return [...rows];
+  }
 
-addItalianBirthTownOptions(references: IReference[]): void {
-  const options: ComparisonOption[] = references.map(reference => ({
-    value: reference.value,
-    label: reference.key
-  }));
+  const nationalities = nationalityRow.entries ?? [];
 
-  this.italianBirthTownLabels.update(current => {
-    const merged = new Map(
-      current.map(option => [option.value, option])
-    );
+  const hasItalianNationality = nationalities.some(
+    entry =>
+      entry.status !== 'removed' &&
+      (entry.resolution?.value === 'IT' ||
+        (entry.resolution?.value == null && entry.values.core === 'IT'))
+  );
 
-    options.forEach(option => merged.set(option.value, option));
-
-    return [...merged.values()];
-  });
+  return hasItalianNationality
+    ? [...rows]
+    : rows.filter(row => row.key !== 'italian-birth-town-code');
 }
