@@ -33,3 +33,25 @@ private applyItalianBirthTownCodeVisibility(
     row => row.key !== 'italian-birth-town-code'
   );
 }
+
+
+
+///
+
+
+
+
+
+if (manualEntry || manualStructureEntry) {
+  this.removedEntries.update(current =>
+    current.filter(entry => entry.id !== id)
+  );
+} else if (removedValue) {
+  this.removedEntries.update(current => [
+    ...current.filter(entry => entry.id !== id),
+    {
+      id,
+      value: removedValue
+    }
+  ]);
+}
