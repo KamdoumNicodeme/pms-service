@@ -7,13 +7,9 @@ private applyItalianBirthTownCodeVisibility(
     return [...rows];
   }
 
-  const nationalities = nationalityRow.entries ?? [];
-
-  const hasItalianNationality = nationalities.some(
-    entry =>
-      entry.status !== 'removed' &&
-      (entry.resolution?.value === 'IT' ||
-        (entry.resolution?.value == null && entry.values.core === 'IT'))
+  const hasItalianNationality = nationalityRow.entries?.some(entry =>
+    entry.values.core === 'IT' ||
+    entry.resolution.value === 'IT'
   );
 
   return hasItalianNationality
