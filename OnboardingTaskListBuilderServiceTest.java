@@ -10,12 +10,12 @@ private applyItalianBirthTownCodeVisibility(
   const hasItalianNationality = (nationalityRow.entries ?? []).some(
     entry =>
       entry.status !== 'removed' &&
-      (entry.entryFields ?? []).some(
-        field =>
-          field.key === 'nationality' &&
-          (field.resolution.value === 'IT' ||
-            field.values.core === 'IT' ||
-            field.values.portal === 'IT')
+      Object.values(entry.fields ?? {}).some(
+        fields => fields?.some(
+          field =>
+            field.key === 'nationality' &&
+            field.value === 'IT'
+        )
       )
   );
 
