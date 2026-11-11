@@ -48,6 +48,35 @@ console.log(
   )
 );
 
+if (this.isPhysicalPerson(client)) {
+  console.log(
+    'NATIONALITY BEFORE APPLY:',
+    structuredClone(client.nationality)
+  );
+
+  this.applyPhysicalPersonChanges(
+    client,
+    sourceHolder as IPhysicalPerson,
+    changes
+  );
+
+  console.log(
+    'NATIONALITY AFTER APPLY:',
+    structuredClone(client.nationality)
+  );
+} else if (this.isMoralPerson(client)) {
+  this.applyMoralPersonChanges(client, changes);
+}
+
+this.applyRemovedThirdPartyEntries(client, removedEntries);
+
+if (this.isPhysicalPerson(client)) {
+  console.log(
+    'NATIONALITY AFTER REMOVAL:',
+    structuredClone(client.nationality)
+  );
+}
+
 
 
 ///
