@@ -85,15 +85,11 @@ if (this.isPhysicalPerson(client)) {
 
 
 
-if (persistedValue !== null) {
-  this.removedEntries.update(current => [
-    ...current.filter(entry => entry.id !== id),
-    {
-      id,
-      value: persistedValue
-    }
-  ]);
-} else if (manualEntry || manualStructureEntry) {
+const isNewManualEntry =
+  entryKey.startsWith('manual-') &&
+  (manualEntry !== undefined || manualStructureEntry !== undefined);
+
+if (isNewManualEntry) {
   this.removedEntries.update(current =>
     current.filter(entry => entry.id !== id)
   );
