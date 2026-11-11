@@ -1,21 +1,35 @@
 private applyItalianBirthTownCodeVisibility(
   rows: readonly ComparisonRow[]
 ): ComparisonRow[] {
-  const nationalityRow = rows.find(row => row.key === 'nationalities');
+  const manualNationalities = new Map<string, string>();
 
-  if (!nationalityRow) {
+  for (const entry of this.manualEntries()) {
+    if (entry.fieldKey === 'nationalities' && entry.value) {
+      manualNationalities.set(entry.entryKey, entry.value);
+    }
+  }
+
+  for (const entry of this.manualStructureEntries()) {
+    if (entry.fieldKey !== 'nationalities') {
+      continue;
+    }
+
+    const country = entry.fields.find(
+      field => field.key === 'country'
+    )?.value;
+
+    if (country) {
+      manualNationalities.set(entry.entryKey, country);
+    }
+  }
+
+  const manualNationality = [...manualNationalities.values()].at(-1);
+
+  if (!manualNationality || manualNationality === 'IT') {
     return [...rows];
   }
 
-  const hasItalianNationality = (nationalityRow.entries ?? []).some(entry =>
-    entry.status !== 'removed' &&
-    entry.children.some(child =>
-      child.key === 'nationality' &&
-      child.resolution.value === 'IT'
-    )
+  return rows.filter(
+    row => row.key !== 'italian-birth-town-code'
   );
-
-  return hasItalianNationality
-    ? [...rows]
-    : rows.filter(row => row.key !== 'italian-birth-town-code');
 }
