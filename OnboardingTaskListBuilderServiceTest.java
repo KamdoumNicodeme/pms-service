@@ -1,7 +1,9 @@
-const nationalityRemovals = removedEntries.filter(
-  (entry: RemovedEntry) => entry.id.startsWith('nationalities:')
-);
-
-const otherRemovals = removedEntries.filter(
-  (entry: RemovedEntry) => !entry.id.startsWith('nationalities:')
+console.log(
+  'NATIONALITIES IN SAVE PAYLOAD:',
+  payload.policy?.clients
+    ?.filter(client => this.isPhysicalPerson(client))
+    .map(client => ({
+      thirdPartyId: client.thirdPartyId,
+      nationality: structuredClone(client.nationality)
+    }))
 );
