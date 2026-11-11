@@ -34,6 +34,20 @@ private applyItalianBirthTownCodeVisibility(
   );
 }
 
+console.log(
+  'NATIONALITY CHANGES:',
+  [...changes.entries()].filter(([key]) =>
+    key.startsWith('nationalities')
+  )
+);
+
+console.log(
+  'NATIONALITY REMOVED:',
+  removedEntries.filter(entry =>
+    entry.id.startsWith('nationalities:')
+  )
+);
+
 
 
 ///
