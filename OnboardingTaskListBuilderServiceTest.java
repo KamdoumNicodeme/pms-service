@@ -3,16 +3,8 @@ private applyItalianBirthTownCodeVisibility(
 ): ComparisonRow[] {
   const nationalityRow = rows.find(row => row.key === 'nationalities');
 
-  if (!nationalityRow) {
-    return [...rows];
-  }
+  console.log('NATIONALITY ROW:', nationalityRow);
+  console.log('NATIONALITY ENTRIES:', nationalityRow?.entries);
 
-  const hasItalianNationality = nationalityRow.entries?.some(entry =>
-    entry.values.core === 'IT' ||
-    entry.resolution.value === 'IT'
-  );
-
-  return hasItalianNationality
-    ? [...rows]
-    : rows.filter(row => row.key !== 'italian-birth-town-code');
+  return [...rows];
 }
