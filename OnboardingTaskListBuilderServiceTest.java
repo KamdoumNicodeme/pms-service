@@ -82,7 +82,9 @@ if (this.isPhysicalPerson(client)) {
 ///
 
 
-
+private readonly holderSectionRemovedEntries = signal<
+  ReadonlyMap<string, ReadonlyMap<string, readonly RemovedEntry[]>>
+>(new Map());
 
 
 protected onHolderChanges(event: HolderChanges): void {
