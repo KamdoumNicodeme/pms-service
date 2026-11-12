@@ -1,34 +1,39 @@
 
 import { TestBed } from '@angular/core/testing';
-import {
-  provideHttpClient
-} from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting
-} from '@angular/common/http/testing';
+import { of, throwError } from 'rxjs';
 
+import { ReferenceService } from './reference.service';
 import { DataReferenceService } from './data-reference.service';
 
-describe('DataReferenceService', () => {
-  let service: DataReferenceService;
-  let httpMock: HttpTestingController;
+describe('ReferenceService', () => {
+  let service: ReferenceService;
+
+  let dataReferenceServiceMock: {
+    searchReferences: jest.Mock;
+    getReferenceByValue: jest.Mock;
+  };
 
   beforeEach(() => {
+    dataReferenceServiceMock = {
+      searchReferences: jest.fn(),
+      getReferenceByValue: jest.fn()
+    };
+
     TestBed.configureTestingModule({
       providers: [
-        DataReferenceService,
-        provideHttpClient(),
-        provideHttpClientTesting()
+        ReferenceService,
+        {
+          provide: DataReferenceService,
+          useValue: dataReferenceServiceMock
+        }
       ]
     });
 
-    service = TestBed.inject(DataReferenceService);
-    httpMock = TestBed.inject(HttpTestingController);
+    service = TestBed.inject(ReferenceService);
   });
 
   afterEach(() => {
-    httpMock.verify();
+    jest.restoreAllMocks();
   });
 
   it('should be created', () => {
@@ -42,105 +47,129 @@ describe('DataReferenceService', () => {
         totalElements: 1
       };
 
+      dataReferenceServiceMock.searchReferences
+        .mockReturnValue(of(response));
+
       const nextSpy = jest.fn();
 
       service.searchReferences('YESNO', 'YES')
         .subscribe(nextSpy);
 
-      const req = httpMock.expectOne(request =>
-        request.method === 'GET' &&
-        request.url.endsWith('/references/YESNO/search')
+      expect(
+        dataReferenceServiceMock.searchReferences
+      ).toHaveBeenCalledWith(
+        'YESNO',
+        'YES',
+        0,
+        20
       );
-
-      expect(req.request.params.get('search')).toBe('YES');
-      expect(req.request.params.get('page')).toBe('0');
-      expect(req.request.params.get('size')).toBe('20');
-
-      req.flush(response);
 
       expect(nextSpy).toHaveBeenCalledWith(response);
     });
 
-    it('should use custom pagination parameters', () => {
-      const nextSpy = jest.fn();
+    it('should pass custom pagination parameters', () => {
+      const response = { content: [] };
+
+      dataReferenceServiceMock.searchReferences
+        .mockReturnValue(of(response));
 
       service.searchReferences('COUNTRY', 'LU', 2, 10)
-        .subscribe(nextSpy);
-
-      const req = httpMock.expectOne(request =>
-        request.method === 'GET' &&
-        request.url.endsWith('/references/COUNTRY/search')
-      );
-
-      expect(req.request.params.get('search')).toBe('LU');
-      expect(req.request.params.get('page')).toBe('2');
-      expect(req.request.params.get('size')).toBe('10');
-
-      req.flush({ content: [] });
-
-      expect(nextSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('should encode the domain in the URL', () => {
-      service.searchReferences('TAX COUNTRY', '')
         .subscribe();
 
-      const req = httpMock.expectOne(request =>
-        request.url.endsWith(
-          '/references/TAX%20COUNTRY/search'
-        )
+      expect(
+        dataReferenceServiceMock.searchReferences
+      ).toHaveBeenCalledWith(
+        'COUNTRY',
+        'LU',
+        2,
+        10
+      );
+    });
+
+    it('should return an empty pageable when searching fails', () => {
+      const error = new Error('Network error');
+
+      const consoleSpy = jest.spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      dataReferenceServiceMock.searchReferences
+        .mockReturnValue(throwError(() => error));
+
+      const nextSpy = jest.fn();
+      const completeSpy = jest.fn();
+      const errorSpy = jest.fn();
+
+      service.searchReferences('YESNO', 'YES')
+        .subscribe({
+          next: nextSpy,
+          error: errorSpy,
+          complete: completeSpy
+        });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to search references',
+        error
       );
 
-      expect(req.request.method).toBe('GET');
-
-      req.flush({ content: [] });
+      expect(nextSpy).toHaveBeenCalledTimes(1);
+      expect(nextSpy.mock.calls[0][0]).toBeDefined();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(completeSpy).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('getReferenceByValue', () => {
-    it('should return a reference by domain and value', () => {
+  describe('findReferencesByDomains', () => {
+    it('should return a reference when found', () => {
       const reference = {
         domain: 'YESNO',
         value: 'YES'
       };
 
+      dataReferenceServiceMock.getReferenceByValue
+        .mockReturnValue(of(reference));
+
       const nextSpy = jest.fn();
 
-      service.getReferenceByValue('YESNO', 'YES')
+      service.findReferencesByDomains('YESNO', 'YES')
         .subscribe(nextSpy);
 
-      const req = httpMock.expectOne(request =>
-        request.method === 'GET' &&
-        request.url.endsWith('/references/by-value')
+      expect(
+        dataReferenceServiceMock.getReferenceByValue
+      ).toHaveBeenCalledWith(
+        'YESNO',
+        'YES'
       );
-
-      expect(req.request.params.get('domain')).toBe('YESNO');
-      expect(req.request.params.get('value')).toBe('YES');
-
-      req.flush(reference);
 
       expect(nextSpy).toHaveBeenCalledWith(reference);
     });
 
-    it('should propagate an HTTP error', () => {
+    it('should complete without emitting when an error occurs', () => {
+      const error = new Error('Reference not found');
+
+      dataReferenceServiceMock.getReferenceByValue
+        .mockReturnValue(throwError(() => error));
+
+      const nextSpy = jest.fn();
+      const completeSpy = jest.fn();
       const errorSpy = jest.fn();
 
-      service.getReferenceByValue('YESNO', 'UNKNOWN')
+      service.findReferencesByDomains('YESNO', 'UNKNOWN')
         .subscribe({
-          error: errorSpy
+          next: nextSpy,
+          error: errorSpy,
+          complete: completeSpy
         });
 
-      const req = httpMock.expectOne(request =>
-        request.url.endsWith('/references/by-value')
+      expect(
+        dataReferenceServiceMock.getReferenceByValue
+      ).toHaveBeenCalledWith(
+        'YESNO',
+        'UNKNOWN'
       );
 
-      req.flush('Not found', {
-        status: 404,
-        statusText: 'Not Found'
-      });
-
-      expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(errorSpy.mock.calls[0][0].status).toBe(404);
+      expect(nextSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(completeSpy).toHaveBeenCalledTimes(1);
     });
   });
 });
