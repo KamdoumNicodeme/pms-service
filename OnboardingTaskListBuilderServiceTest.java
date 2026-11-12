@@ -1,47 +1,63 @@
-.rejection-alert {
-  display: block;
+<section class="lia-rejection">
+  <form
+    class="lia-rejection__form"
+    [formGroup]="form"
+    (ngSubmit)="submit(form.getRawValue())"
+  >
+    <label for="rejection" class="lia-rejection__form__label">
+      Rejection reason:
+    </label>
+
+    <textarea
+      nz-input
+      id="rejection"
+      class="lia-rejection__form__textarea"
+      placeholder="This task is getting rejected because..."
+      formControlName="rejectionReason"
+      rows="5"
+    ></textarea>
+
+    <section class="lia-rejection__form__actions">
+      <button nz-button nzType="default" type="button" (click)="close()">
+        Cancel
+      </button>
+
+      <button nz-button nzType="primary" [disabled]="form.invalid" type="submit">
+        Confirm
+      </button>
+    </section>
+  </form>
+</section>
+
+  .lia-rejection {
   width: 100%;
-  margin: 10px 0 14px;
 
-  &__content {
+  &__form {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
 
-  &__title {
-    font-weight: 600;
-    white-space: nowrap;
-  }
+    &__label {
+      display: block;
+      width: 100%;
+      font-weight: 400;
+    }
 
-  &__separator {
-    flex-shrink: 0;
-  }
+    &__textarea {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 100px;
+      resize: vertical;
+    }
 
-  &__reason {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  ::ng-deep .ant-alert {
-    display: flex;
-    align-items: center;
-    min-height: 26px;
-    padding: 3px 10px;
-  }
-
-  ::ng-deep .ant-alert-icon {
-    position: static;
-    margin-right: 8px;
-    font-size: 13px;
-  }
-
-  ::ng-deep .ant-alert-message {
-    margin: 0;
-    font-size: 12px;
-    line-height: 18px;
+    &__actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 6px;
+    }
   }
 }
