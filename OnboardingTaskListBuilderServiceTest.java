@@ -1,547 +1,330 @@
-
-import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of, Subject, throwError } from 'rxjs';
 
 import { CciManualChangeComponent } from './cci-manual-change.component';
 import { CCIManualChangeForm } from './forms/cci-manual-change.form';
-
-import { CASE_SUMMARY_SERVICE, CaseSummaryService } from 'YOUR_IMPORT';
-import { CasesService } from 'YOUR_IMPORT';
-import { AssignmentService } from 'YOUR_IMPORT';
-import { ApplicationUsersService } from 'YOUR_IMPORT';
-import { UserService } from 'YOUR_IMPORT';
-import {
-  COMPARISON_DATA_SERVICE,
-  ComparisonDataService
-} from 'YOUR_IMPORT';
-
-import {
-  TaskType,
-  ICaseDetails,
-  ITaskDetails,
-  IPolicy,
-  ClientProfilingData,
-  ClientProfilingLastBusiness,
-  IManualChange
-} from 'YOUR_IMPORT';
+import { CASE_SUMMARY_SERVICE } from '../../../../core/providers/data-services/case-summary.service';
+import { COMPARISON_DATA_SERVICE } from '../../../../core/providers/data-services/comparison-data.service';
+import { ClientProfilingChangeService } from '../../../../core/providers/services/client-profiling-change.service';
+import { AssignmentService } from '../../../../core/providers/services/assignment.service';
+import { ApplicationUsersService } from '../../../../core/providers/services/application-users.service';
+import { CasesService } from '../../../../core/providers/services/cases.service';
+import { TaskType, UserService } from '@lia/commons';
 
 jest.mock('./forms/cci-manual-change.form', () => ({
-  CCIManualChangeForm: jest.fn().mockImplementation(
-    (_validationEmitter, initialData, needCommPreferences) => ({
-      initialData,
-      needCommPreferences,
-      buildPayload: jest.fn().mockReturnValue({
-        sendingAddressManualTasks: {},
-        sendingRulesManualTasks: {},
-        mailingRulesManualTasks: {}
-      })
-    })
-  )
+  CCIManualChangeForm: jest.fn().mockImplementation(() => ({
+    buildPayload: jest.fn().mockReturnValue({ mocked: 'payload' })
+  }))
 }));
 
 describe('CciManualChangeComponent', () => {
   let fixture: ComponentFixture<CciManualChangeComponent>;
   let component: CciManualChangeComponent;
 
-  let caseSummaryService: {
-    getSummary: jest.Mock;
+  let caseSummaryServiceMock: { getSummary: jest.Mock };
+  let comparisonDataServiceMock: { setReferences: jest.Mock };
+  let assignmentServiceMock: { openAssignmentModal: jest.Mock };
+  let applicationUsersServiceMock: {
+    findAll: jest.Mock;
+    findAllUserTeams: jest.Mock;
   };
-
-  let casesService: {
+  let casesServiceMock: {
     getCaseDataAfterClientProfiling: jest.Mock;
     getCaseBusinessDataUptoDate: jest.Mock;
+    saveTask: jest.Mock;
     completeTask: jest.Mock;
   };
 
-  let assignmentService: {
-    openAssignmentModal: jest.Mock;
-  };
-
-  let applicationUsersService: {
-    findAllUserTeams: jest.Mock;
-  };
-
-  let comparisonService: {
-    setReferences: jest.Mock;
-  };
-
-  let userService: {
-    user: ReturnType<typeof signal>;
-    findAll: jest.Mock;
-  };
-
   const caseId = 'CASE-123';
-  const taskId = 999;
-
-  const manualChange = {
-    sendingAddressManualTasks: {},
-    sendingRulesManualTasks: {},
-    mailingRulesManualTasks: {}
-  } as IManualChange;
-
-  const policy = {
-    holder: {
-      sendingAddress: {
-        salutation: 'Mr',
-        address: {
-          area: '',
-          streetName: 'Main Street',
-          postCode: '1234',
-          townName: 'Luxembourg',
-          residenceName: '',
-          postalBox: '',
-          apartmentNumber: '',
-          county: '',
-          country: 'LU',
-          streetNumber: '10'
-        },
-        language: 'EN'
-      }
-    },
-    digitalConsent: {
-      receiveElectronicCommunicationsConsentStatus: 'ACCEPTED',
-      useDigitalPlatformConsentStatus: 'ACCEPTED',
-      useElectronicSignatureConsentStatus: 'ACCEPTED'
-    }
-  } as unknown as IPolicy;
-
-  const caseDetails = {
+  const taskId = 555;
+  const currentCase = {
     caseBusinessIdentifier: caseId,
     ownerTeam: 'TeamA',
-    ownerDetails: {
-      displayName: 'John Doe',
-      username: 'john.doe'
-    }
-  } as ICaseDetails;
-
-  const taskDetails = {
-    id: taskId
-  } as ITaskDetails;
-
-  const references = {
-    COUNTRY: [
-      {
-        key: 'LU',
-        value: 'Luxembourg'
-      }
-    ]
+    ownerDetails: { displayName: 'John', username: 'john.doe' }
   };
+  const currentTask = { id: 999 };
+  const owner = { assignee: 'jane.doe', team: 'Operations' };
+  const manualChange = { someField: 'prepopulatedData' };
+  const consent = {
+    receiveElectronicCommunicationsConsentStatus: 'ACCEPTED',
+    useDigitalPlatformConsentStatus: 'PENDING',
+    useElectronicSignatureConsentStatus: 'ACCEPTED'
+  };
+  const policy = {
+    holder: { sendingAddress: { address: {} } },
+    digitalConsent: consent
+  };
+  const references = { COUNTRY: [{ key: 'LU', value: 'Luxembourg' }] };
 
-  const createClientProfilingData = (
-    digitalConsent = policy.digitalConsent
-  ): ClientProfilingData =>
-    ({
+  function profilingData(clientConsent: typeof consent | null = consent) {
+    return {
       manualChange,
       changeClientInformation: {
-        policy: {
-          digitalConsent
-        }
+        policy: { digitalConsent: clientConsent }
       }
-    }) as unknown as ClientProfilingData;
+    };
+  }
 
-  const createBusinessData = (
-    digitalConsent = policy.digitalConsent
-  ): ClientProfilingLastBusiness =>
-    ({
-      policy: {
-        digitalConsent
-      }
-    }) as unknown as ClientProfilingLastBusiness;
+  function businessData(classConsent: typeof consent | null = consent) {
+    return { policy: { digitalConsent: classConsent } };
+  }
 
-  const initializeComponent = async (
-    clientData = createClientProfilingData(),
-    businessData = createBusinessData()
-  ): Promise<void> => {
-    casesService.getCaseDataAfterClientProfiling.mockReturnValue(
-      of(clientData)
-    );
-
-    casesService.getCaseBusinessDataUptoDate.mockReturnValue(
-      of(businessData)
-    );
-
+  async function createComponent(): Promise<void> {
     fixture = TestBed.createComponent(CciManualChangeComponent);
     component = fixture.componentInstance;
 
-    fixture.componentRef.setInput('currentCase', caseDetails);
-    fixture.componentRef.setInput('currentTask', taskDetails);
+    fixture.componentRef.setInput('currentCase', currentCase);
+    fixture.componentRef.setInput('currentTask', currentTask);
     fixture.componentRef.setInput('policy', policy);
-    fixture.componentRef.setInput(
-      'clientProfilingReferences',
-      references
-    );
-
+    fixture.componentRef.setInput('clientProfilingReferences', references);
     fixture.detectChanges();
     await fixture.whenStable();
-  };
+  }
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    caseSummaryService = {
-      getSummary: jest.fn().mockReturnValue(of({}))
+    caseSummaryServiceMock = {
+      getSummary: jest.fn().mockReturnValue(of({ summaryText: 'Mock summary' }))
     };
-
-    casesService = {
-      getCaseDataAfterClientProfiling: jest.fn(),
-      getCaseBusinessDataUptoDate: jest.fn(),
+    comparisonDataServiceMock = {
+      setReferences: jest.fn()
+    };
+    assignmentServiceMock = {
+      openAssignmentModal: jest.fn().mockReturnValue({ afterClose: of(owner) })
+    };
+    applicationUsersServiceMock = {
+      findAll: jest.fn().mockReturnValue(of([])),
+      findAllUserTeams: jest.fn().mockReturnValue(of(['TeamA', 'TeamB']))
+    };
+    casesServiceMock = {
+      getCaseDataAfterClientProfiling: jest.fn().mockReturnValue(of(profilingData())),
+      getCaseBusinessDataUptoDate: jest.fn().mockReturnValue(of(businessData())),
+      saveTask: jest.fn().mockReturnValue(of({})),
       completeTask: jest.fn().mockReturnValue(of({}))
     };
 
-    assignmentService = {
-      openAssignmentModal: jest.fn()
-    };
-
-    applicationUsersService = {
-      findAllUserTeams: jest.fn().mockReturnValue(
-        of(['TeamA', 'TeamB'])
-      )
-    };
-
-    comparisonService = {
-      setReferences: jest.fn()
-    };
-
-    userService = {
-      user: signal({
-        preferred_username: 'john.doe'
-      }),
-      findAll: jest.fn().mockReturnValue(of([]))
-    };
+    const providers = [
+      { provide: CASE_SUMMARY_SERVICE, useValue: caseSummaryServiceMock },
+      { provide: COMPARISON_DATA_SERVICE, useValue: comparisonDataServiceMock },
+      { provide: ClientProfilingChangeService, useValue: {} },
+      { provide: AssignmentService, useValue: assignmentServiceMock },
+      { provide: ApplicationUsersService, useValue: applicationUsersServiceMock },
+      { provide: CasesService, useValue: casesServiceMock },
+      {
+        provide: UserService,
+        useValue: { user: signal({ preferred_username: 'john.doe' }) }
+      }
+    ];
 
     await TestBed.configureTestingModule({
       imports: [CciManualChangeComponent],
-      providers: [
-        {
-          provide: CASE_SUMMARY_SERVICE,
-          useValue: caseSummaryService
-        },
-        {
-          provide: CasesService,
-          useValue: casesService
-        },
-        {
-          provide: AssignmentService,
-          useValue: assignmentService
-        },
-        {
-          provide: ApplicationUsersService,
-          useValue: applicationUsersService
-        },
-        {
-          provide: COMPARISON_DATA_SERVICE,
-          useValue: comparisonService
-        },
-        {
-          provide: UserService,
-          useValue: userService
-        }
-      ]
+      providers
     })
       .overrideComponent(CciManualChangeComponent, {
         set: {
-          template: ''
+          template: '',
+          imports: [],
+          providers
         }
       })
       .compileComponents();
-
-    await initializeComponent();
   });
 
-  afterEach(() => {
-    fixture.destroy();
+  it('should create', async () => {
+    await createComponent();
+    expect(component).toBeTruthy();
   });
 
-  describe('Component initialization', () => {
-    it('should create', () => {
-      expect(component).toBeTruthy();
-    });
+  it('should load client profiling and current business data', async () => {
+    await createComponent();
+    expect(casesServiceMock.getCaseDataAfterClientProfiling).toHaveBeenCalledWith(caseId);
+    expect(casesServiceMock.getCaseBusinessDataUptoDate).toHaveBeenCalledWith(caseId);
+  });
 
-    it('should load client profiling data', () => {
-      expect(
-        casesService.getCaseDataAfterClientProfiling
-      ).toHaveBeenCalledWith(caseId);
+  it('should load the case summary', async () => {
+    await createComponent();
+    expect(caseSummaryServiceMock.getSummary).toHaveBeenCalledWith(
+      caseId,
+      expect.objectContaining({ caseBusinessIdentifier: caseId })
+    );
+  });
 
-      expect(component['clientProfilingCasesData']()).toEqual(
-        createClientProfilingData()
-      );
-    });
+  it('should initialize comparison references', async () => {
+    await createComponent();
+    expect(comparisonDataServiceMock.setReferences).toHaveBeenCalledWith(references);
+  });
 
-    it('should load current business data', () => {
-      expect(
-        casesService.getCaseBusinessDataUptoDate
-      ).toHaveBeenCalledWith(caseId);
+  it('should update comparison references when the input changes', async () => {
+    await createComponent();
+    const nextReferences = { COUNTRY: [{ key: 'IT', value: 'Italy' }] };
 
-      expect(component['getCurrentBusinessData']()).toEqual(
-        createBusinessData()
-      );
-    });
+    fixture.componentRef.setInput('clientProfilingReferences', nextReferences);
+    fixture.detectChanges();
+    await fixture.whenStable();
 
-    it('should initialize comparison references', async () => {
-      comparisonService.setReferences.mockClear();
+    expect(comparisonDataServiceMock.setReferences).toHaveBeenLastCalledWith(nextReferences);
+  });
 
-      fixture.componentRef.setInput(
-        'clientProfilingReferences',
-        {
-          COUNTRY: [
-            {
-              key: 'BE',
-              value: 'Belgium'
-            }
-          ]
-        }
-      );
+  it('should create the manual change form with the loaded data', async () => {
+    await createComponent();
+    component['form']();
 
-      fixture.detectChanges();
-      await fixture.whenStable();
+    expect(CCIManualChangeForm).toHaveBeenCalledWith(
+      component.checksCompleted,
+      manualChange,
+      false
+    );
+  });
 
-      expect(
-        comparisonService.setReferences
-      ).toHaveBeenCalledWith({
-        COUNTRY: [
-          {
-            key: 'BE',
-            value: 'Belgium'
-          }
-        ]
-      });
-    });
-
-    it('should initialize the manual change form', () => {
-      expect(component['form']()).toBeDefined();
-
-      expect(CCIManualChangeForm).toHaveBeenCalledWith(
-        component.checksCompleted,
-        manualChange,
-        false
-      );
-    });
-
-    it('should initialize users', () => {
-      expect(userService.findAll).toHaveBeenCalled();
-    });
-
-    it('should load user teams', () => {
-      expect(
-        applicationUsersService.findAllUserTeams
-      ).toHaveBeenCalledWith('john.doe');
-
-      expect(component.teams()).toEqual([
-        {
-          displayName: 'TeamA',
-          value: 'TeamA'
-        },
-        {
-          displayName: 'TeamB',
-          value: 'TeamB'
-        }
-      ]);
-    });
+  it('should load users and their teams', async () => {
+    await createComponent();
+    expect(applicationUsersServiceMock.findAll).toHaveBeenCalled();
+    expect(applicationUsersServiceMock.findAllUserTeams).toHaveBeenCalledWith('john.doe');
+    expect(component.teams()).toEqual([
+      { displayName: 'TeamA', value: 'TeamA' },
+      { displayName: 'TeamB', value: 'TeamB' }
+    ]);
   });
 
   describe('Communication preferences', () => {
-    it('should not detect changes when values are identical', () => {
-      expect(
-        component['isCommPreferencesChanged']()
-      ).toBe(false);
+    it('should return false when both sources are identical', async () => {
+      await createComponent();
+      expect(component['isCommPreferencesChanged']()).toBe(false);
     });
 
-    it('should detect electronic communications consent changes', async () => {
-      const changedConsent = {
-        ...policy.digitalConsent,
-        receiveElectronicCommunicationsConsentStatus: 'DECLINED'
-      };
-
-      await initializeComponent(
-        createClientProfilingData(changedConsent),
-        createBusinessData()
+    it.each([
+      'receiveElectronicCommunicationsConsentStatus',
+      'useDigitalPlatformConsentStatus',
+      'useElectronicSignatureConsentStatus'
+    ] as const)('should detect a change in %s', async field => {
+      const changedConsent = { ...consent, [field]: 'DECLINED' };
+      casesServiceMock.getCaseDataAfterClientProfiling.mockReturnValue(
+        of(profilingData(changedConsent))
       );
 
-      expect(
-        component['isCommPreferencesChanged']()
-      ).toBe(true);
+      await createComponent();
+      expect(component['isCommPreferencesChanged']()).toBe(true);
     });
 
-    it('should detect digital platform consent changes', async () => {
-      const changedConsent = {
-        ...policy.digitalConsent,
-        useDigitalPlatformConsentStatus: 'DECLINED'
-      };
-
-      await initializeComponent(
-        createClientProfilingData(changedConsent),
-        createBusinessData()
+    it('should return false when the client consent is absent', async () => {
+      casesServiceMock.getCaseDataAfterClientProfiling.mockReturnValue(
+        of(profilingData(null))
       );
-
-      expect(
-        component['isCommPreferencesChanged']()
-      ).toBe(true);
+      await createComponent();
+      expect(component['isCommPreferencesChanged']()).toBe(false);
     });
 
-    it('should detect electronic signature consent changes', async () => {
-      const changedConsent = {
-        ...policy.digitalConsent,
-        useElectronicSignatureConsentStatus: 'DECLINED'
-      };
-
-      await initializeComponent(
-        createClientProfilingData(changedConsent),
-        createBusinessData()
+    it('should return false when the CLASS consent is absent', async () => {
+      casesServiceMock.getCaseBusinessDataUptoDate.mockReturnValue(
+        of(businessData(null))
       );
-
-      expect(
-        component['isCommPreferencesChanged']()
-      ).toBe(true);
+      await createComponent();
+      expect(component['isCommPreferencesChanged']()).toBe(false);
     });
 
-    it('should not detect changes when client consent is missing', async () => {
-      await initializeComponent(
-        createClientProfilingData(undefined),
-        createBusinessData()
-      );
-
-      expect(
-        component['isCommPreferencesChanged']()
-      ).toBe(false);
-    });
-
-    it('should not detect changes when CLASS consent is missing', async () => {
-      await initializeComponent(
-        createClientProfilingData(),
-        createBusinessData(undefined)
-      );
-
-      expect(
-        component['isCommPreferencesChanged']()
-      ).toBe(false);
+    it('should return false before profiling data has loaded', async () => {
+      casesServiceMock.getCaseDataAfterClientProfiling.mockReturnValue(of(null));
+      await createComponent();
+      expect(component['isCommPreferencesChanged']()).toBe(false);
     });
   });
 
-  describe('Task completion', () => {
-    const owner = {
-      assignee: 'john.doe',
-      team: 'TeamA'
-    };
-
-    it('should open the assignment modal', () => {
-      assignmentService.openAssignmentModal.mockReturnValue({
-        afterClose: of(null)
-      });
-
-      component.complete(caseId, taskId, jest.fn());
-
-      expect(
-        assignmentService.openAssignmentModal
-      ).toHaveBeenCalledTimes(1);
-    });
-
-    it('should complete the task after assignment', () => {
+  describe('Save', () => {
+    it('should save the payload and notify success', async () => {
+      await createComponent();
       const onSucceed = jest.fn();
 
-      assignmentService.openAssignmentModal.mockReturnValue({
-        afterClose: of(owner)
-      });
+      component.save(caseId, taskId, onSucceed);
 
-      component.complete(caseId, taskId, onSucceed);
-
-      expect(casesService.completeTask).toHaveBeenCalledWith(
+      expect(casesServiceMock.saveTask).toHaveBeenCalledWith(
         caseId,
         taskId,
         TaskType.CCI_MANUAL_CHANGE,
-        expect.objectContaining({
-          signOffAssignment: {
-            user: 'john.doe',
-            team: 'TeamA'
-          }
-        })
+        { mocked: 'payload' }
       );
-
       expect(onSucceed).toHaveBeenCalledTimes(1);
     });
+  });
 
-    it('should not complete when assignment is cancelled', () => {
+  describe('Complete', () => {
+    it('should open the sign-off assignment modal with the available teams', async () => {
+      await createComponent();
+      component.complete(caseId, taskId, jest.fn());
+
+      expect(assignmentServiceMock.openAssignmentModal).toHaveBeenCalledWith(
+        [
+          { displayName: 'TeamA', value: 'TeamA' },
+          { displayName: 'TeamB', value: 'TeamB' }
+        ],
+        'Sign Off assignment',
+        { displayName: 'TeamA', value: 'TeamA' },
+        { displayName: 'John', value: 'john.doe' }
+      );
+    });
+
+    it('should complete with the selected sign-off assignee', async () => {
+      await createComponent();
       const onSucceed = jest.fn();
-
-      assignmentService.openAssignmentModal.mockReturnValue({
-        afterClose: of(null)
-      });
 
       component.complete(caseId, taskId, onSucceed);
 
-      expect(
-        casesService.completeTask
-      ).not.toHaveBeenCalled();
+      expect(casesServiceMock.completeTask).toHaveBeenCalledWith(
+        caseId,
+        taskId,
+        TaskType.CCI_MANUAL_CHANGE,
+        {
+          mocked: 'payload',
+          signOffAssignment: { user: 'jane.doe', team: 'Operations' }
+        }
+      );
+      expect(onSucceed).toHaveBeenCalledTimes(1);
+    });
 
+    it('should not complete if the assignment dialog is cancelled', async () => {
+      assignmentServiceMock.openAssignmentModal.mockReturnValue({ afterClose: of(null) });
+      await createComponent();
+      const onSucceed = jest.fn();
+
+      component.complete(caseId, taskId, onSucceed);
+
+      expect(casesServiceMock.completeTask).not.toHaveBeenCalled();
       expect(onSucceed).not.toHaveBeenCalled();
     });
 
-    it('should complete the correct case and task', () => {
-      assignmentService.openAssignmentModal.mockReturnValue({
-        afterClose: of(owner)
+    it('should wait for the assignment dialog to return a value', async () => {
+      const assignmentResult$ = new Subject<typeof owner | null>();
+      assignmentServiceMock.openAssignmentModal.mockReturnValue({
+        afterClose: assignmentResult$.asObservable()
       });
-
-      component.complete('CASE-456', 123, jest.fn());
-
-      expect(casesService.completeTask).toHaveBeenCalledWith(
-        'CASE-456',
-        123,
-        TaskType.CCI_MANUAL_CHANGE,
-        expect.any(Object)
-      );
-    });
-
-    it('should call onSucceed only after successful completion', () => {
+      await createComponent();
       const onSucceed = jest.fn();
-
-      assignmentService.openAssignmentModal.mockReturnValue({
-        afterClose: of(owner)
-      });
-
-      casesService.completeTask.mockReturnValue(of({}));
 
       component.complete(caseId, taskId, onSucceed);
+      expect(casesServiceMock.completeTask).not.toHaveBeenCalled();
 
+      assignmentResult$.next(owner);
+      expect(casesServiceMock.completeTask).toHaveBeenCalledTimes(1);
       expect(onSucceed).toHaveBeenCalledTimes(1);
+      assignmentResult$.complete();
     });
 
-    it('should not call onSucceed when completion fails', () => {
-      const onSucceed = jest.fn();
-
-      assignmentService.openAssignmentModal.mockReturnValue({
-        afterClose: of(owner)
-      });
-
-      casesService.completeTask.mockReturnValue(
+    it('should not notify success if completion fails', async () => {
+      casesServiceMock.completeTask.mockReturnValue(
         throwError(() => new Error('Completion failed'))
       );
-
-      const consoleSpy = jest
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-
-      component.complete(caseId, taskId, onSucceed);
-
-      expect(onSucceed).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should not complete when assignment returns undefined', () => {
+      await createComponent();
       const onSucceed = jest.fn();
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      assignmentService.openAssignmentModal.mockReturnValue({
-        afterClose: of(undefined)
-      });
-
-      component.complete(caseId, taskId, onSucceed);
-
-      expect(
-        casesService.completeTask
-      ).not.toHaveBeenCalled();
-
-      expect(onSucceed).not.toHaveBeenCalled();
+      try {
+        component.complete(caseId, taskId, onSucceed);
+        expect(onSucceed).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
     });
   });
 });
