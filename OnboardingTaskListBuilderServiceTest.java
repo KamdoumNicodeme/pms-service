@@ -1,91 +1,175 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of, Subject } from 'rxjs';
+import { signal } from '@angular/core';
+import { of } from 'rxjs';
 
-import { CciManualChangeSignOffComponent } from './cci-manual-change-sign-off.component';
+import { CciManualChangeComponent } from './cci-manual-change.component';
+import { CCIManualChangeForm } from './forms/cci-manual-change.form';
 
-describe('CciManualChangeSignOffComponent', () => {
-  let component: CciManualChangeSignOffComponent;
-  let fixture: ComponentFixture<CciManualChangeSignOffComponent>;
+jest.mock('./forms/cci-manual-change.form', () => ({
+  CCIManualChangeForm: jest.fn()
+}));
 
-  let caseService: {
+describe('CciManualChangeComponent', () => {
+  let component: CciManualChangeComponent;
+  let fixture: ComponentFixture<CciManualChangeComponent>;
+
+  let casesService: {
     getCaseDataAfterClientProfiling: jest.Mock;
     getCaseBusinessDataUptoDate: jest.Mock;
     completeTask: jest.Mock;
-    rejectTask: jest.Mock;
-  };
-
-  let comparisonService: {
-    setReferences: jest.Mock;
   };
 
   let caseSummaryService: {
     getSummary: jest.Mock;
   };
 
-  let rejectionModalService: {
-    openRejectionModal: jest.Mock;
+  let comparisonService: {
+    setReferences: jest.Mock;
   };
 
-  let completionModalService: {
-    openConfirmation: jest.Mock;
+  let assignmentService: {
+    openAssignmentModal: jest.Mock;
   };
 
-  const caseId = 'CLIP_TEST_001';
-  const taskId = 123;
-  const rejectionReason = 'Incorrect client information';
+  let applicationUsersService: {
+    findAll: jest.Mock;
+    findAllUserTeams: jest.Mock;
+  };
+
+  const caseId = 'CASE-123';
+  const taskId = 999;
+
+  const currentCase = {
+    caseBusinessIdentifier: caseId,
+    ownerTeam: 'TeamA',
+    ownerDetails: {
+      displayName: 'John',
+      username: 'john.doe'
+    }
+  };
+
+  const currentTask = {
+    id: taskId
+  };
+
+  const policy = {
+    holder: {
+      sendingAddress: {
+        salutation: 'Mr',
+        address: {
+          area: 'Luxembourg',
+          streetName: 'Main Street',
+          postCode: '1000',
+          townName: 'Luxembourg',
+          residenceName: '',
+          postalBox: '',
+          apartmentNumber: '10',
+          county: '',
+          country: 'LU',
+          streetNumber: '12'
+        },
+        language: 'EN'
+      }
+    },
+    digitalConsent: {
+      receiveElectronicCommunicationsConsentStatus: 'ACCEPTED',
+      useDigitalPlatformConsentStatus: 'ACCEPTED',
+      useElectronicSignatureConsentStatus: 'DECLINED'
+    }
+  };
+
+  const manualChange = {
+    sendingAddressManualTasks: {},
+    sendingRulesManualTasks: {},
+    mailingRulesManualTasks: {},
+    digitalConsentManualTasks: {}
+  };
 
   beforeEach(async () => {
-    caseService = {
+    jest.clearAllMocks();
+
+    casesService = {
       getCaseDataAfterClientProfiling: jest.fn().mockReturnValue(
         of({
-          manualChange: null,
-          changeClientInformation: null
+          manualChange,
+          changeClientInformation: {
+            policy: {
+              digitalConsent: policy.digitalConsent
+            }
+          }
         })
       ),
       getCaseBusinessDataUptoDate: jest.fn().mockReturnValue(
-        of({ policy: { digitalConsent: null } })
+        of({
+          policy: {
+            digitalConsent: policy.digitalConsent
+          }
+        })
       ),
-      completeTask: jest.fn().mockReturnValue(of(undefined)),
-      rejectTask: jest.fn().mockReturnValue(of(undefined))
-    };
-
-    comparisonService = {
-      setReferences: jest.fn()
+      completeTask: jest.fn().mockReturnValue(of({}))
     };
 
     caseSummaryService = {
       getSummary: jest.fn().mockReturnValue(of({}))
     };
 
-    rejectionModalService = {
-      openRejectionModal: jest.fn()
+    comparisonService = {
+      setReferences: jest.fn()
     };
 
-    completionModalService = {
-      openConfirmation: jest.fn()
+    assignmentService = {
+      openAssignmentModal: jest.fn()
     };
+
+    applicationUsersService = {
+      findAll: jest.fn().mockReturnValue(of([])),
+      findAllUserTeams: jest.fn().mockReturnValue(of(['TeamA']))
+    };
+
+    (CCIManualChangeForm as jest.Mock).mockImplementation(() => ({
+      buildPayload: jest.fn().mockReturnValue({
+        sendingAddressManualTasks: {},
+        sendingRulesManualTasks: {},
+        mailingRulesManualTasks: {}
+      }),
+      valid: true
+    }));
 
     await TestBed.configureTestingModule({
-      imports: [CciManualChangeSignOffComponent],
+      imports: [CciManualChangeComponent],
       providers: [
-        { provide: CasesService, useValue: caseService },
-        { provide: CASE_SUMMARY_SERVICE, useValue: caseSummaryService },
-        { provide: COMPARISON_DATA_SERVICE, useValue: comparisonService },
-        { provide: RejectionModalService, useValue: rejectionModalService },
         {
-          provide: CompletionConfirmationModalService,
-          useValue: completionModalService
+          provide: CasesService,
+          useValue: casesService
+        },
+        {
+          provide: CASE_SUMMARY_SERVICE,
+          useValue: caseSummaryService
+        },
+        {
+          provide: COMPARISON_DATA_SERVICE,
+          useValue: comparisonService
+        },
+        {
+          provide: AssignmentService,
+          useValue: assignmentService
         },
         {
           provide: ApplicationUsersService,
+          useValue: applicationUsersService
+        },
+        {
+          provide: UserService,
           useValue: {
-            findAll: jest.fn().mockReturnValue(of([]))
+            user: signal({
+              preferred_username: 'john.doe'
+            })
           }
         }
       ]
     })
-      .overrideComponent(CciManualChangeSignOffComponent, {
+      .overrideComponent(CciManualChangeComponent, {
         set: {
           template: '',
           imports: []
@@ -93,35 +177,29 @@ describe('CciManualChangeSignOffComponent', () => {
       })
       .compileComponents();
 
-    fixture = TestBed.createComponent(CciManualChangeSignOffComponent);
+    fixture = TestBed.createComponent(CciManualChangeComponent);
     component = fixture.componentInstance;
 
-    fixture.componentRef.setInput('currentCase', {
-      caseBusinessIdentifier: caseId
-    });
-
-    fixture.componentRef.setInput('currentTask', {
-      taskId
-    });
-
-    fixture.componentRef.setInput('policy', null);
-    fixture.componentRef.setInput('readOnly', true);
+    fixture.componentRef.setInput('currentCase', currentCase);
+    fixture.componentRef.setInput('currentTask', currentTask);
+    fixture.componentRef.setInput('policy', policy);
+    fixture.componentRef.setInput('readOnly', false);
 
     fixture.detectChanges();
     await fixture.whenStable();
   });
 
-  it('should create the component', () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 
   it('should load client profiling data', () => {
     expect(
-      caseService.getCaseDataAfterClientProfiling
+      casesService.getCaseDataAfterClientProfiling
     ).toHaveBeenCalledWith(caseId);
 
     expect(
-      caseService.getCaseBusinessDataUptoDate
+      casesService.getCaseBusinessDataUptoDate
     ).toHaveBeenCalledWith(caseId);
   });
 
@@ -129,8 +207,8 @@ describe('CciManualChangeSignOffComponent', () => {
     const references = {
       COUNTRY: [
         {
-          key: 'IT',
-          value: 'Italy'
+          key: 'LU',
+          value: 'Luxembourg'
         }
       ]
     };
@@ -147,121 +225,112 @@ describe('CciManualChangeSignOffComponent', () => {
     );
   });
 
-  describe('Complete sign-off', () => {
-    it('should complete the task when confirmation is accepted', () => {
-      const onSucceed = jest.fn();
+  it('should create the manual change form', () => {
+    const form = component.form();
 
-      completionModalService.openConfirmation.mockReturnValue({
-        afterClose: of(true)
-      });
-
-      component.complete(caseId, taskId, onSucceed);
-
-      expect(
-        completionModalService.openConfirmation
-      ).toHaveBeenCalledTimes(1);
-
-      expect(caseService.completeTask).toHaveBeenCalledWith(
-        caseId,
-        taskId,
-        TaskType.CCI_MANUAL_CHANGE_SIGNOFF
-      );
-
-      expect(onSucceed).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not complete the task when confirmation is cancelled', () => {
-      const onSucceed = jest.fn();
-
-      completionModalService.openConfirmation.mockReturnValue({
-        afterClose: of(false)
-      });
-
-      component.complete(caseId, taskId, onSucceed);
-
-      expect(caseService.completeTask).not.toHaveBeenCalled();
-      expect(onSucceed).not.toHaveBeenCalled();
-    });
-
-    it('should wait for confirmation before completing the task', () => {
-      const onSucceed = jest.fn();
-      const confirmation$ = new Subject<boolean>();
-
-      completionModalService.openConfirmation.mockReturnValue({
-        afterClose: confirmation$.asObservable()
-      });
-
-      component.complete(caseId, taskId, onSucceed);
-
-      expect(caseService.completeTask).not.toHaveBeenCalled();
-
-      confirmation$.next(true);
-
-      expect(caseService.completeTask).toHaveBeenCalledTimes(1);
-      expect(onSucceed).toHaveBeenCalledTimes(1);
-
-      confirmation$.complete();
-    });
+    expect(form).toBeDefined();
+    expect(CCIManualChangeForm).toHaveBeenCalled();
   });
 
-  describe('Reject sign-off', () => {
-    it('should reject the task with the provided reason', () => {
-      const onSucceed = jest.fn();
+  it('should detect no communication preferences changes when values are identical', () => {
+    const result = component.isCommPreferencesChanged();
 
-      rejectionModalService.openRejectionModal.mockReturnValue({
-        afterClose: of(rejectionReason)
-      });
+    expect(result).toBe(false);
+  });
 
-      component.reject(caseId, taskId, onSucceed);
-
-      expect(
-        rejectionModalService.openRejectionModal
-      ).toHaveBeenCalledTimes(1);
-
-      expect(caseService.rejectTask).toHaveBeenCalledWith(
-        caseId,
-        taskId,
-        TaskType.CCI_MANUAL_CHANGE_SIGNOFF,
-        rejectionReason,
-        {
-          rejectionReason
+  it('should detect communication preferences changes', () => {
+    casesService.getCaseDataAfterClientProfiling.mockReturnValue(
+      of({
+        manualChange,
+        changeClientInformation: {
+          policy: {
+            digitalConsent: {
+              receiveElectronicCommunicationsConsentStatus: 'DECLINED',
+              useDigitalPlatformConsentStatus: 'ACCEPTED',
+              useElectronicSignatureConsentStatus: 'DECLINED'
+            }
+          }
         }
-      );
+      })
+    );
 
-      expect(onSucceed).toHaveBeenCalledTimes(1);
+    fixture.componentRef.setInput('currentCase', {
+      ...currentCase,
+      caseBusinessIdentifier: 'CASE-456'
     });
 
-    it('should not reject the task when the modal is cancelled', () => {
-      const onSucceed = jest.fn();
+    fixture.detectChanges();
 
-      rejectionModalService.openRejectionModal.mockReturnValue({
-        afterClose: of(null)
-      });
+    expect(component.isCommPreferencesChanged()).toBe(true);
+  });
 
-      component.reject(caseId, taskId, onSucceed);
+  it('should not detect changes when communication preferences are missing', () => {
+    casesService.getCaseDataAfterClientProfiling.mockReturnValue(
+      of({
+        manualChange,
+        changeClientInformation: {
+          policy: {}
+        }
+      })
+    );
 
-      expect(caseService.rejectTask).not.toHaveBeenCalled();
-      expect(onSucceed).not.toHaveBeenCalled();
+    fixture.componentRef.setInput('currentCase', {
+      ...currentCase,
+      caseBusinessIdentifier: 'CASE-789'
     });
 
-    it('should wait for a rejection reason before rejecting', () => {
-      const onSucceed = jest.fn();
-      const rejection$ = new Subject<string | null>();
+    fixture.detectChanges();
 
-      rejectionModalService.openRejectionModal.mockReturnValue({
-        afterClose: rejection$.asObservable()
-      });
+    expect(component.isCommPreferencesChanged()).toBe(false);
+  });
 
-      component.reject(caseId, taskId, onSucceed);
+  it('should complete the task after assignment', () => {
+    const onSucceed = jest.fn();
 
-      expect(caseService.rejectTask).not.toHaveBeenCalled();
-
-      rejection$.next(rejectionReason);
-
-      expect(caseService.rejectTask).toHaveBeenCalledTimes(1);
-      expect(onSucceed).toHaveBeenCalledTimes(1);
-
-      rejection$.complete();
+    assignmentService.openAssignmentModal.mockReturnValue({
+      afterClose: of({
+        assignee: 'john.doe',
+        team: 'TeamA'
+      })
     });
+
+    component.complete(caseId, taskId, onSucceed);
+
+    expect(
+      assignmentService.openAssignmentModal
+    ).toHaveBeenCalled();
+
+    expect(casesService.completeTask).toHaveBeenCalledWith(
+      caseId,
+      taskId,
+      TaskType.CCI_MANUAL_CHANGE,
+      expect.objectContaining({
+        signOffAssignment: {
+          user: 'john.doe',
+          team: 'TeamA'
+        }
+      })
+    );
+
+    expect(onSucceed).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not complete when assignment is cancelled', () => {
+    const onSucceed = jest.fn();
+
+    assignmentService.openAssignmentModal.mockReturnValue({
+      afterClose: of(null)
+    });
+
+    component.complete(caseId, taskId, onSucceed);
+
+    expect(casesService.completeTask).not.toHaveBeenCalled();
+    expect(onSucceed).not.toHaveBeenCalled();
+  });
+
+  it('should throw when reject is called', () => {
+    expect(() => {
+      component.reject(caseId, taskId, jest.fn());
+    }).toThrow('Method not implemented.');
   });
 });
