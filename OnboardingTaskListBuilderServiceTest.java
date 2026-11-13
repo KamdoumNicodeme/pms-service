@@ -1,100 +1,224 @@
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ReferenceController.class)
-@AutoConfigureMockMvc(addFilters = false)
-class ReferenceControllerMvcTest {
+@ExtendWith(MockitoExtension.class)
+class ReferenceServiceImplTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Mock
+    private ReferenceRepository referenceRepository;
 
-    @MockitoBean
-    private ReferenceService referenceService;
+    @Mock
+    private ReferenceRepositoryMapper referenceRepositoryMapper;
 
-    @MockitoBean
-    private ReferenceDtoMapper referenceDtoMapper;
+    @InjectMocks
+    private ReferenceServiceImpl referenceService;
 
-    private static final String URL = "/references/by-value";
-    private static final String DOMAIN = "YESNO";
-    private static final String VALUE = "YES";
+    private Pageable pageable;
+    private ReferenceDbo referenceDbo;
+    private Reference reference;
 
-    @Test
-    void shouldReturnOkWhenReferenceExists() throws Exception {
-        // Given
-        Reference reference = mock(Reference.class);
-        ReferenceDto dto = mock(ReferenceDto.class);
-
-        when(referenceService.getReferencesByDomainAndValue(DOMAIN, VALUE))
-                .thenReturn(Optional.of(reference));
-
-        when(referenceDtoMapper.toDto(reference))
-                .thenReturn(dto);
-
-        // When / Then
-        mockMvc.perform(get(URL)
-                        .param("domain", DOMAIN)
-                        .param("value", VALUE))
-                .andExpect(status().isOk());
-
-        verify(referenceService)
-                .getReferencesByDomainAndValue(DOMAIN, VALUE);
-
-        verify(referenceDtoMapper).toDto(reference);
+    @BeforeEach
+    void setUp() {
+        pageable = PageRequest.of(0, 20);
+        referenceDbo = mock(ReferenceDbo.class);
+        reference = mock(Reference.class);
     }
 
     @Test
-    void shouldReturnNotFoundWhenReferenceDoesNotExist()
-            throws Exception {
-
+    void shouldFindReferencesByDomainWhenSearchIsNull() {
         // Given
-        when(referenceService.getReferencesByDomainAndValue(DOMAIN, VALUE))
+        String domain = "YESNO";
+
+        Page<ReferenceDbo> dboPage =
+                new PageImpl<>(List.of(referenceDbo));
+
+        when(referenceRepository.findByDomain(domain, pageable))
+                .thenReturn(dboPage);
+
+        when(referenceRepositoryMapper.toDomain(referenceDbo))
+                .thenReturn(reference);
+
+        // When
+        Page<Reference> result =
+                referenceService.getReferencesByDomainPaginated(
+                        domain, null, pageable
+                );
+
+        // Then
+        assertEquals(1, result.getTotalElements());
+        assertSame(reference, result.getContent().get(0));
+
+        verify(referenceRepository)
+                .findByDomain(domain, pageable);
+
+        verify(referenceRepository, never())
+                .findByDomainAndKeyStartingWithIgnoreCase(
+                        anyString(), anyString(), any(Pageable.class)
+                );
+
+        verify(referenceRepositoryMapper)
+                .toDomain(referenceDbo);
+    }
+
+    @Test
+    void shouldFindReferencesByDomainWhenSearchIsBlank() {
+        // Given
+        String domain = "YESNO";
+        String search = "   ";
+
+        when(referenceRepository.findByDomain(domain, pageable))
+                .thenReturn(Page.empty(pageable));
+
+        // When
+        Page<Reference> result =
+                referenceService.getReferencesByDomainPaginated(
+                        domain, search, pageable
+                );
+
+        // Then
+        assertTrue(result.isEmpty());
+
+        verify(referenceRepository)
+                .findByDomain(domain, pageable);
+
+        verify(referenceRepository, never())
+                .findByDomainAndKeyStartingWithIgnoreCase(
+                        anyString(), anyString(), any(Pageable.class)
+                );
+
+        verifyNoInteractions(referenceRepositoryMapper);
+    }
+
+    @Test
+    void shouldSearchReferencesByDomainAndKey() {
+        // Given
+        String domain = "COUNTRY";
+        String search = "LU";
+
+        Page<ReferenceDbo> dboPage =
+                new PageImpl<>(List.of(referenceDbo));
+
+        when(referenceRepository
+                .findByDomainAndKeyStartingWithIgnoreCase(
+                        domain, search, pageable
+                ))
+                .thenReturn(dboPage);
+
+        when(referenceRepositoryMapper.toDomain(referenceDbo))
+                .thenReturn(reference);
+
+        // When
+        Page<Reference> result =
+                referenceService.getReferencesByDomainPaginated(
+                        domain, search, pageable
+                );
+
+        // Then
+        assertEquals(1, result.getTotalElements());
+        assertSame(reference, result.getContent().get(0));
+
+        verify(referenceRepository)
+                .findByDomainAndKeyStartingWithIgnoreCase(
+                        domain, search, pageable
+                );
+
+        verify(referenceRepository, never())
+                .findByDomain(anyString(), any(Pageable.class));
+
+        verify(referenceRepositoryMapper)
+                .toDomain(referenceDbo);
+    }
+
+    @Test
+    void shouldReturnEmptyPageWhenNoReferencesMatchSearch() {
+        // Given
+        String domain = "COUNTRY";
+        String search = "UNKNOWN";
+
+        when(referenceRepository
+                .findByDomainAndKeyStartingWithIgnoreCase(
+                        domain, search, pageable
+                ))
+                .thenReturn(Page.empty(pageable));
+
+        // When
+        Page<Reference> result =
+                referenceService.getReferencesByDomainPaginated(
+                        domain, search, pageable
+                );
+
+        // Then
+        assertTrue(result.isEmpty());
+        assertEquals(0, result.getTotalElements());
+
+        verifyNoInteractions(referenceRepositoryMapper);
+    }
+
+    @Test
+    void shouldReturnReferenceWhenDomainAndValueExist() {
+        // Given
+        String domain = "YESNO";
+        String value = "YES";
+
+        when(referenceRepository.findByDomainAndValue(domain, value))
+                .thenReturn(Optional.of(referenceDbo));
+
+        when(referenceRepositoryMapper.toDomain(referenceDbo))
+                .thenReturn(reference);
+
+        // When
+        Optional<Reference> result =
+                referenceService.getReferencesByDomainAndValue(
+                        domain, value
+                );
+
+        // Then
+        assertTrue(result.isPresent());
+        assertSame(reference, result.get());
+
+        verify(referenceRepository)
+                .findByDomainAndValue(domain, value);
+
+        verify(referenceRepositoryMapper)
+                .toDomain(referenceDbo);
+    }
+
+    @Test
+    void shouldReturnEmptyWhenDomainAndValueDoNotExist() {
+        // Given
+        String domain = "YESNO";
+        String value = "UNKNOWN";
+
+        when(referenceRepository.findByDomainAndValue(domain, value))
                 .thenReturn(Optional.empty());
 
-        // When / Then
-        mockMvc.perform(get(URL)
-                        .param("domain", DOMAIN)
-                        .param("value", VALUE))
-                .andExpect(status().isNotFound())
-                .andExpect(content().string(""));
+        // When
+        Optional<Reference> result =
+                referenceService.getReferencesByDomainAndValue(
+                        domain, value
+                );
 
-        verify(referenceService)
-                .getReferencesByDomainAndValue(DOMAIN, VALUE);
+        // Then
+        assertTrue(result.isEmpty());
 
-        verifyNoInteractions(referenceDtoMapper);
-    }
+        verify(referenceRepository)
+                .findByDomainAndValue(domain, value);
 
-    @Test
-    void shouldReturnBadRequestWhenDomainIsMissing()
-            throws Exception {
-
-        mockMvc.perform(get(URL)
-                        .param("value", VALUE))
-                .andExpect(status().isBadRequest());
-
-        verifyNoInteractions(referenceService);
-        verifyNoInteractions(referenceDtoMapper);
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenValueIsMissing()
-            throws Exception {
-
-        mockMvc.perform(get(URL)
-                        .param("domain", DOMAIN))
-                .andExpect(status().isBadRequest());
-
-        verifyNoInteractions(referenceService);
-        verifyNoInteractions(referenceDtoMapper);
+        verifyNoInteractions(referenceRepositoryMapper);
     }
 }
