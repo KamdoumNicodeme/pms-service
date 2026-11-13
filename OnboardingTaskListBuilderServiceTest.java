@@ -1,53 +1,51 @@
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
-class ReferenceControllerTest {
+@WebMvcTest(ReferenceController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class ReferenceControllerMvcTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
     private ReferenceService referenceService;
 
-    @Mock
+    @MockitoBean
     private ReferenceDtoMapper referenceDtoMapper;
 
-    @InjectMocks
-    private ReferenceController referenceController;
-
+    private static final String URL = "/references/by-value";
     private static final String DOMAIN = "YESNO";
     private static final String VALUE = "YES";
 
     @Test
-    void shouldReturnReferenceWhenDomainAndValueExist() {
+    void shouldReturnOkWhenReferenceExists() throws Exception {
         // Given
         Reference reference = mock(Reference.class);
-        ReferenceDto referenceDto = mock(ReferenceDto.class);
+        ReferenceDto dto = mock(ReferenceDto.class);
 
         when(referenceService.getReferencesByDomainAndValue(DOMAIN, VALUE))
                 .thenReturn(Optional.of(reference));
 
         when(referenceDtoMapper.toDto(reference))
-                .thenReturn(referenceDto);
+                .thenReturn(dto);
 
-        // When
-        ResponseEntity<ReferenceDto> response =
-                referenceController.getReferenceByDomainAndValue(
-                        DOMAIN, VALUE
-                );
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertSame(referenceDto, response.getBody());
+        // When / Then
+        mockMvc.perform(get(URL)
+                        .param("domain", DOMAIN)
+                        .param("value", VALUE))
+                .andExpect(status().isOk());
 
         verify(referenceService)
                 .getReferencesByDomainAndValue(DOMAIN, VALUE);
@@ -56,20 +54,19 @@ class ReferenceControllerTest {
     }
 
     @Test
-    void shouldReturnNotFoundWhenReferenceDoesNotExist() {
+    void shouldReturnNotFoundWhenReferenceDoesNotExist()
+            throws Exception {
+
         // Given
         when(referenceService.getReferencesByDomainAndValue(DOMAIN, VALUE))
                 .thenReturn(Optional.empty());
 
-        // When
-        ResponseEntity<ReferenceDto> response =
-                referenceController.getReferenceByDomainAndValue(
-                        DOMAIN, VALUE
-                );
-
-        // Then
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNull(response.getBody());
+        // When / Then
+        mockMvc.perform(get(URL)
+                        .param("domain", DOMAIN)
+                        .param("value", VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(""));
 
         verify(referenceService)
                 .getReferencesByDomainAndValue(DOMAIN, VALUE);
@@ -78,24 +75,26 @@ class ReferenceControllerTest {
     }
 
     @Test
-    void shouldPropagateExceptionWhenServiceFails() {
-        // Given
-        when(referenceService.getReferencesByDomainAndValue(DOMAIN, VALUE))
-                .thenThrow(new RuntimeException("Unexpected error"));
+    void shouldReturnBadRequestWhenDomainIsMissing()
+            throws Exception {
 
-        // When / Then
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> referenceController.getReferenceByDomainAndValue(
-                        DOMAIN, VALUE
-                )
-        );
+        mockMvc.perform(get(URL)
+                        .param("value", VALUE))
+                .andExpect(status().isBadRequest());
 
-        assertEquals("Unexpected error", exception.getMessage());
+        verifyNoInteractions(referenceService);
+        verifyNoInteractions(referenceDtoMapper);
+    }
 
-        verify(referenceService)
-                .getReferencesByDomainAndValue(DOMAIN, VALUE);
+    @Test
+    void shouldReturnBadRequestWhenValueIsMissing()
+            throws Exception {
 
+        mockMvc.perform(get(URL)
+                        .param("domain", DOMAIN))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(referenceService);
         verifyNoInteractions(referenceDtoMapper);
     }
 }
