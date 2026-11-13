@@ -1,160 +1,96 @@
-\import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { EMPTY, of } from 'rxjs';
 
-import { DataComparison } from './data-comparison.component';
-import { ComparisonStore } from './comparison.store';
+import { ComparisonRowComponent } from './comparison-row.component';
 
-describe('DataComparison', () => {
-  type Section = ReturnType<DataComparison['section']>;
-  type Reasons = ReturnType<DataComparison['changeReasons']>;
-  type Filter = ReturnType<DataComparison['filter']>;
-  type Counters = ReturnType<ComparisonStore['counters']>;
-  type Changes = ReturnType<ComparisonStore['appliedChanges']>;
-  type RemovedEntries = ReturnType<ComparisonStore['removedEntries']>;
+// Use the same import paths as comparison-row.component.ts in your project.
+// These two paths may need adjusting depending on your directory structure.
+import { COMPARISON_DATA_SERVICE } from './comparison-data.service';
+import { ReferenceService } from '../../../core/providers/services/reference.service';
 
-  let fixture: ComponentFixture<DataComparison>;
-  let component: DataComparison;
+describe('ComparisonRowComponent', () => {
+  type Row = ReturnType<ComparisonRowComponent['row']>;
 
-  const section = { id: 'physical-person' } as Section;
-  const reasons = {} as Reasons;
+  let fixture: ComponentFixture<ComparisonRowComponent>;
+  let component: ComparisonRowComponent;
 
-  let countersSignal: ReturnType<typeof signal<Counters>>;
-  let appliedChangesSignal: ReturnType<typeof signal<Changes>>;
-  let removedEntriesSignal: ReturnType<typeof signal<RemovedEntries>>;
-  let focusedIdSignal: ReturnType<typeof signal<string | null>>;
-
-  let storeMock: {
-    initialize: jest.Mock;
-    setFilter: jest.Mock;
-    counters: typeof countersSignal;
-    appliedChanges: typeof appliedChangesSignal;
-    removedEntries: typeof removedEntriesSignal;
-    focusedId: typeof focusedIdSignal;
-    apply: jest.Mock;
-    moveFocus: jest.Mock;
-    activate: jest.Mock;
-    collapse: jest.Mock;
+  let italianLabels: ReturnType<typeof signal<Array<{ value: string; label: string }>>>;
+  let comparisonDataMock: {
+    getItalianBirthTownLabels: jest.Mock;
+    addItalianBirthTownOptions: jest.Mock;
+  };
+  let referenceServiceMock: {
+    findReferencesByDomains: jest.Mock;
   };
 
-  beforeEach(async () => {
-    countersSignal = signal({} as Counters);
-    appliedChangesSignal = signal(new Map() as Changes);
-    removedEntriesSignal = signal([] as unknown as RemovedEntries);
-    focusedIdSignal = signal<string | null>(null);
+  function makeRow(overrides: Record<string, unknown> = {}): Row {
+    return {
+      id: 'firstname',
+      key: 'firstname',
+      label: 'First name',
+      status: 'updated',
+      editable: true,
+      values: { core: 'Alice', clip: 'Alicia' },
+      resolution: { value: 'Alicia', reason: '', comment: '' },
+      options: [],
+      ...overrides
+    } as unknown as Row;
+  }
 
-    storeMock = {
-      initialize: jest.fn(),
-      setFilter: jest.fn(),
-      counters: countersSignal,
-      appliedChanges: appliedChangesSignal,
-      removedEntries: removedEntriesSignal,
-      focusedId: focusedIdSignal,
-      apply: jest.fn(),
-      moveFocus: jest.fn(),
-      activate: jest.fn(),
-      collapse: jest.fn()
+  function italianRow(
+    core: string | null = 'A001',
+    clip: string | null = 'B002',
+    chosen: string | null = 'C003'
+  ): Row {
+    return makeRow({
+      id: 'italian-birth-town-code',
+      values: { core, clip },
+      resolution: { value: chosen, reason: '', comment: '' }
+    });
+  }
+
+  beforeEach(async () => {
+    italianLabels = signal<Array<{ value: string; label: string }>>([]);
+
+    comparisonDataMock = {
+      getItalianBirthTownLabels: jest.fn().mockReturnValue(italianLabels),
+      addItalianBirthTownOptions: jest.fn().mockImplementation(
+        (references: Array<{ value: string; label: string }>) => {
+          italianLabels.update(previous => [...previous, ...references]);
+        }
+      )
+    };
+
+    referenceServiceMock = {
+      findReferencesByDomains: jest.fn().mockImplementation(
+        (_domain: string, code: string) =>
+          of({ value: code, label: `Town ${code}` })
+      )
     };
 
     await TestBed.configureTestingModule({
-      imports: [DataComparison]
+      imports: [ComparisonRowComponent],
+      providers: [
+        { provide: COMPARISON_DATA_SERVICE, useValue: comparisonDataMock },
+        { provide: ReferenceService, useValue: referenceServiceMock }
+      ]
     })
-      .overrideComponent(DataComparison, {
+      .overrideComponent(ComparisonRowComponent, {
         set: {
           template: '',
           imports: [],
-          providers: [{ provide: ComparisonStore, useValue: storeMock }]
+          providers: [
+            { provide: COMPARISON_DATA_SERVICE, useValue: comparisonDataMock },
+            { provide: ReferenceService, useValue: referenceServiceMock }
+          ]
         }
       })
       .compileComponents();
 
-    fixture = TestBed.createComponent(DataComparison);
+    fixture = TestBed.createComponent(ComparisonRowComponent);
     component = fixture.componentInstance;
   });
 
-  function render(entityId: string | null = 'CLIENT-123'): void {
-    fixture.componentRef.setInput('section', section);
-    fixture.componentRef.setInput('changeReasons', reasons);
-    fixture.componentRef.setInput('entityId', entityId);
-    fixture.detectChanges();
-  }
-
-  // The component exposes these methods to its template as protected methods.
-  // This test-only facade lets us call them without altering production code.
-  type ProtectedActions = {
-    onApplyEntry: (action: { id: string; payload: unknown }) => void;
-    onApplyChild: (action: { id: string; payload: unknown }) => void;
-    onKeydown: (event: KeyboardEvent) => void;
-  };
-
-  function actions(): ProtectedActions {
-    return component as unknown as ProtectedActions;
-  }
-
-  function keyboardEvent(
-    key: string,
-    target: EventTarget = document.createElement('div')
-  ): KeyboardEvent & { preventDefault: jest.Mock } {
-    return {
-      key,
-      target,
-      preventDefault: jest.fn()
-    } as unknown as KeyboardEvent & { preventDefault: jest.Mock };
-  }
-
-  it('should create the component', () => {
-    render();
-    expect(component).toBeTruthy();
-  });
-
-  describe('initialization', () => {
-    it('should initialize the store with the section, entity ID and reasons', () => {
-      render();
-      expect(storeMock.initialize).toHaveBeenCalledWith(section, 'CLIENT-123', reasons);
-    });
-
-    it('should not initialize the store when entityId is null', () => {
-      render(null);
-      expect(storeMock.initialize).not.toHaveBeenCalled();
-    });
-
-    it('should initialize once entityId becomes available', () => {
-      render(null);
-      fixture.componentRef.setInput('entityId', 'CLIENT-456');
-      fixture.detectChanges();
-      expect(storeMock.initialize).toHaveBeenCalledWith(section, 'CLIENT-456', reasons);
-    });
-
-    it('should initialize again when the entity changes', () => {
-      render();
-      storeMock.initialize.mockClear();
-      fixture.componentRef.setInput('entityId', 'CLIENT-456');
-      fixture.detectChanges();
-      expect(storeMock.initialize).toHaveBeenCalledTimes(1);
-      expect(storeMock.initialize).toHaveBeenCalledWith(section, 'CLIENT-456', reasons);
-    });
-
-    it('should initialize again when change reasons change', () => {
-      render();
-      storeMock.initialize.mockClear();
-      const nextReasons = { sample: { reason: 'UPDATED' } } as unknown as Reasons;
-      fixture.componentRef.setInput('changeReasons', nextReasons);
-      fixture.detectChanges();
-      expect(storeMock.initialize).toHaveBeenCalledWith(section, 'CLIENT-123', nextReasons);
-    });
-  });
-
-  describe('filter', () => {
-    it('should forward the default filter to the store', () => {
-      render();
-      expect(storeMock.setFilter).toHaveBeenCalledWith('all');
-    });
-
-    it('should forward filter changes to the store', () => {
-      render();
-      storeMock.setFilter.mockClear();
-      const filter = 'conflict' as Filter;
-      fixture.componentRef.setInput('filter', filter);
-      fixture.detectChanges();
-      expect(storeMock.setFilter).toHaveBeenCalledWith(filter);
-    });
-  });
+  function render(row: Row = makeRow()): void {
+    fixture.componentRef.setInput('row', row);
