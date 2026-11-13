@@ -1,3 +1,195 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { EMPTY, of } from 'rxjs';
+
+import { ComparisonRowComponent } from './comparison-row.component';
+
+// Use the same import paths as comparison-row.component.ts in your project.
+// These two paths may need adjusting depending on your directory structure.
+import { COMPARISON_DATA_SERVICE } from './comparison-data.service';
+import { ReferenceService } from '../../../core/providers/services/reference.service';
+
+describe('ComparisonRowComponent', () => {
+  type Row = ReturnType<ComparisonRowComponent['row']>;
+
+  let fixture: ComponentFixture<ComparisonRowComponent>;
+  let component: ComparisonRowComponent;
+
+  let italianLabels: ReturnType<typeof signal<Array<{ value: string; label: string }>>>;
+  let comparisonDataMock: {
+    getItalianBirthTownLabels: jest.Mock;
+    addItalianBirthTownOptions: jest.Mock;
+  };
+  let referenceServiceMock: {
+    findReferencesByDomains: jest.Mock;
+  };
+
+  function makeRow(overrides: Record<string, unknown> = {}): Row {
+    return {
+      id: 'firstname',
+      key: 'firstname',
+      label: 'First name',
+      status: 'updated',
+      editable: true,
+      values: { core: 'Alice', clip: 'Alicia' },
+      resolution: { value: 'Alicia', reason: '', comment: '' },
+      options: [],
+      ...overrides
+    } as unknown as Row;
+  }
+
+  function italianRow(
+    core: string | null = 'A001',
+    clip: string | null = 'B002',
+    chosen: string | null = 'C003'
+  ): Row {
+    return makeRow({
+      id: 'italian-birth-town-code',
+      values: { core, clip },
+      resolution: { value: chosen, reason: '', comment: '' }
+    });
+  }
+
+  beforeEach(async () => {
+    italianLabels = signal<Array<{ value: string; label: string }>>([]);
+
+    comparisonDataMock = {
+      getItalianBirthTownLabels: jest.fn().mockReturnValue(italianLabels),
+      addItalianBirthTownOptions: jest.fn().mockImplementation(
+        (references: Array<{ value: string; label: string }>) => {
+          italianLabels.update(previous => [...previous, ...references]);
+        }
+      )
+    };
+
+    referenceServiceMock = {
+      findReferencesByDomains: jest.fn().mockImplementation(
+        (_domain: string, code: string) =>
+          of({ value: code, label: `Town ${code}` })
+      )
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [ComparisonRowComponent],
+      providers: [
+        { provide: COMPARISON_DATA_SERVICE, useValue: comparisonDataMock },
+        { provide: ReferenceService, useValue: referenceServiceMock }
+      ]
+    })
+      .overrideComponent(ComparisonRowComponent, {
+        set: {
+          template: '',
+          imports: [],
+          providers: [
+            { provide: COMPARISON_DATA_SERVICE, useValue: comparisonDataMock },
+            { provide: ReferenceService, useValue: referenceServiceMock }
+          ]
+        }
+      })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(ComparisonRowComponent);
+    component = fixture.componentInstance;
+  });
+
+  function render(row: Row = makeRow()): void {
+    fixture.componentRef.setInput('row', row);
+    fixture.detectChanges();
+  }
+
+  function updateRow(row: Row): void {
+    fixture.componentRef.setInput('row', row);
+    fixture.detectChanges();
+  }
+
+  it('should create', () => {
+    render();
+    expect(component).toBeTruthy();
+  });
+
+  describe('inputs and note', () => {
+    it('should use the default input values', () => {
+      render();
+      expect(component.expanded()).toBe(false);
+      expect(component.focused()).toBe(false);
+      expect(component.readOnly()).toBe(false);
+      expect(component.editable()).toBe(true);
+      expect(component.structuredError()).toBeNull();
+      expect(component.options()).toEqual([]);
+    });
+
+    it('should return an empty note when there is no reason', () => {
+      render(makeRow({
+        resolution: { value: 'Alicia', reason: '', comment: 'Ignored comment' }
+      }));
+      expect(component.note()).toBe('');
+    });
+
+    it('should return the reason when there is no comment', () => {
+      render(makeRow({
+        resolution: { value: 'Alicia', reason: 'CLIENT_INPUT', comment: '' }
+      }));
+      expect(component.note()).toBe('CLIENT_INPUT');
+    });
+
+    it('should combine reason and comment', () => {
+      render(makeRow({
+        resolution: { value: 'Alicia', reason: 'CLIENT_INPUT', comment: 'Confirmed' }
+      }));
+      expect(component.note()).toBe('CLIENT_INPUT: Confirmed');
+    });
+
+    it('should recompute the note when the row changes', () => {
+      render();
+      expect(component.note()).toBe('');
+      updateRow(makeRow({
+        resolution: { value: 'Alice', reason: 'KYC', comment: 'Updated' }
+      }));
+      expect(component.note()).toBe('KYC: Updated');
+    });
+  });
+
+  describe('status presentation', () => {
+    it.each([
+      ['added', 'added', 'plus'],
+      ['removed', 'removed', 'minus'],
+      ['diff', 'conflict', 'warning'],
+      ['conflict', 'conflict', 'warning'],
+      ['updated', 'changed', 'swap'],
+      ['retained', '', 'warning']
+    ])('should map %s to chip label %s and icon %s', (status, label, icon) => {
+      render(makeRow({ status }));
+      expect(component.chipLabel()).toBe(label);
+      expect(component.chipIcon()).toBe(icon);
+    });
+
+    it('should recalculate the status text when the status changes', () => {
+      render(makeRow({ status: 'added' }));
+      const firstText = component.statusText();
+      updateRow(makeRow({ status: 'removed' }));
+      expect(typeof firstText).toBe('string');
+      expect(component.statusText()).not.toBe(firstText);
+    });
+  });
+
+  describe('interaction', () => {
+    it('should emit toggle when onEdit is called for an editable row', () => {
+      render();
+      const toggleSpy = jest.fn();
+      component.toggle.subscribe(toggleSpy);
+
+      component.onEdit();
+
+      expect(toggleSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not emit toggle when onEdit is called for a non-editable row', () => {
+      render(makeRow({ editable: false }));
+      const toggleSpy = jest.fn();
+      component.toggle.subscribe(toggleSpy);
+
+      component.onEdit();
+
       expect(toggleSpy).not.toHaveBeenCalled();
     });
 
@@ -126,3 +318,10 @@
     it('should use row options for annotations on other fields', () => {
       render(makeRow({
         options: [{ value: 'BE', label: 'Belgium' }]
+      }));
+      const annotations = component.annotations();
+      expect(Array.isArray(annotations)).toBe(true);
+      expect(comparisonDataMock.getItalianBirthTownLabels).not.toHaveBeenCalled();
+    });
+  });
+});
