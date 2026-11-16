@@ -1,162 +1,110 @@
-
-import { OutputEmitterRef } from '@angular/core';
-import { CciErrorManagementSignOffForm } from './cci-error-management-sign-off.form';
-
-describe('CciErrorManagementSignOffForm', () => {
-  let validationEmitter: OutputEmitterRef<boolean>;
-  let emitSpy: jest.Mock;
-
-  const createInitialData = (
-    errorResolutionDetails: string | null,
-    allReturnedMessagesManaged: boolean | null
-  ): NonNullable<
-    ConstructorParameters<typeof CciErrorManagementSignOffForm>[1]
-  > => ({
-    check: {
-      errorResolutionDetails,
-      allReturnedMessagesManaged
-    }
-  } as NonNullable<
-    ConstructorParameters<typeof CciErrorManagementSignOffForm>[1]
-  >);
-
-  beforeEach(() => {
-    emitSpy = jest.fn();
-
-    validationEmitter = {
-      emit: emitSpy
-    } as unknown as OutputEmitterRef<boolean>;
+      expect(onSucceed).not.toHaveBeenCalled();
+    });
   });
 
-  it('should create the form with a checklist control', () => {
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      null
+  describe('complete', () => {
+    it('should complete the task and invoke onSucceed when confirmed', async () => {
+      await createComponent();
+      confirmationModalMock.openConfirmation.mockReturnValue({
+        afterClose: of(true)
+      });
+      const onSucceed = jest.fn();
+
+      component.complete(CASE_ID, TASK_ID, onSucceed);
+
+      expect(confirmationModalMock.openConfirmation).toHaveBeenCalledTimes(1);
+      expect(casesServiceMock.completeTask).toHaveBeenCalledWith(
+        CASE_ID, TASK_ID, TaskType.CCI_ERROR_MANAGEMENT_SIGNOFF
+      );
+      expect(onSucceed).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([false, null, undefined])(
+      'should not complete when the confirmation result is %s',
+      async confirmation => {
+        await createComponent();
+        confirmationModalMock.openConfirmation.mockReturnValue({
+          afterClose: of(confirmation)
+        });
+        const onSucceed = jest.fn();
+
+        component.complete(CASE_ID, TASK_ID, onSucceed);
+
+        expect(casesServiceMock.completeTask).not.toHaveBeenCalled();
+        expect(onSucceed).not.toHaveBeenCalled();
+      }
     );
 
-    expect(form).toBeTruthy();
-    expect(form.controls.check).toBeDefined();
+    it('should log an error and not invoke onSucceed if completion fails', async () => {
+      await createComponent();
+      const error = new Error('Complete failed');
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      confirmationModalMock.openConfirmation.mockReturnValue({ afterClose: of(true) });
+      casesServiceMock.completeTask.mockReturnValue(throwError(() => error));
+      const onSucceed = jest.fn();
+
+      component.complete(CASE_ID, TASK_ID, onSucceed);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error completing error management Sign-off', error
+      );
+      expect(onSucceed).not.toHaveBeenCalled();
+    });
   });
 
-  it('should emit false on initialization when data is missing', () => {
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      null
+  describe('reject', () => {
+    it('should send the rejection request and invoke onSucceed', async () => {
+      await createComponent();
+      rejectionModalMock.openRejectionModal.mockReturnValue({
+        afterClose: of('Missing documents')
+      });
+      const onSucceed = jest.fn();
+
+      component.reject(CASE_ID, TASK_ID, onSucceed);
+
+      expect(rejectionModalMock.openRejectionModal).toHaveBeenCalledTimes(1);
+      expect(casesServiceMock.rejectTask).toHaveBeenCalledWith(
+        CASE_ID,
+        TASK_ID,
+        TaskType.CCI_ERROR_MANAGEMENT_SIGNOFF,
+        'Missing documents',
+        { rejectionReason: 'Missing documents' }
+      );
+      expect(onSucceed).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([null, '', '   ', undefined])(
+      'should not reject when the modal returns %s',
+      async rejectionReason => {
+        await createComponent();
+        rejectionModalMock.openRejectionModal.mockReturnValue({
+          afterClose: of(rejectionReason)
+        });
+        const onSucceed = jest.fn();
+
+        component.reject(CASE_ID, TASK_ID, onSucceed);
+
+        expect(casesServiceMock.rejectTask).not.toHaveBeenCalled();
+        expect(onSucceed).not.toHaveBeenCalled();
+      }
     );
 
-    expect(form.status).toBe('INVALID');
-    expect(emitSpy).toHaveBeenCalledWith(false);
-    expect(emitSpy).toHaveBeenCalledTimes(1);
-  });
+    it('should log an error and not invoke onSucceed if rejection fails', async () => {
+      await createComponent();
+      const error = new Error('Reject failed');
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      rejectionModalMock.openRejectionModal.mockReturnValue({
+        afterClose: of('Incorrect data')
+      });
+      casesServiceMock.rejectTask.mockReturnValue(throwError(() => error));
+      const onSucceed = jest.fn();
 
-  it('should emit true when initial data is valid', () => {
-    const initialData = createInitialData(
-      'All returned messages have been resolved',
-      true
-    );
+      component.reject(CASE_ID, TASK_ID, onSucceed);
 
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      initialData
-    );
-
-    expect(form.status).toBe('VALID');
-    expect(emitSpy).toHaveBeenCalledWith(true);
-    expect(emitSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('should emit true when the form becomes valid', () => {
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      null
-    );
-
-    emitSpy.mockClear();
-
-    form.controls.check.controls.errorResolutionDetails
-      .setValue('Error resolved');
-
-    form.controls.check.controls.allReturnedMessagesManaged
-      .setValue(true);
-
-    expect(form.status).toBe('VALID');
-    expect(emitSpy).toHaveBeenCalledTimes(1);
-    expect(emitSpy).toHaveBeenCalledWith(true);
-  });
-
-  it('should emit false when a valid form becomes invalid', () => {
-    const initialData = createInitialData(
-      'Error resolved',
-      true
-    );
-
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      initialData
-    );
-
-    emitSpy.mockClear();
-
-    form.controls.check.controls.errorResolutionDetails
-      .setValue('');
-
-    expect(form.status).toBe('INVALID');
-    expect(emitSpy).toHaveBeenCalledTimes(1);
-    expect(emitSpy).toHaveBeenCalledWith(false);
-  });
-
-  it('should not emit again when validation status is unchanged', () => {
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      null
-    );
-
-    emitSpy.mockClear();
-
-    form.controls.check.controls.errorResolutionDetails
-      .setValue('');
-
-    form.controls.check.controls.allReturnedMessagesManaged
-      .setValue(null);
-
-    expect(form.status).toBe('INVALID');
-    expect(emitSpy).not.toHaveBeenCalled();
-  });
-
-  it('should emit true again when an invalid form is corrected', () => {
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      null
-    );
-
-    form.controls.check.controls.errorResolutionDetails
-      .setValue('Error resolved');
-
-    form.controls.check.controls.allReturnedMessagesManaged
-      .setValue(true);
-
-    form.controls.check.controls.errorResolutionDetails
-      .setValue('');
-
-    form.controls.check.controls.errorResolutionDetails
-      .setValue('Updated resolution details');
-
-    expect(emitSpy.mock.calls.map(([value]) => value))
-      .toEqual([false, true, false, true]);
-  });
-
-  it('should consider false valid with Validators.required', () => {
-    const initialData = createInitialData(
-      'Resolution details provided',
-      false
-    );
-
-    const form = new CciErrorManagementSignOffForm(
-      validationEmitter,
-      initialData
-    );
-
-    expect(form.status).toBe('VALID');
-    expect(emitSpy).toHaveBeenCalledWith(true);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error rejecting error management Sign-off', error
+      );
+      expect(onSucceed).not.toHaveBeenCalled();
+    });
   });
 });
