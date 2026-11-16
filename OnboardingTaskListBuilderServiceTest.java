@@ -1,391 +1,700 @@
-import { Location } from '@angular/common';
-import { signal, type Signal } from '@angular/core';
+/**
+ * Jest tests reconstructed from the screenshots of ChangeClientInformationComponent.
+ *
+ * IMPORTANT: Align service/token import paths with the EXACT imports in your component.
+ * The screenshots do not include the component's import declarations or the full
+ * implementation of the collapsed document actions.
+ *
+ * We test real component methods with a template-free TestBed and mock their I/O.
+ * We do not replace Angular modules/components with `class {}` jest mocks.
+ */
+import { signal, type Signal, type WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { TaskStatus, TaskType, UserService } from '@lia/commons';
-import { NzMessageService } from 'ng-zorro-antd/message';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
+import { deserialize, serialize } from 'node:v8';
+import { TaskType, UserService } from '@lia/commons';
+import { NzModalService } from 'ng-zorro-antd/modal';
 
-import { ClientProfilingComponent } from './client-profiling.component';
+import { ChangeClientInformationComponent } from './change-client-information.component';
 
-// IMPORTANT: use the exact paths from client-profiling.component.ts.
-// The screenshot does not show its imports. These paths are indicative.
-import { CASE_SUMMARY_SERVICE } from '../../core/providers/services/case-summary.service.service';
-import { ApplicationUsersService } from '../../core/providers/services/application-users.service';
-import { TasksService } from '../../core/providers/services/tasks.service';
-// TODO: replace this line with the actual HOLDING_REASONS_TOKEN import used by the component.
-import { HOLDING_REASONS_TOKEN } from './holding-reasons.token';
+// IMPORTANT: Copy these import paths from change-client-information.component.ts.
+// Their names are grounded in the screenshots, but their source locations may differ.
+import { CASE_SUMMARY_SERVICE } from '../../../../core/providers/services/case-summary.service.service';
+import { CasesService } from '../../../../core/providers/services/cases.service';
+import { ApplicationUsersService } from '../../../../core/providers/services/application-users.service';
+import { AssignmentService } from '../../../../core/providers/services/assignment.service';
+import { ClientProfilingChangeService } from '../../../../core/providers/services/client-profiling-change.service';
+import { RejectionModalService } from '../shared/rejection/rejection-modal.service';
+import { COMPARISON_DATA_SERVICE } from '../../../../shared/components/data-comparison/comparison-data.service';
 
-type TaskData = {
-  userTaskIdentifier: number;
-  userTaskBpmnIdentifier: string;
-  candidateGroups: string[];
-  assigneeDetails: { username: string } | null;
-  status: string;
-  pendingReason?: string | null;
-};
+const CASE_ID = 'CASE-123';
+const TASK_ID = 555;
+const POLICY_NUMBER = 'POL-001';
 
-type StateUnderTest = {
-  readonly actualTask: Signal<TaskData>;
-  readonly readOnly: Signal<boolean>;
-  readonly isUpdatable: Signal<boolean>;
-  readonly isRejectable: Signal<boolean>;
-  readonly hiddenBtnSave: Signal<boolean>;
-  readonly displayBtnReject: Signal<boolean>;
-  readonly hasRejectedDocument: Signal<boolean>;
-  readonly isUserPartOfTeam: Signal<boolean | undefined>;
-  readonly canComplete: Signal<boolean>;
-  readonly allChecksCompleted: Signal<boolean>;
-  readonly holdingReasonLabel: Signal<string>;
-  readonly updateTask: Signal<boolean>;
-  readonly onChecksCompleted: (completed: boolean) => void;
-  readonly summary: { value: () => unknown };
-};
-
-// Access the protected signals only in tests; do not change their visibility in production.
-const state = (component: ClientProfilingComponent): StateUnderTest =>
-  component as unknown as StateUnderTest;
-
-const BASE_CASE = { caseBusinessIdentifier: 'CASE-123' };
-const BASE_TASK: TaskData = {
-  userTaskIdentifier: 555,
-  userTaskBpmnIdentifier: 'cci-manual-change-signoff',
-  candidateGroups: ['TEAM_A'],
-  assigneeDetails: { username: 'john.doe' },
-  status: 'OPEN',
-  pendingReason: null
-};
-
-const taskWith = (patch: Partial<TaskData> = {}): TaskData => ({
-  ...BASE_TASK,
-  ...patch
+const person = (overrides: Record<string, unknown> = {}) => ({
+  thirdPartyId: 'PERSON-1',
+  type: 'PHYSICAL_PERSON',
+  firstName: 'Jane',
+  lastname: 'Doe',
+  birthDate: '1990-01-01',
+  roleTypes: ['Holder'],
+  ...overrides
 });
 
-describe('ClientProfilingComponent', () => {
-  let fixture: ComponentFixture<ClientProfilingComponent>;
-  let component: ClientProfilingComponent;
+const company = (overrides: Record<string, unknown> = {}) => ({
+  thirdPartyId: 'COMPANY-1',
+  type: 'MORAL_PERSON',
+  name: 'Example S.A.',
+  creationDate: '2001-01-01',
+  roleTypes: ['Holder'],
+  ...overrides
+});
 
-  let currentUserSignal: ReturnType<typeof signal<{ preferred_username: string } | null>>;
-  let caseSummaryMock: { getSummary: jest.Mock };
-  let applicationUsersMock: { isUserPartOfTeam: jest.Mock };
-  let tasksServiceMock: {
-    findById: jest.Mock;
-    updatePendingReason: jest.Mock;
-    updateAssignee: jest.Mock;
+const makeCase = () => ({
+  caseBusinessIdentifier: CASE_ID,
+  ownerTeam: 'TEAM_A',
+  ownerDetails: { displayName: 'Case Owner', username: 'owner.user' }
+});
+
+const makeTask = () => ({ userTaskIdentifier: TASK_ID, status: 'OPENED' });
+
+const makeData = (changes: Record<string, unknown> = {}) => ({
+  initialBusinessData: {
+    policy: { policyNumber: POLICY_NUMBER, clients: [person(), company()] }
+  },
+  clientPortalBusinessData: {
+    policy: { clients: [person({ firstName: 'Portal Jane' })] }
+  },
+  changeClientInformation: null,
+  ...changes
+});
+
+const makeBusinessData = () => ({
+  policy: { clients: [person({ firstName: 'Core Jane' }), company()] }
+});
+
+// Tests access protected/private TypeScript fields via an explicit test-only view.
+// Do not expose them in production merely to test them.
+type UnderTest = {
+  readonly saving: Signal<boolean>;
+  readonly refreshClientProfiling: Signal<number>;
+  readonly getClientProfilingData: Signal<any>;
+  readonly getBusinessData: Signal<any>;
+  readonly policyNumber: Signal<string>;
+  readonly snapshotHolders: Signal<any[]>;
+  readonly clientIds: Signal<string[]>;
+  readonly coreHolders: Signal<any[]>;
+  readonly portalHolders: Signal<any[]>;
+  readonly clipHolders: Signal<any[]>;
+  readonly changeReasons: Signal<Record<string, unknown>>;
+  readonly pendingChangeClientInformation: WritableSignal<any>;
+  readonly holderSectionChanges: WritableSignal<ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, unknown>>>>;
+  readonly holderSectionRemovedEntries: WritableSignal<ReadonlyMap<string, ReadonlyMap<string, readonly unknown[]>>>;
+  readonly policySectionChanges: WritableSignal<ReadonlyMap<string, ReadonlyMap<string, unknown>>>;
+  readonly documentsSaved: Signal<number>;
+  readonly documentEdited: Signal<number>;
+  readonly stateOf: (id: string) => unknown;
+  readonly stateOfPolicy: (policy: any) => unknown;
+  readonly onHolderState: (id: string, state: any) => void;
+  readonly onPolicyState: (policy: any, state: any) => void;
+  readonly holderLabel: (holder: any) => string;
+  readonly documentsForHolder: (id: string) => any[];
+  readonly onHolderChanges: (event: any) => void;
+  readonly onPolicyChanges: (event: any) => void;
+  readonly onChecksChanged: (values: any) => void;
+  readonly onDocumentValidated: (document: any) => void;
+  readonly onDocumentRemoved: (document: any) => void;
+  readonly onDocumentRejected: (document: any) => void;
+  readonly onUploadDocument: (request: any) => void;
+  readonly onEditDocument: (event: any) => void;
+};
+const view = (component: ChangeClientInformationComponent): UnderTest =>
+  component as unknown as UnderTest;
+
+const resolution = (value: string, reason = 'CLIENT_REQUEST') => ({
+  source: 'manual' as const,
+  value,
+  reason,
+  comment: ''
+});
+
+const holderEvent = (
+  sectionId: string,
+  changes: ReadonlyMap<string, unknown>,
+  removedEntries: readonly unknown[] = []
+) => ({
+  thirdPartyId: 'PERSON-1',
+  sectionId,
+  changes,
+  removedEntries
+});
+
+const policyEvent = (sectionId: string, changes: ReadonlyMap<string, unknown>) => ({
+  sectionId,
+  changes
+});
+
+// Jest/jsdom may not expose Node's structuredClone even on a modern Node version.
+// V8 serialization preserves Dates/undefined better than JSON cloning.
+if (typeof globalThis.structuredClone !== 'function') {
+  Object.defineProperty(globalThis, 'structuredClone', {
+    configurable: true,
+    writable: true,
+    value: <T>(value: T): T => deserialize(serialize(value)) as T
+  });
+}
+
+describe('ChangeClientInformationComponent', () => {
+  let fixture: ComponentFixture<ChangeClientInformationComponent>;
+  let component: ChangeClientInformationComponent;
+  let user = signal<{ preferred_username: string } | null>({ preferred_username: 'john.doe' });
+
+  let summaryMock: { getSummary: jest.Mock };
+  let casesMock: {
+    getCaseDataAfterClientProfiling: jest.Mock;
+    getCaseBusinessDataUptoDate: jest.Mock;
+    saveTask: jest.Mock;
+    completeTask: jest.Mock;
   };
-  let locationMock: { back: jest.Mock };
-  let messageMock: { error: jest.Mock };
+  let applicationUsersMock: { findALL: jest.Mock; findAllUserTeams: jest.Mock };
+  let changeMock: {
+    createEmpty: jest.Mock;
+    cleanForSave: jest.Mock;
+    applyHolderChanges: jest.Mock;
+    applyPolicyChanges: jest.Mock;
+  };
+  let comparisonMock: { setReferences: jest.Mock };
+  let assignmentMock: { openAssignmentModal: jest.Mock };
+  let modalMock: { confirm: jest.Mock };
+
+  let uploadDocumentMock: jest.Mock;
+  let replacementDocumentMock: jest.Mock;
+  let validateDocumentMock: jest.Mock;
+  let refreshDocumentsMock: jest.Mock;
 
   async function render(options: {
-    task?: TaskData;
-    documents?: Array<{ status?: string | null }>;
-    caseData?: { caseBusinessIdentifier: string };
+    data?: ReturnType<typeof makeData>;
+    businessData?: ReturnType<typeof makeBusinessData>;
+    references?: Record<string, unknown>;
+    documents?: unknown[];
+    currentUser?: { preferred_username: string } | null;
   } = {}): Promise<void> {
-    fixture = TestBed.createComponent(ClientProfilingComponent);
+    if (options.data) {
+      casesMock.getCaseDataAfterClientProfiling.mockReturnValue(of(options.data));
+    }
+    if (options.businessData) {
+      casesMock.getCaseBusinessDataUptoDate.mockReturnValue(of(options.businessData));
+    }
+    if (options.currentUser !== undefined) {
+      user.set(options.currentUser);
+    }
+
+    fixture = TestBed.createComponent(ChangeClientInformationComponent);
     component = fixture.componentInstance;
 
-    // Populate all required signal inputs BEFORE detectChanges() / running effects.
-    fixture.componentRef.setInput('currentTask', options.task ?? taskWith());
-    fixture.componentRef.setInput('currentCase', options.caseData ?? BASE_CASE);
+    // All required signal inputs must be set before detectChanges().
+    fixture.componentRef.setInput('currentCase', makeCase());
+    fixture.componentRef.setInput('currentTask', makeTask());
+    fixture.componentRef.setInput('clientProfilingReferences', options.references ?? {});
     fixture.componentRef.setInput('caseDocuments', options.documents ?? []);
     fixture.componentRef.setInput('positions', []);
     fixture.componentRef.setInput('policy', null);
-    fixture.componentRef.setInput('clientProfilingReferences', {});
-
-    // Required document callbacks are unused by the class-only tests,
-    // but supplied to prevent input-required errors during change detection.
     fixture.componentRef.setInput('getDocumentConfigType', () => of([]));
     fixture.componentRef.setInput('getDocumentMetadata', () => of({}));
-    fixture.componentRef.setInput('validateDocument', () => of(undefined));
+    fixture.componentRef.setInput('validateDocument', validateDocumentMock);
     fixture.componentRef.setInput('rejectDocument', () => of(undefined));
     fixture.componentRef.setInput('downloadDocument', () => of(new Blob()));
     fixture.componentRef.setInput('removeDocument', () => of(undefined));
-    fixture.componentRef.setInput('uploadDocument', () => of({}));
-    fixture.componentRef.setInput('replacementDocument', () => of({}));
-    fixture.componentRef.setInput('refreshDocuments', () => undefined);
+    fixture.componentRef.setInput('uploadDocument', uploadDocumentMock);
+    fixture.componentRef.setInput('replacementDocument', replacementDocumentMock);
+    fixture.componentRef.setInput('refreshDocuments', refreshDocumentsMock);
 
     fixture.detectChanges();
     await fixture.whenStable();
   }
 
   beforeEach(async () => {
-    currentUserSignal = signal({ preferred_username: 'john.doe' });
-    caseSummaryMock = {
-      getSummary: jest.fn().mockReturnValue(of({ summaryText: 'Case summary' }))
+    user = signal({ preferred_username: 'john.doe' });
+    summaryMock = { getSummary: jest.fn().mockReturnValue(of({})) };
+    casesMock = {
+      getCaseDataAfterClientProfiling: jest.fn().mockReturnValue(of(makeData())),
+      getCaseBusinessDataUptoDate: jest.fn().mockReturnValue(of(makeBusinessData())),
+      saveTask: jest.fn().mockReturnValue(of({})),
+      completeTask: jest.fn().mockReturnValue(of({}))
     };
     applicationUsersMock = {
-      isUserPartOfTeam: jest.fn().mockReturnValue(of(true))
+      findALL: jest.fn().mockReturnValue(of([])),
+      findAllUserTeams: jest.fn().mockReturnValue(of(['TEAM_A', 'TEAM_B']))
     };
-    tasksServiceMock = {
-      findById: jest.fn().mockReturnValue(of(taskWith())),
-      updatePendingReason: jest.fn().mockReturnValue(of(undefined)),
-      updateAssignee: jest.fn().mockReturnValue(of(undefined))
+    changeMock = {
+      createEmpty: jest.fn((data: any) => ({
+        policy: { policyNumber: data.initialBusinessData.policy.policyNumber, clients: [] }
+      })),
+      cleanForSave: jest.fn((data: any) => data),
+      applyHolderChanges: jest.fn((data: any) => data),
+      applyPolicyChanges: jest.fn((data: any) => data)
     };
-    locationMock = { back: jest.fn() };
-    messageMock = { error: jest.fn() };
+    comparisonMock = { setReferences: jest.fn() };
+    assignmentMock = {
+      openAssignmentModal: jest.fn().mockReturnValue({ afterClose: of(null) })
+    };
+    modalMock = { confirm: jest.fn() };
+    uploadDocumentMock = jest.fn().mockReturnValue(of({}));
+    replacementDocumentMock = jest.fn().mockReturnValue(of({}));
+    validateDocumentMock = jest.fn().mockReturnValue(of(undefined));
+    refreshDocumentsMock = jest.fn();
 
+    // Both root and component-level providers are overridden. The latter is
+    // important if the @Component metadata provides its own service instances.
     const providers = [
-      { provide: CASE_SUMMARY_SERVICE, useValue: caseSummaryMock },
-      { provide: UserService, useValue: { user: currentUserSignal } },
+      { provide: CASE_SUMMARY_SERVICE, useValue: summaryMock },
+      { provide: COMPARISON_DATA_SERVICE, useValue: comparisonMock },
+      { provide: ClientProfilingChangeService, useValue: changeMock },
+      { provide: UserService, useValue: { user } },
+      { provide: CasesService, useValue: casesMock },
       { provide: ApplicationUsersService, useValue: applicationUsersMock },
-      { provide: TasksService, useValue: tasksServiceMock },
-      { provide: Location, useValue: locationMock },
-      { provide: Router, useValue: {} },
-      { provide: NzMessageService, useValue: messageMock },
-      { provide: HOLDING_REASONS_TOKEN, useValue: [] }
+      { provide: AssignmentService, useValue: assignmentMock },
+      { provide: RejectionModalService, useValue: { openRejectionModal: jest.fn() } },
+      { provide: NzModalService, useValue: modalMock }
     ];
 
     await TestBed.configureTestingModule({
-      imports: [ClientProfilingComponent],
+      imports: [ChangeClientInformationComponent],
       providers
     })
-      .overrideComponent(ClientProfilingComponent, {
-        set: {
-          template: '',
-          imports: [],
-          // Also override component-scoped providers, if present.
-          providers
-        }
+      .overrideComponent(ChangeClientInformationComponent, {
+        set: { template: '', imports: [], providers }
       })
       .compileComponents();
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+  afterEach(() => jest.restoreAllMocks());
 
-  describe('initialization and reactive state', () => {
-    it('should create the component', async () => {
+  describe('initialization and computed data', () => {
+    it('should create the component and inject dependencies', async () => {
       await render();
       expect(component).toBeTruthy();
     });
 
-    it('should request the case summary using the current case', async () => {
-      await render();
-      expect(caseSummaryMock.getSummary).toHaveBeenCalledWith('CASE-123', BASE_CASE);
+    it('should pass references to ComparisonDataService on initialization', async () => {
+      const refs = { YESNO: [{ value: 'YES', label: 'Yes' }] };
+      await render({ references: refs });
+      expect(comparisonMock.setReferences).toHaveBeenCalledWith(refs);
     });
 
-    it('should check whether the current user belongs to the task team', async () => {
+    it('should update references when the input changes', async () => {
       await render();
-      expect(applicationUsersMock.isUserPartOfTeam)
-        .toHaveBeenCalledWith('john.doe', 'TEAM_A');
-      expect(state(component).isUserPartOfTeam()).toBe(true);
-    });
-
-    it('should initialize actualTask from currentTask', async () => {
-      await render();
-      expect(state(component).actualTask().userTaskIdentifier).toBe(555);
-    });
-
-    it('should update actualTask when the input task changes', async () => {
-      await render();
-      fixture.componentRef.setInput('currentTask', taskWith({ userTaskIdentifier: 888 }));
+      comparisonMock.setReferences.mockClear();
+      const updated = { COUNTRY: [{ value: 'LU', label: 'Luxembourg' }] };
+      fixture.componentRef.setInput('clientProfilingReferences', updated);
       fixture.detectChanges();
       await fixture.whenStable();
-      expect(state(component).actualTask().userTaskIdentifier).toBe(888);
+      expect(comparisonMock.setReferences).toHaveBeenCalledWith(updated);
     });
 
-    it('should start with completion flags disabled', async () => {
+    it('should load client profiling data and latest business data for the case', async () => {
       await render();
-      expect(state(component).canComplete()).toBe(false);
-      expect(state(component).allChecksCompleted()).toBe(false);
+      expect(casesMock.getCaseDataAfterClientProfiling).toHaveBeenCalledWith(CASE_ID);
+      expect(casesMock.getCaseBusinessDataUptoDate).toHaveBeenCalledWith(CASE_ID);
+      expect(view(component).getClientProfilingData()).toBeTruthy();
     });
 
-    it('should record checklist completion through onChecksCompleted', async () => {
+    it('should request the summary, users and current user teams', async () => {
       await render();
-      state(component).onChecksCompleted(true);
-      expect(state(component).allChecksCompleted()).toBe(true);
-      state(component).onChecksCompleted(false);
-      expect(state(component).allChecksCompleted()).toBe(false);
+      // rxResource may load lazily on its first read.
+      expect(view(component).policyNumber()).toBe(POLICY_NUMBER);
+      expect(applicationUsersMock.findALL).toHaveBeenCalled();
+      expect(applicationUsersMock.findAllUserTeams).toHaveBeenCalledWith('john.doe');
+      expect(summaryMock.getSummary).toHaveBeenCalledWith(CASE_ID, expect.anything());
     });
 
-    it('should update canComplete through setCompletableState', async () => {
+    it('should compute the selected policy number, snapshots and client IDs', async () => {
       await render();
-      component.setCompletableState(true);
-      expect(state(component).canComplete()).toBe(true);
-      component.setCompletableState(false);
-      expect(state(component).canComplete()).toBe(false);
+      expect(view(component).policyNumber()).toBe(POLICY_NUMBER);
+      expect(view(component).snapshotHolders()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ thirdPartyId: 'PERSON-1' }),
+        expect.objectContaining({ thirdPartyId: 'COMPANY-1' })
+      ]));
+      expect(view(component).clientIds()).toEqual(expect.arrayContaining(['PERSON-1', 'COMPANY-1']));
     });
-  });
 
-  describe('task and document rules', () => {
-    it('should be editable when assigned to the current user and not completed', async () => {
+    it('should return only matching holders from core and portal', async () => {
       await render();
-      expect(state(component).readOnly()).toBe(false);
+      expect(view(component).coreHolders()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ thirdPartyId: 'PERSON-1', firstName: 'Core Jane' })
+      ]));
+      expect(view(component).portalHolders()).toEqual([
+        expect.objectContaining({ thirdPartyId: 'PERSON-1', firstName: 'Portal Jane' })
+      ]);
     });
 
-    it('should be read-only when assigned to somebody else', async () => {
-      await render({ task: taskWith({ assigneeDetails: { username: 'someone.else' } }) });
-      expect(state(component).readOnly()).toBe(true);
-    });
-
-    it.each([TaskStatus.COMPLETED, TaskStatus.REJECTED])(
-      'should be read-only for a task with status %s',
-      async status => {
-        await render({ task: taskWith({ status: String(status) }) });
-        expect(state(component).readOnly()).toBe(true);
-      }
-    );
-
-    it('should disable updating for change-client-information task', async () => {
-      await render({ task: taskWith({ userTaskBpmnIdentifier: 'change-client-information' }) });
-      expect(state(component).isUpdatable()).toBe(false);
-    });
-
-    it('should disable rejection for change-of-client-information task', async () => {
-      await render({ task: taskWith({ userTaskBpmnIdentifier: 'change-of-client-information' }) });
-      expect(state(component).isRejectable()).toBe(false);
-    });
-
-    it('should detect a rejected document case-insensitively', async () => {
-      await render({ documents: [{ status: 'rejected' }] });
-      expect(state(component).hasRejectedDocument()).toBe(true);
-    });
-
-    it('should flag a document with a missing status', async () => {
-      await render({ documents: [{ status: '' }] });
-      expect(state(component).hasRejectedDocument()).toBe(true);
-    });
-
-    it('should not flag documents with valid statuses', async () => {
-      await render({ documents: [{ status: 'SIGNED' }, { status: 'VALIDATED' }] });
-      expect(state(component).hasRejectedDocument()).toBe(false);
-    });
-
-    it.each([
-      TaskType.CHANGE_CLIENT_INFORMATION_SIGNOFF,
-      TaskType.CCI_MANUAL_CHANGE_SIGNOFF,
-      TaskType.CCI_ERROR_MANAGEMENT_SIGNOFF
-    ])('should hide Save and display Reject for sign-off task %s', async taskType => {
-      await render({ task: taskWith({ userTaskBpmnIdentifier: String(taskType) }) });
-      expect(state(component).hiddenBtnSave()).toBe(true);
-      expect(state(component).displayBtnReject()).toBe(true);
-    });
-
-    it('should show Save and hide Reject for a non-sign-off task', async () => {
-      await render({ task: taskWith({ userTaskBpmnIdentifier: 'onboarding-task' }) });
-      expect(state(component).hiddenBtnSave()).toBe(false);
-      expect(state(component).displayBtnReject()).toBe(false);
-    });
-
-    it('should use the existing pending reason for the label', async () => {
-      await render({ task: taskWith({ pendingReason: 'WAITING_FOR_CLIENT' }) });
-      expect(state(component).holdingReasonLabel()).toBe('WAITING_FOR_CLIENT');
-    });
-  });
-
-  describe('task actions', () => {
-    let childTask: {
-      save: jest.Mock;
-      complete: jest.Mock;
-      reject: jest.Mock;
-    };
-
-    beforeEach(async () => {
-      await render();
-      childTask = {
-        save: jest.fn(),
-        complete: jest.fn(),
-        reject: jest.fn()
-      };
-      // The real template is replaced by '', so @ViewChild has no instance.
-      Object.assign(component, { taskComponent: childTask });
-    });
-
-    it('should delegate Save to the child task with the same identifiers', () => {
-      component.save('CASE-123', 555);
-      expect(childTask.save).toHaveBeenCalledWith('CASE-123', 555, expect.any(Function));
-    });
-
-    it('should refresh ChangeClientInformation only after successful Save', () => {
-      const refresh = jest.fn();
-      // Override the signal query in this isolated class-only test.
-      Object.defineProperty(component, 'changeClientInformationComponent', {
-        configurable: true,
-        value: () => ({ refresh })
+    it('should read persisted CCI holders and change reasons', async () => {
+      await render({ data: makeData({
+        changeClientInformation: {
+          policy: { policyNumber: POLICY_NUMBER, clients: [person({ firstName: 'Saved Jane' })] },
+          changeReasons: { 'PERSON-1:firstname': { reason: 'CLIENT_REQUEST', comment: 'Edited' } }
+        }
+      }) });
+      expect(view(component).clipHolders()).toEqual([
+        expect.objectContaining({ thirdPartyId: 'PERSON-1', firstName: 'Saved Jane' })
+      ]);
+      expect(view(component).changeReasons()['PERSON-1:firstname']).toEqual({
+        reason: 'CLIENT_REQUEST', comment: 'Edited'
       });
-
-      component.save('CASE-123', 555);
-      expect(refresh).not.toHaveBeenCalled();
-      const onSucceed = childTask.save.mock.calls[0][2] as () => void;
-      onSucceed();
-      expect(refresh).toHaveBeenCalledTimes(1);
-    });
-
-    it('should delegate Complete and go back only when its callback succeeds', () => {
-      component.complete('CASE-123', 555);
-      expect(childTask.complete).toHaveBeenCalledWith('CASE-123', 555, expect.any(Function));
-      expect(locationMock.back).not.toHaveBeenCalled();
-      const onSucceed = childTask.complete.mock.calls[0][2] as () => void;
-      onSucceed();
-      expect(locationMock.back).toHaveBeenCalledTimes(1);
-    });
-
-    it('should delegate Reject and go back only when its callback succeeds', () => {
-      component.reject('CASE-123', 555);
-      expect(childTask.reject).toHaveBeenCalledWith('CASE-123', 555, expect.any(Function));
-      expect(locationMock.back).not.toHaveBeenCalled();
-      const onSucceed = childTask.reject.mock.calls[0][2] as () => void;
-      onSucceed();
-      expect(locationMock.back).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('holding reason', () => {
-    it('should update the task pending reason and label after success', async () => {
+  describe('saving and completion', () => {
+    it('should not save when no pending changes exist', async () => {
       await render();
-      component.setHoldingReason(
-        'CASE-123',
-        555,
-        { value: 'WAITING_FOR_CLIENT' } as Parameters<ClientProfilingComponent['setHoldingReason']>[2]
-      );
-      expect(tasksServiceMock.updatePendingReason)
-        .toHaveBeenCalledWith('CASE-123', 555, 'WAITING_FOR_CLIENT');
-      expect(state(component).holdingReasonLabel()).toBe('WAITING_FOR_CLIENT');
+      const onSucceed = jest.fn();
+      component.save(CASE_ID, TASK_ID, onSucceed);
+      expect(casesMock.saveTask).not.toHaveBeenCalled();
+      expect(onSucceed).not.toHaveBeenCalled();
     });
 
+    it('should clean, save, reset pending data and notify success', async () => {
+      await render();
+      const pending = { policy: { policyNumber: POLICY_NUMBER, clients: [] } };
+      const cleaned = { policy: { ...pending.policy }, changeReasons: {} };
+      view(component).pendingChangeClientInformation.set(pending);
+      changeMock.cleanForSave.mockReturnValue(cleaned);
+      const onSucceed = jest.fn();
 
+      component.save(CASE_ID, TASK_ID, onSucceed);
+
+      expect(changeMock.cleanForSave).toHaveBeenCalledWith(pending);
+      expect(casesMock.saveTask).toHaveBeenCalledWith(
+        CASE_ID, TASK_ID, TaskType.CHANGE_CLIENT_INFORMATION, cleaned
+      );
+      expect(view(component).pendingChangeClientInformation()).toBeNull();
+      expect(view(component).saving()).toBe(false);
+      expect(onSucceed).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep changes and reset saving on an API failure', async () => {
+      await render();
+      const pending = { policy: { policyNumber: POLICY_NUMBER, clients: [] } };
+      view(component).pendingChangeClientInformation.set(pending);
+      casesMock.saveTask.mockReturnValue(throwError(() => new Error('network failure')));
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const onSucceed = jest.fn();
+
+      component.save(CASE_ID, TASK_ID, onSucceed);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error saving client information', expect.any(Error)
+      );
+      expect(view(component).saving()).toBe(false);
+      expect(view(component).pendingChangeClientInformation()).toEqual(pending);
+      expect(onSucceed).not.toHaveBeenCalled();
+    });
+
+    it('should keep saving true while the HTTP request is pending', async () => {
+      await render();
+      const request$ = new Subject<unknown>();
+      casesMock.saveTask.mockReturnValue(request$.asObservable());
+      view(component).pendingChangeClientInformation.set({ policy: { clients: [] } });
+
+      component.save(CASE_ID, TASK_ID, jest.fn());
+      expect(view(component).saving()).toBe(true);
+
+      request$.complete();
+      expect(view(component).saving()).toBe(false);
+    });
+
+    it('should not open the assignment dialog without pending changes', async () => {
+      await render();
+      component.complete(CASE_ID, TASK_ID, jest.fn());
+      expect(assignmentMock.openAssignmentModal).not.toHaveBeenCalled();
+      expect(casesMock.completeTask).not.toHaveBeenCalled();
+    });
+
+    it('should not complete the task if assignment dialog is cancelled', async () => {
+      await render();
+      view(component).pendingChangeClientInformation.set({ policy: { clients: [] } });
+      assignmentMock.openAssignmentModal.mockReturnValue({ afterClose: of(null) });
+      const onSucceed = jest.fn();
+
+      component.complete(CASE_ID, TASK_ID, onSucceed);
+
+      expect(assignmentMock.openAssignmentModal).toHaveBeenCalled();
+      expect(casesMock.completeTask).not.toHaveBeenCalled();
+      expect(onSucceed).not.toHaveBeenCalled();
+    });
+
+    it('should complete with cleaned data and the selected sign-off assignee', async () => {
+      await render();
+      const cleaned = { policy: { policyNumber: POLICY_NUMBER, clients: [] } };
+      view(component).pendingChangeClientInformation.set(cleaned);
+      assignmentMock.openAssignmentModal.mockReturnValue({
+        afterClose: of({ assignee: 'signoff.user', team: 'TEAM_A' })
+      });
+      const onSucceed = jest.fn();
+
+      component.complete(CASE_ID, TASK_ID, onSucceed);
+
+      expect(assignmentMock.openAssignmentModal).toHaveBeenCalledWith(
+        expect.any(Array),
+        'Sign Off assignment',
+        expect.objectContaining({ value: 'TEAM_A' }),
+        expect.objectContaining({ value: 'owner.user' })
+      );
+      expect(casesMock.completeTask).toHaveBeenCalledWith(
+        CASE_ID,
+        TASK_ID,
+        TaskType.CHANGE_CLIENT_INFORMATION,
+        {
+          ...cleaned,
+          signOffAssignment: { user: 'signoff.user', team: 'TEAM_A' }
+        }
+      );
+      expect(onSucceed).toHaveBeenCalledTimes(1);
+    });
+
+    it('should propagate an API error without invoking the success callback', async () => {
+      await render();
+      view(component).pendingChangeClientInformation.set({ policy: { clients: [] } });
+      assignmentMock.openAssignmentModal.mockReturnValue({
+        afterClose: of({ assignee: 'signoff.user', team: 'TEAM_A' })
+      });
+      casesMock.completeTask.mockReturnValue(throwError(() => new Error('complete failed')));
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const onSucceed = jest.fn();
+
+      component.complete(CASE_ID, TASK_ID, onSucceed);
+
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(onSucceed).not.toHaveBeenCalled();
+    });
+
+    it('should refresh client profiling by incrementing its refresh counter', async () => {
+      await render();
+      const before = view(component).refreshClientProfiling();
+      component.refresh();
+      expect(view(component).refreshClientProfiling()).toBe(before + 1);
+    });
+
+    it('should document the current reject() implementation', async () => {
+      await render();
+      expect(() => component.reject(CASE_ID, TASK_ID, jest.fn()))
+        .toThrow('Method not implemented.');
+    });
   });
 
-  describe('case assignment', () => {
-    it('should not assign the task if the user is missing', async () => {
-      currentUserSignal.set(null);
-      await render();
-      component.setCaseOwner();
-      expect(tasksServiceMock.updateAssignee).not.toHaveBeenCalled();
-    });
-
-    it('should update the assignee with the user and candidate team', async () => {
-      await render();
-      component.setCaseOwner();
-      expect(tasksServiceMock.updateAssignee).toHaveBeenCalledWith(
-        555,
-        { assignee: 'john.doe', team: 'TEAM_A' }
-      );
-      expect(state(component).updateTask()).toBe(true);
-    });
-
-    it('should reload the task after assignment succeeds', async () => {
-      tasksServiceMock.findById.mockReturnValue(
-        of(taskWith({ assigneeDetails: { username: 'john.doe' } }))
-      );
-      await render();
-      component.setCaseOwner();
+  describe('holder, policy and checklist changes', () => {
+    it('should do nothing when holder data has not loaded', async () => {
+      await render({ data: makeData() });
+      // Simulate an unavailable API result without modifying production internals.
+      casesMock.getCaseDataAfterClientProfiling.mockReturnValue(of(null));
+      component.refresh();
       fixture.detectChanges();
       await fixture.whenStable();
-      expect(tasksServiceMock.findById).toHaveBeenCalledWith('555');
-      expect(state(component).actualTask().userTaskIdentifier).toBe(555);
+      changeMock.applyHolderChanges.mockClear();
+
+      view(component).onHolderChanges(holderEvent('identity', new Map([
+        ['firstname', resolution('Jane')]
+      ])));
+      expect(changeMock.applyHolderChanges).not.toHaveBeenCalled();
     });
 
-    it('should display an error and not request refresh if assignment fails', async () => {
-      tasksServiceMock.updateAssignee.mockReturnValue(
-        throwError(() => new Error('Assignment failed'))
-      );
+    it('should create a pending CCI and apply changed holder fields', async () => {
       await render();
-      component.setCaseOwner();
-      expect(messageMock.error).toHaveBeenCalledWith('Error while assigning the task');
-      expect(state(component).updateTask()).toBe(false);
-      expect(tasksServiceMock.findById).not.toHaveBeenCalled();
+      const modified = resolution('Janet');
+      view(component).onHolderChanges(holderEvent('person', new Map([
+        ['firstname', modified]
+      ])));
+
+      expect(changeMock.createEmpty).toHaveBeenCalled();
+      expect(changeMock.applyHolderChanges).toHaveBeenCalledTimes(1);
+      const [input, source, changes, removals] = changeMock.applyHolderChanges.mock.calls[0];
+      expect(input.policy).toBeDefined();
+      expect(source).toEqual(expect.objectContaining({ thirdPartyId: 'PERSON-1' }));
+      expect(changes.get('firstname')).toEqual(modified);
+      expect(removals).toEqual([]);
+      expect(view(component).pendingChangeClientInformation()).toBeTruthy();
+    });
+
+    it('should preserve changes from other sections of the same holder', async () => {
+      await render();
+      view(component).onHolderChanges(holderEvent('name-section', new Map([
+        ['firstname', resolution('Janet')]
+      ])));
+      view(component).onHolderChanges(holderEvent('contact-section', new Map([
+        ['lastname', resolution('Smith')]
+      ])));
+
+      const changes = changeMock.applyHolderChanges.mock.lastCall?.[2] as ReadonlyMap<string, unknown>;
+      expect(changes.get('firstname')).toEqual(resolution('Janet'));
+      expect(changes.get('lastname')).toEqual(resolution('Smith'));
+    });
+
+    it('should pass removed entries to the holder change service', async () => {
+      await render();
+      const removed = { id: 'emails:old@example.com', value: 'old@example.com' };
+      view(component).onHolderChanges(holderEvent(
+        'contacts', new Map(), [removed]
+      ));
+      expect(changeMock.applyHolderChanges.mock.lastCall?.[3])
+        .toEqual([removed]);
+    });
+
+    it('should not apply holder changes when the initial snapshot holder is absent', async () => {
+      await render();
+      const warning = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      view(component).onHolderChanges({
+        thirdPartyId: 'UNKNOWN', sectionId: 'personal',
+        changes: new Map([['firstname', resolution('X')]]), removedEntries: []
+      });
+      expect(warning).toHaveBeenCalledWith(
+        'Initialization snapshot holder not found:', 'UNKNOWN'
+      );
+      expect(changeMock.applyHolderChanges).not.toHaveBeenCalled();
+    });
+
+    it('should apply policy changes by section', async () => {
+      await render();
+      view(component).onPolicyChanges(policyEvent('sending-address', new Map([
+        ['city', resolution('Luxembourg')]
+      ])));
+      expect(changeMock.applyPolicyChanges).toHaveBeenCalledTimes(1);
+      const [, policyNumber, changes] = changeMock.applyPolicyChanges.mock.calls[0];
+      expect(policyNumber).toBe(POLICY_NUMBER);
+      expect(changes.get('city')).toEqual(resolution('Luxembourg'));
+    });
+
+    it('should merge changes from multiple policy sections', async () => {
+      await render();
+      view(component).onPolicyChanges(policyEvent('address', new Map([
+        ['city', resolution('Esch')]
+      ])));
+      view(component).onPolicyChanges(policyEvent('consent', new Map([
+        ['consent-to-use-digital-platform', resolution('ACCEPTED')]
+      ])));
+      const changes = changeMock.applyPolicyChanges.mock.lastCall?.[2] as ReadonlyMap<string, unknown>;
+      expect(changes.size).toBe(2);
+      expect(changes.has('city')).toBe(true);
+      expect(changes.has('consent-to-use-digital-platform')).toBe(true);
+    });
+
+    it('should merge task controls with signature information', async () => {
+      await render();
+      const values = {
+        newIndiciaDetected: true,
+        statusInvestigationInitiated: false,
+        proofOfAddressReceived: true,
+        taxCountryChecked: true,
+        dataValid: false,
+        signatureInfo: {
+          requestSignedByClient: true,
+          clientSignatureType: 'DIGITAL',
+          signatureInline: false,
+          allThirdPartiesSigned: true,
+          date: '2026-11-16',
+          place: 'Luxembourg',
+          provider: 'Provider',
+          clientIdentificationValid: true,
+          documentsLinkedToCase: true,
+          mfa: false,
+          authorizedProvider: true
+        }
+      };
+      view(component).onChecksChanged(values);
+      expect(view(component).pendingChangeClientInformation().taskControls)
+        .toEqual(expect.objectContaining({
+          newIndiciaDetected: true,
+          proofOfAddressReceived: true,
+          signatureInfo: expect.objectContaining({ clientSignatureType: 'DIGITAL' })
+        }));
+    });
+  });
+
+  describe('display helpers and documents', () => {
+    it('should show the correct labels for physical and moral persons', async () => {
+      await render();
+      expect(view(component).holderLabel(person())).toBe('Doe Jane');
+      expect(view(component).holderLabel(company())).toBe('Example S.A.');
+      expect(view(component).holderLabel({ thirdPartyId: 'UNKNOWN' })).toBe('UNKNOWN');
+    });
+
+    it('should filter documents by the holder thirdPartyId', async () => {
+      const documents = [
+        { documentId: 'DOC-1', metadata: { thirdPartyId: 'PERSON-1' } },
+        { documentId: 'DOC-2', metadata: { thirdPartyId: 'COMPANY-1' } }
+      ];
+      await render({ documents });
+      expect(view(component).documentsForHolder('PERSON-1')).toEqual([documents[0]]);
+    });
+
+    it('should store review state separately for a holder and policy', async () => {
+      await render();
+      const policy = { policyNumber: POLICY_NUMBER };
+      const holderReview = { status: 'accepted' };
+      const policyReview = { status: 'pending' };
+      view(component).onHolderState('PERSON-1', holderReview);
+      view(component).onPolicyState(policy, policyReview);
+      expect(view(component).stateOf('PERSON-1')).toBe(holderReview);
+      expect(view(component).stateOfPolicy(policy)).toBe(policyReview);
+      expect(view(component).stateOf('OTHER')).toBeNull();
+    });
+
+    it('should show confirmation before validating a document', async () => {
+      await render();
+      const document = { documentId: 'DOC-1' };
+      view(component).onDocumentValidated(document);
+      expect(modalMock.confirm).toHaveBeenCalledWith(expect.objectContaining({
+        nzTitle: 'Confirmation',
+        nzOnOk: expect.any(Function)
+      }));
+      expect(validateDocumentMock).not.toHaveBeenCalled();
+    });
+
+    it('should validate a document and refresh only after confirming', async () => {
+      await render();
+      view(component).onDocumentValidated({ documentId: 'DOC-1' });
+      const config = modalMock.confirm.mock.calls[0][0];
+      config.nzOnOk();
+      expect(validateDocumentMock).toHaveBeenCalledWith('DOC-1');
+      expect(refreshDocumentsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should upload a document and update the refresh counter on success', async () => {
+      await render();
+      const request = { fileName: 'proof.pdf' };
+      view(component).onUploadDocument(request);
+      expect(uploadDocumentMock).toHaveBeenCalledWith(request);
+      expect(view(component).documentsSaved()).toBe(1);
+      expect(refreshDocumentsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should edit a document and update the edit counter on success', async () => {
+      await render();
+      const edit = { documentId: 'DOC-1', request: { description: 'Updated' } };
+      view(component).onEditDocument(edit);
+      expect(replacementDocumentMock).toHaveBeenCalledWith('DOC-1', edit.request);
+      expect(view(component).documentEdited()).toBe(1);
+      expect(refreshDocumentsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not increment counters or refresh documents if upload fails', async () => {
+      await render();
+      const error = new Error('Upload failed');
+      uploadDocumentMock.mockReturnValue(throwError(() => error));
+      const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+      view(component).onUploadDocument({ fileName: 'proof.pdf' });
+      expect(log).toHaveBeenCalledWith('Error uploading document', error);
+      expect(view(component).documentsSaved()).toBe(0);
+      expect(refreshDocumentsMock).not.toHaveBeenCalled();
+    });
+
+    it('should ask for confirmation before removing or rejecting a document', async () => {
+      await render();
+      const doc = { documentId: 'DOC-1' };
+      view(component).onDocumentRemoved(doc);
+      view(component).onDocumentRejected(doc);
+      expect(modalMock.confirm).toHaveBeenCalledTimes(2);
+      // The action callbacks are folded in the screenshots, so their internal
+      // HTTP operations are deliberately NOT asserted here.
     });
   });
 });
