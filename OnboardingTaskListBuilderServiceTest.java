@@ -1,19 +1,27 @@
-<nz-card [nzTitle]="'WARNING'">
-  @if (warningMessages?.length) {
-    <ul class="warning-list">
-      @for (warning of warningMessages; track $index) {
-        <li class="warning-item">
-          <div class="warning-context">
-            {{ warning.fieldContext }}
-          </div>
+.warning-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 
-          <div class="warning-message">
-            {{ warning.message }}
-          </div>
-        </li>
-      }
-    </ul>
-  } @else {
-    <nz-empty [nzNotFoundContent]="'No Warnings'" />
+.warning-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #e8e8e8;
+
+  &:last-child {
+    border-bottom: none;
   }
-</nz-card>
+}
+
+.warning-context {
+  font-size: 12px;
+  font-weight: 600;
+  color: #91691f;
+  margin-bottom: 8px;
+}
+
+.warning-message {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #333;
+}
