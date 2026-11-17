@@ -1,126 +1,89 @@
 
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of, throwError } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 
-import { CaseSummaryServiceService } from './case-summary-service.service';
-import { DataCasesService } from './data-cases.service';
+import { DataApplicationTeamsService } from './data-application-teams.service';
+import { environment } from 'PATH_TO_ENVIRONMENT';
 
-describe('CaseSummaryServiceService', () => {
-  let service: CaseSummaryServiceService;
+describe('DataApplicationTeamsService', () => {
+  let service: DataApplicationTeamsService;
+  let httpMock: HttpTestingController;
 
-  const dataCasesMock = {
-    getCaseData: jest.fn(),
-  };
-
-  const caseId = 'CLIP_TEST_001';
-
-  type CurrentCase =
-    Parameters<CaseSummaryServiceService['getSummary']>[1];
-
-  const currentCase = {
-    ownerDetails: {
-      displayName: 'John Doe',
-    },
-  } as CurrentCase;
+  const baseUrl = environment.apiUrls.get('caseManagement');
 
   beforeEach(() => {
-    jest.clearAllMocks();
-
     TestBed.configureTestingModule({
       providers: [
-        CaseSummaryServiceService,
-        {
-          provide: DataCasesService,
-          useValue: dataCasesMock,
-        },
+        DataApplicationTeamsService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
       ],
     });
 
-    service = TestBed.inject(CaseSummaryServiceService);
+    service = TestBed.inject(DataApplicationTeamsService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
   });
 
   it('should create the service', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should load case data using the case identifier', async () => {
-    dataCasesMock.getCaseData.mockReturnValue(of({}));
+  it('should retrieve team members', () => {
+    const team = 'TEAM_A';
 
-    await firstValueFrom(
-      service.getSummary(caseId, currentCase)
-    );
+    const members = [
+      { username: 'john.doe' },
+      { username: 'jane.doe' },
+    ];
 
-    expect(dataCasesMock.getCaseData)
-      .toHaveBeenCalledWith(caseId);
-  });
+    let result: unknown;
 
-  it('should build the case summary correctly', async () => {
-    dataCasesMock.getCaseData.mockReturnValue(
-      of({
-        caseBusinessIdentifier: caseId,
-        initialBusinessData: {
-          policy: {
-            policyNumber: '2412-157945',
-            broker: 'B/2757',
-          },
-        },
-      })
-    );
-
-    const result = await firstValueFrom(
-      service.getSummary(caseId, currentCase)
-    );
-
-    expect(result).toEqual({
-      reference: caseId,
-      title: 'Client profiling',
-      facts: [
-        {
-          label: 'POLICY NUMBER',
-          value: '2412-157945',
-        },
-        {
-          label: 'CASE OWNER',
-          value: 'John Doe',
-        },
-        {
-          label: 'BROKER',
-          value: 'B/2757',
-        },
-      ],
+    service.findTeamMembers(team).subscribe(value => {
+      result = value;
     });
+
+    const req = httpMock.expectOne(
+      `${baseUrl}/teams/${team}/members`
+    );
+
+    expect(req.request.method).toBe('GET');
+
+    req.flush(members);
+
+    expect(result).toEqual(members);
   });
 
-  it('should use default values when information is missing', async () => {
-    dataCasesMock.getCaseData.mockReturnValue(
-      of({
-        initialBusinessData: {
-          policy: {},
-        },
-      })
+  it('should propagate HTTP errors', () => {
+    let receivedError: unknown;
+
+    service.findTeamMembers('TEAM_A').subscribe({
+      error: error => {
+        receivedError = error;
+      },
+    });
+
+    const req = httpMock.expectOne(
+      `${baseUrl}/teams/TEAM_A/members`
     );
 
-    const result = await firstValueFrom(
-      service.getSummary(caseId, {} as CurrentCase)
+    req.flush(
+      { message: 'Server error' },
+      {
+        status: 500,
+        statusText: 'Internal Server Error',
+      }
     );
 
-    expect(result.reference).toBe('');
-    expect(result.title).toBe('Client profiling');
-
-    expect(result.facts).toEqual([
-      { label: 'POLICY NUMBER', value: '-' },
-      { label: 'CASE OWNER', value: '-' },
-      { label: 'BROKER', value: '-' },
-    ]);
-  });
-
-  it('should propagate an error when loading case data fails', async () => {
-    dataCasesMock.getCaseData.mockReturnValue(
-      throwError(() => new Error('API error'))
-    );
-
-    await expect(
-      firstValueFrom(service.getSummary(caseId, currentCase))
-    ).rejects.toThrow('API error');
+    expect(receivedError).toMatchObject({
+      status: 500,
+    });
   });
 });
