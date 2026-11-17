@@ -6,11 +6,11 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 
-import { DataApplicationTeamsService } from './data-application-teams.service';
+import { DataApplicationUsersService } from './data-application-users.service';
 import { environment } from 'PATH_TO_ENVIRONMENT';
 
-describe('DataApplicationTeamsService', () => {
-  let service: DataApplicationTeamsService;
+describe('DataApplicationUsersService', () => {
+  let service: DataApplicationUsersService;
   let httpMock: HttpTestingController;
 
   const baseUrl = environment.apiUrls.get('caseManagement');
@@ -18,13 +18,13 @@ describe('DataApplicationTeamsService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        DataApplicationTeamsService,
+        DataApplicationUsersService,
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
     });
 
-    service = TestBed.inject(DataApplicationTeamsService);
+    service = TestBed.inject(DataApplicationUsersService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
@@ -36,54 +36,67 @@ describe('DataApplicationTeamsService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should retrieve team members', () => {
-    const team = 'TEAM_A';
+  describe('findAll', () => {
+    it('should retrieve all users', () => {
+      const users = [
+        { preferred_username: 'john.doe' },
+        { preferred_username: 'jane.doe' },
+      ];
 
-    const members = [
-      { username: 'john.doe' },
-      { username: 'jane.doe' },
-    ];
+      let result: unknown;
 
-    let result: unknown;
+      service.findAll().subscribe(value => {
+        result = value;
+      });
 
-    service.findTeamMembers(team).subscribe(value => {
-      result = value;
+      const req = httpMock.expectOne(`${baseUrl}/users`);
+
+      expect(req.request.method).toBe('GET');
+
+      req.flush(users);
+
+      expect(result).toEqual(users);
     });
-
-    const req = httpMock.expectOne(
-      `${baseUrl}/teams/${team}/members`
-    );
-
-    expect(req.request.method).toBe('GET');
-
-    req.flush(members);
-
-    expect(result).toEqual(members);
   });
 
-  it('should propagate HTTP errors', () => {
-    let receivedError: unknown;
+  describe('findAllUserTeams', () => {
+    it('should retrieve teams for a given user', () => {
+      const username = 'john.doe';
+      const teams = ['TEAM_A', 'TEAM_B'];
 
-    service.findTeamMembers('TEAM_A').subscribe({
-      error: error => {
-        receivedError = error;
-      },
+      let result: string[] | undefined;
+
+      service.findAllUserTeams(username).subscribe(value => {
+        result = value;
+      });
+
+      const req = httpMock.expectOne(
+        `${baseUrl}/users/${username}/teams`
+      );
+
+      expect(req.request.method).toBe('GET');
+
+      req.flush(teams);
+
+      expect(result).toEqual(teams);
     });
 
-    const req = httpMock.expectOne(
-      `${baseUrl}/teams/TEAM_A/members`
-    );
+    it('should return an empty array when the user has no teams', () => {
+      const username = 'john.doe';
 
-    req.flush(
-      { message: 'Server error' },
-      {
-        status: 500,
-        statusText: 'Internal Server Error',
-      }
-    );
+      let result: string[] | undefined;
 
-    expect(receivedError).toMatchObject({
-      status: 500,
+      service.findAllUserTeams(username).subscribe(value => {
+        result = value;
+      });
+
+      const req = httpMock.expectOne(
+        `${baseUrl}/users/${username}/teams`
+      );
+
+      req.flush([]);
+
+      expect(result).toEqual([]);
     });
   });
 });
