@@ -1,115 +1,110 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup } from '@angular/forms';
 import { Signal, WritableSignal } from '@angular/core';
-import { of } from 'rxjs';
 
-import { UploadDocumentComponent } from './upload-document.component';
+import { HolderProfiling } from './holder-profiling.component';
 
-type MetadataItem = {
-  name: string;
-  type: string;
-  mandatory: boolean;
+type Counters = {
+  total: number;
+  changes: number;
+  attention: number;
+  reviewed: number;
+  overridden: number;
 };
 
-type ComponentUnderTest = {
-  form: FormGroup<{
-    documentType: FormControl<string | null>;
-    filename: FormControl<string>;
-  }>;
-  selectedFile: WritableSignal<File | null>;
-  metadataValues: WritableSignal<Record<string, string>>;
-  documentTypeValue: Signal<string | null>;
-  selectedMetadata: Signal<MetadataItem[]>;
-  canSubmit: Signal<boolean>;
+type Filter = 'all' | 'attention' | 'changes';
 
-  onFileSelected(event: Event): void;
-  onDocumentTypeChanged(documentType: string): void;
-  updateMetadata(key: string, value: string): void;
-  metadataValue(key: string): string;
-  cancel(): void;
-  submit(): void;
+type Section = {
+  id: string;
+  title: string;
 };
 
-describe('UploadDocumentComponent', () => {
-  let fixture: ComponentFixture<UploadDocumentComponent>;
-  let component: UploadDocumentComponent;
-  let view: ComponentUnderTest;
+type ComparisonEvent = {
+  sectionId: string;
+  changes: ReadonlyMap<string, unknown>;
+  removedEntries: readonly {
+    id: string;
+    value: string | null;
+  }[];
+};
 
-  let file: File;
-  let getDocumentConfigType: jest.Mock;
-  let getDocumentMetadata: jest.Mock;
+type HolderProfilingView = {
+  sections: readonly Section[];
 
-  const metadataConfiguration = {
-    PASSPORT: [
-      {
-        name: 'thirdPartyId',
-        type: 'TEXT',
-        mandatory: true,
-      },
-      {
-        name: 'description',
-        type: 'TEXT',
-        mandatory: false,
-      },
-    ],
-    ID_CARD: [
-      {
-        name: 'country',
-        type: 'TEXT',
-        mandatory: true,
-      },
-    ],
-  };
+  totals: Signal<Counters>;
+  navSections: Signal<
+    readonly {
+      id: string;
+      title: string;
+      state: string;
+      pending: number;
+    }[]
+  >;
 
-  const fileEvent = (files: File[]): Event =>
-    ({
-      target: { files },
-    }) as unknown as Event;
+  entityId: Signal<string | null>;
+  activeId: WritableSignal<string | null>;
+  filter: WritableSignal<Filter>;
 
-  async function render(): Promise<void> {
-    fixture = TestBed.createComponent(UploadDocumentComponent);
+  countersFor(sectionId: string): Counters | null;
+  isOpen(sectionId: string): boolean;
+
+  onCounters(sectionId: string, counters: Counters): void;
+  setFilter(filter: Filter): void;
+  toggle(sectionId: string): void;
+  goTo(sectionId: string): void;
+
+  onComparisonChange(event: ComparisonEvent): void;
+  onDocumentValidated(document: unknown): void;
+  onDocumentRejected(document: unknown): void;
+  onDocumentDownloaded(document: unknown): void;
+};
+
+describe('HolderProfiling', () => {
+  let fixture: ComponentFixture<HolderProfiling>;
+  let component: HolderProfiling;
+  let view: HolderProfilingView;
+
+  const holder = (thirdPartyId: string) => ({
+    thirdPartyId,
+  });
+
+  const makeCounters = (
+    overrides: Partial<Counters> = {}
+  ): Counters => ({
+    total: 0,
+    changes: 0,
+    attention: 0,
+    reviewed: 0,
+    overridden: 0,
+    ...overrides,
+  });
+
+  function render(): void {
+    fixture = TestBed.createComponent(HolderProfiling);
     component = fixture.componentInstance;
-    view = component as unknown as ComponentUnderTest;
+    view = component as unknown as HolderProfilingView;
 
     fixture.componentRef.setInput(
-      'getDocumentConfigType',
-      getDocumentConfigType
+      'snapshotHolder',
+      holder('SNAPSHOT-001')
     );
 
-    fixture.componentRef.setInput(
-      'getDocumentMetadata',
-      getDocumentMetadata
-    );
+    fixture.componentRef.setInput('coreHolder', holder('CORE-001'));
+    fixture.componentRef.setInput('portalHolder', holder('PORTAL-001'));
+    fixture.componentRef.setInput('clipHolder', holder('CLIP-001'));
+    fixture.componentRef.setInput('policyNumber', 'POLICY-001');
 
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-  }
-
-  function fillValidForm(): void {
-    view.form.controls.documentType.setValue('PASSPORT');
-    view.onFileSelected(fileEvent([file]));
-    view.updateMetadata('thirdPartyId', 'TP-123');
   }
 
   beforeEach(async () => {
-    file = new File(['document content'], 'passport.pdf', {
-      type: 'application/pdf',
-    });
-
-    getDocumentConfigType = jest.fn().mockReturnValue(of([]));
-
-    getDocumentMetadata = jest
-      .fn()
-      .mockReturnValue(of(metadataConfiguration));
-
     await TestBed.configureTestingModule({
-      imports: [UploadDocumentComponent],
+      imports: [HolderProfiling],
     })
-      .overrideComponent(UploadDocumentComponent, {
+      .overrideComponent(HolderProfiling, {
         set: {
           template: '',
+          imports: [],
         },
       })
       .compileComponents();
@@ -120,296 +115,476 @@ describe('UploadDocumentComponent', () => {
   });
 
   describe('Initialization', () => {
-    it('should create the component', async () => {
-      await render();
+    it('should create the component', () => {
+      render();
 
       expect(component).toBeTruthy();
     });
 
-    it('should initialize the form with empty values', async () => {
-      await render();
+    it('should initialize totals to zero', () => {
+      render();
 
-      expect(view.form.controls.documentType.value).toBeNull();
-      expect(view.form.controls.filename.value).toBe('');
-      expect(view.selectedFile()).toBeNull();
-      expect(view.metadataValues()).toEqual({});
-      expect(view.canSubmit()).toBe(false);
-    });
-
-    it('should load document configuration and metadata', async () => {
-      await render();
-
-      expect(getDocumentConfigType).toHaveBeenCalled();
-      expect(getDocumentMetadata).toHaveBeenCalled();
-    });
-  });
-
-  describe('Document type and metadata', () => {
-    it('should return no metadata when no document type is selected', async () => {
-      await render();
-
-      expect(view.selectedMetadata()).toEqual([]);
-    });
-
-    it('should return metadata associated with the selected document type', async () => {
-      await render();
-
-      view.form.controls.documentType.setValue('PASSPORT');
-
-      expect(view.selectedMetadata()).toEqual(
-        metadataConfiguration.PASSPORT
-      );
-    });
-
-    it('should reset metadata when the document type changes', async () => {
-      await render();
-
-      view.form.controls.documentType.setValue('PASSPORT');
-      view.updateMetadata('thirdPartyId', 'TP-123');
-
-      expect(view.metadataValues()).toEqual({
-        thirdPartyId: 'TP-123',
-      });
-
-      view.form.controls.documentType.setValue('ID_CARD');
-
-      expect(view.metadataValues()).toEqual({});
-      expect(view.selectedMetadata()).toEqual(
-        metadataConfiguration.ID_CARD
-      );
-    });
-
-    it('should update metadata without removing other values', async () => {
-      await render();
-
-      view.updateMetadata('thirdPartyId', 'TP-123');
-      view.updateMetadata('description', 'Identity document');
-
-      expect(view.metadataValues()).toEqual({
-        thirdPartyId: 'TP-123',
-        description: 'Identity document',
+      expect(view.totals()).toEqual({
+        total: 0,
+        changes: 0,
+        attention: 0,
+        reviewed: 0,
+        overridden: 0,
       });
     });
 
-    it('should return an empty string for missing metadata', async () => {
-      await render();
+    it('should initialize the filter to all', () => {
+      render();
 
-      expect(view.metadataValue('unknown')).toBe('');
-    });
-  });
-
-  describe('File selection', () => {
-    it('should store the selected file', async () => {
-      await render();
-
-      view.onFileSelected(fileEvent([file]));
-
-      expect(view.selectedFile()).toBe(file);
+      expect(view.filter()).toBe('all');
     });
 
-    it('should populate the filename when it is empty', async () => {
-      await render();
+    it('should initialize the active section to null', () => {
+      render();
 
-      view.onFileSelected(fileEvent([file]));
-
-      expect(view.form.controls.filename.value).toBe(
-        'passport.pdf'
-      );
+      expect(view.activeId()).toBeNull();
     });
 
-    it('should preserve an existing filename when selecting a file', async () => {
-      await render();
+    it('should initialize navigation from configured sections', () => {
+      render();
 
-      view.form.controls.filename.setValue('custom-name.pdf');
+      const navigation = view.navSections();
 
-      view.onFileSelected(fileEvent([file]));
+      expect(navigation).toHaveLength(view.sections.length);
 
-      expect(view.form.controls.filename.value).toBe(
-        'custom-name.pdf'
-      );
-    });
-
-    it('should clear the selected file when no file is provided', async () => {
-      await render();
-
-      view.onFileSelected(fileEvent([file]));
-      view.onFileSelected(fileEvent([]));
-
-      expect(view.selectedFile()).toBeNull();
-    });
-  });
-
-  describe('Submission validation', () => {
-    it('should reject submission when no file is selected', async () => {
-      await render();
-
-      view.form.controls.documentType.setValue('PASSPORT');
-      view.form.controls.filename.setValue('passport.pdf');
-      view.updateMetadata('thirdPartyId', 'TP-123');
-
-      expect(view.canSubmit()).toBe(false);
-    });
-
-    it('should reject submission when document type is missing', async () => {
-      await render();
-
-      view.onFileSelected(fileEvent([file]));
-
-      expect(view.canSubmit()).toBe(false);
-    });
-
-    it('should reject submission when mandatory metadata is missing', async () => {
-      await render();
-
-      view.form.controls.documentType.setValue('PASSPORT');
-      view.onFileSelected(fileEvent([file]));
-
-      expect(view.canSubmit()).toBe(false);
-    });
-
-    it('should reject whitespace-only mandatory metadata', async () => {
-      await render();
-
-      view.form.controls.documentType.setValue('PASSPORT');
-      view.onFileSelected(fileEvent([file]));
-      view.updateMetadata('thirdPartyId', '   ');
-
-      expect(view.canSubmit()).toBe(false);
-    });
-
-    it('should allow submission when optional metadata is empty', async () => {
-      await render();
-
-      fillValidForm();
-
-      expect(view.metadataValue('description')).toBe('');
-      expect(view.canSubmit()).toBe(true);
-    });
-
-    it('should allow submission when all required values are provided', async () => {
-      await render();
-
-      fillValidForm();
-
-      expect(view.canSubmit()).toBe(true);
-    });
-
-    it('should invalidate submission when the filename is cleared', async () => {
-      await render();
-
-      fillValidForm();
-      expect(view.canSubmit()).toBe(true);
-
-      view.form.controls.filename.setValue('   ');
-
-      expect(view.canSubmit()).toBe(false);
-    });
-
-    it('should recompute validation when mandatory metadata is cleared', async () => {
-      await render();
-
-      fillValidForm();
-      expect(view.canSubmit()).toBe(true);
-
-      view.updateMetadata('thirdPartyId', '');
-
-      expect(view.canSubmit()).toBe(false);
-    });
-  });
-
-  describe('Submit', () => {
-    it('should not emit when the form is invalid', async () => {
-      await render();
-
-      const emitSpy = jest.spyOn(component.submitted, 'emit');
-
-      view.submit();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-      expect(view.form.controls.documentType.touched).toBe(true);
-      expect(view.form.controls.filename.touched).toBe(true);
-    });
-
-    it('should emit the upload request when the form is valid', async () => {
-      await render();
-
-      const emitSpy = jest.spyOn(component.submitted, 'emit');
-
-      fillValidForm();
-
-      view.form.controls.filename.setValue('updated-passport.pdf');
-      view.updateMetadata('thirdPartyId', ' TP-123 ');
-      view.updateMetadata('description', ' Reviewed ');
-
-      view.submit();
-
-      expect(emitSpy).toHaveBeenCalledTimes(1);
-
-      expect(emitSpy).toHaveBeenCalledWith({
-        file,
-        documentType: 'PASSPORT',
-        filename: 'updated-passport.pdf',
-        metadata: [
-          {
-            key: 'thirdPartyId',
-            type: 'TEXT',
-            value: 'TP-123',
-          },
-          {
-            key: 'description',
-            type: 'TEXT',
-            value: 'Reviewed',
-          },
-        ],
+      view.sections.forEach((section, index) => {
+        expect(navigation[index]).toEqual({
+          id: section.id,
+          title: section.title,
+          state: 'loading',
+          pending: 0,
+        });
       });
     });
+  });
 
-    it('should exclude empty optional metadata from the request', async () => {
-      await render();
+  describe('Entity identification', () => {
+    it('should prioritize the CLIP holder ID', () => {
+      render();
 
-      const emitSpy = jest.spyOn(component.submitted, 'emit');
+      expect(view.entityId()).toBe('CLIP-001');
+    });
 
-      fillValidForm();
-      view.updateMetadata('description', '   ');
+    it('should use the core holder ID when CLIP is missing', () => {
+      render();
 
-      view.submit();
+      fixture.componentRef.setInput('clipHolder', null);
+      fixture.detectChanges();
 
-      expect(emitSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          metadata: [
-            {
-              key: 'thirdPartyId',
-              type: 'TEXT',
-              value: 'TP-123',
-            },
-          ],
+      expect(view.entityId()).toBe('CORE-001');
+    });
+
+    it('should use the portal holder ID when CLIP and core are missing', () => {
+      render();
+
+      fixture.componentRef.setInput('clipHolder', null);
+      fixture.componentRef.setInput('coreHolder', null);
+      fixture.detectChanges();
+
+      expect(view.entityId()).toBe('PORTAL-001');
+    });
+
+    it('should fall back to the snapshot holder ID', () => {
+      render();
+
+      fixture.componentRef.setInput('clipHolder', null);
+      fixture.componentRef.setInput('coreHolder', null);
+      fixture.componentRef.setInput('portalHolder', null);
+      fixture.detectChanges();
+
+      expect(view.entityId()).toBe('SNAPSHOT-001');
+    });
+
+    it('should recompute the entity ID when an input changes', () => {
+      render();
+
+      fixture.componentRef.setInput(
+        'clipHolder',
+        holder('NEW-CLIP-001')
+      );
+      fixture.detectChanges();
+
+      expect(view.entityId()).toBe('NEW-CLIP-001');
+    });
+  });
+
+  describe('Comparison counters', () => {
+    it('should return null for an unknown section', () => {
+      render();
+
+      expect(view.countersFor('unknown-section')).toBeNull();
+    });
+
+    it('should store counters for a section', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+      const counters = makeCounters({
+        total: 5,
+        changes: 2,
+        attention: 1,
+        reviewed: 1,
+      });
+
+      view.onCounters(sectionId, counters);
+
+      expect(view.countersFor(sectionId)).toEqual(counters);
+    });
+
+    it('should aggregate counters across multiple sections', () => {
+      render();
+
+      const firstSection = view.sections[0].id;
+      const secondSection = view.sections[1].id;
+
+      view.onCounters(
+        firstSection,
+        makeCounters({
+          total: 5,
+          changes: 3,
+          attention: 2,
+          reviewed: 1,
+          overridden: 1,
         })
       );
+
+      view.onCounters(
+        secondSection,
+        makeCounters({
+          total: 4,
+          changes: 2,
+          attention: 1,
+          reviewed: 2,
+          overridden: 0,
+        })
+      );
+
+      expect(view.totals()).toEqual({
+        total: 9,
+        changes: 5,
+        attention: 3,
+        reviewed: 3,
+        overridden: 1,
+      });
     });
 
-    it('should not emit when the selected file is removed', async () => {
-      await render();
+    it('should replace previous counters for the same section', () => {
+      render();
 
-      const emitSpy = jest.spyOn(component.submitted, 'emit');
+      const sectionId = view.sections[0].id;
 
-      fillValidForm();
-      view.onFileSelected(fileEvent([]));
+      view.onCounters(
+        sectionId,
+        makeCounters({ total: 5, changes: 3 })
+      );
 
-      view.submit();
+      view.onCounters(
+        sectionId,
+        makeCounters({ total: 5, changes: 1 })
+      );
 
-      expect(emitSpy).not.toHaveBeenCalled();
+      expect(view.totals().changes).toBe(1);
+      expect(view.totals().total).toBe(5);
+    });
+
+    it('should update the navigation pending count', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+
+      view.onCounters(
+        sectionId,
+        makeCounters({
+          total: 5,
+          changes: 3,
+          attention: 3,
+          reviewed: 1,
+        })
+      );
+
+      const section = view.navSections().find(
+        item => item.id === sectionId
+      );
+
+      expect(section?.pending).toBe(2);
     });
   });
 
-  describe('Cancel', () => {
-    it('should emit cancelled when cancel is called', async () => {
-      await render();
+  describe('Section navigation', () => {
+    it('should initially close all sections', () => {
+      render();
 
-      const emitSpy = jest.spyOn(component.cancelled, 'emit');
+      for (const section of view.sections) {
+        expect(view.isOpen(section.id)).toBe(false);
+      }
+    });
 
-      view.cancel();
+    it('should open a section when toggled', () => {
+      render();
 
-      expect(emitSpy).toHaveBeenCalledTimes(1);
+      const sectionId = view.sections[0].id;
+
+      view.toggle(sectionId);
+
+      expect(view.isOpen(sectionId)).toBe(true);
+      expect(view.activeId()).toBe(sectionId);
+    });
+
+    it('should close an opened section when toggled again', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+
+      view.toggle(sectionId);
+      view.toggle(sectionId);
+
+      expect(view.isOpen(sectionId)).toBe(false);
+    });
+
+    it('should open a section when navigating to it', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+
+      view.goTo(sectionId);
+
+      expect(view.isOpen(sectionId)).toBe(true);
+      expect(view.activeId()).toBe(sectionId);
+    });
+
+    it('should scroll to the requested section', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+      const panel = document.createElement('section');
+
+      panel.scrollIntoView = jest.fn();
+
+      const querySpy = jest
+        .spyOn(fixture.nativeElement, 'querySelector')
+        .mockReturnValue(panel);
+
+      view.goTo(sectionId);
+
+      expect(querySpy).toHaveBeenCalledWith(
+        `[data-section="${sectionId}"]`
+      );
+
+      expect(panel.scrollIntoView).toHaveBeenCalledWith({
+        block: 'start',
+        behavior: 'smooth',
+      });
+    });
+
+    it('should automatically open a pending section', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+
+      view.onCounters(
+        sectionId,
+        makeCounters({
+          total: 3,
+          changes: 2,
+          attention: 2,
+          reviewed: 0,
+        })
+      );
+
+      expect(view.isOpen(sectionId)).toBe(true);
+    });
+  });
+
+  describe('Section filtering', () => {
+    it('should update the selected filter', () => {
+      render();
+
+      view.setFilter('attention');
+
+      expect(view.filter()).toBe('attention');
+    });
+
+    it('should open only sections requiring attention', () => {
+      render();
+
+      const firstSection = view.sections[0].id;
+      const secondSection = view.sections[1].id;
+
+      view.onCounters(
+        firstSection,
+        makeCounters({
+          total: 3,
+          attention: 2,
+          changes: 2,
+        })
+      );
+
+      view.onCounters(
+        secondSection,
+        makeCounters({
+          total: 3,
+          attention: 0,
+          changes: 1,
+        })
+      );
+
+      view.setFilter('attention');
+
+      expect(view.isOpen(firstSection)).toBe(true);
+      expect(view.isOpen(secondSection)).toBe(false);
+    });
+
+    it('should open sections containing changes', () => {
+      render();
+
+      const firstSection = view.sections[0].id;
+      const secondSection = view.sections[1].id;
+
+      view.onCounters(
+        firstSection,
+        makeCounters({ total: 3, changes: 2 })
+      );
+
+      view.onCounters(
+        secondSection,
+        makeCounters({ total: 3, changes: 0 })
+      );
+
+      view.setFilter('changes');
+
+      expect(view.isOpen(firstSection)).toBe(true);
+      expect(view.isOpen(secondSection)).toBe(false);
+    });
+
+    it('should preserve open sections when resetting the filter', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+
+      view.toggle(sectionId);
+      view.setFilter('all');
+
+      expect(view.filter()).toBe('all');
+      expect(view.isOpen(sectionId)).toBe(true);
+    });
+  });
+
+  describe('Comparison changes', () => {
+    it('should emit changes with the snapshot holder ID', () => {
+      render();
+
+      const emitSpy = jest.spyOn(component.holderChanges, 'emit');
+
+      const changes = new Map([
+        ['firstName', {
+          source: 'manual',
+          value: 'John',
+          reason: '',
+          comment: '',
+        }],
+      ]);
+
+      const removedEntries = [
+        { id: 'emails:old@example.com', value: 'old@example.com' },
+      ];
+
+      view.onComparisonChange({
+        sectionId: 'physical-person',
+        changes,
+        removedEntries,
+      });
+
+      expect(emitSpy).toHaveBeenCalledWith({
+        thirdPartyId: 'SNAPSHOT-001',
+        sectionId: 'physical-person',
+        changes,
+        removedEntries,
+      });
+    });
+
+    it('should emit empty changes without losing the section ID', () => {
+      render();
+
+      const emitSpy = jest.spyOn(component.holderChanges, 'emit');
+
+      view.onComparisonChange({
+        sectionId: 'contact-details',
+        changes: new Map(),
+        removedEntries: [],
+      });
+
+      expect(emitSpy).toHaveBeenCalledWith({
+        thirdPartyId: 'SNAPSHOT-001',
+        sectionId: 'contact-details',
+        changes: new Map(),
+        removedEntries: [],
+      });
+    });
+  });
+
+  describe('Document events', () => {
+    it('should forward document validation', () => {
+      render();
+
+      const document = { documentId: 'DOC-001' };
+      const emitSpy = jest.spyOn(component.validatedDocument, 'emit');
+
+      view.onDocumentValidated(document);
+
+      expect(emitSpy).toHaveBeenCalledWith(document);
+    });
+
+    it('should forward document rejection', () => {
+      render();
+
+      const document = { documentId: 'DOC-002' };
+      const emitSpy = jest.spyOn(component.rejectedDocument, 'emit');
+
+      view.onDocumentRejected(document);
+
+      expect(emitSpy).toHaveBeenCalledWith(document);
+    });
+
+    it('should forward document download', () => {
+      render();
+
+      const document = { documentId: 'DOC-003' };
+      const emitSpy = jest.spyOn(component.downloadedDocument, 'emit');
+
+      view.onDocumentDownloaded(document);
+
+      expect(emitSpy).toHaveBeenCalledWith(document);
+    });
+  });
+
+  describe('Review state', () => {
+    it('should emit a review state when counters change', () => {
+      render();
+
+      const emitSpy = jest.spyOn(component.stateChange, 'emit');
+
+      const sectionId = view.sections[0].id;
+
+      view.onCounters(
+        sectionId,
+        makeCounters({
+          total: 4,
+          changes: 2,
+          attention: 2,
+          reviewed: 0,
+        })
+      );
+
+      fixture.detectChanges();
+
+      expect(emitSpy).toHaveBeenCalledWith(
+        expect.any(String)
+      );
     });
   });
 });
