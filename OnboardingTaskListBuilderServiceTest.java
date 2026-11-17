@@ -3,97 +3,66 @@ import {
   ComponentFixture,
   TestBed,
 } from '@angular/core/testing';
+import { signal } from '@angular/core';
 
-import { ComparisonListField } from './comparison-list-field';
+import { ComparisonResult } from './comparison-result';
 
-type Row = ReturnType<ComparisonListField['row']>;
-type Entry = Row['entries'][number];
-type Child = Entry['children'][number];
+// Reuse the same injection token as the component.
+import { COMPARISON_DATA_SERVICE } from '../../comparison-data.service';
 
-describe('ComparisonListField', () => {
-  let fixture: ComponentFixture<ComparisonListField>;
-  let component: ComparisonListField;
+describe('ComparisonResult', () => {
+  let fixture: ComponentFixture<ComparisonResult>;
+  let component: ComparisonResult;
 
-  const makeChild = (
-    key: string,
+  const italianTownLabels = signal([
+    { value: '001', label: 'Rome' },
+    { value: '002', label: 'Milan' },
+  ]);
+
+  const comparisonServiceMock = {
+    getItalianBirthTownLabels: jest.fn(
+      () => italianTownLabels
+    ),
+  };
+
+  function setResolution(
     value: string | null,
-    needsAttention = false
-  ): Child =>
-    ({
-      key,
-      needsAttention,
-      resolution: { value },
-    }) as Child;
-
-  const makeEntry = (
-    overrides: Partial<Entry> = {}
-  ): Entry =>
-    ({
-      id: 'entry-1',
-      entryKey: 'BE',
-      label: 'Belgium',
-      isManual: false,
-      needsAttention: false,
-      values: {
-        core: null,
-        clip: null,
-        portal: null,
-        snapshot: null,
-      },
-      resolution: { value: null },
-      fallback: { value: null },
-      children: [],
-      ...overrides,
-    }) as Entry;
-
-  const makeRow = (
-    overrides: Partial<Row> = {}
-  ): Row =>
-    ({
-      id: 'list-1',
-      key: 'emails',
-      entryNoun: 'email',
-      entries: [],
-      options: [],
-      entryFields: [],
-      ...overrides,
-    }) as Row;
-
-  const structuredRow = (
-    key: string,
-    fieldKeys: string[],
-    entries: Entry[] = []
-  ): Row =>
-    makeRow({
-      key,
-      entries,
-      entryFields: fieldKeys.map(fieldKey => ({
-        key: fieldKey,
-        label: fieldKey,
-        type: 'text',
-      })) as Row['entryFields'],
+    reviewed = false
+  ): void {
+    fixture.componentRef.setInput('resolution', {
+      value,
+      reviewed,
     });
 
+    fixture.detectChanges();
+  }
+
   async function render(
-    row: Row = makeRow()
+    value: string | null = 'BE',
+    reviewed = false
   ): Promise<void> {
-    fixture = TestBed.createComponent(ComparisonListField);
+    fixture = TestBed.createComponent(ComparisonResult);
     component = fixture.componentInstance;
 
-    fixture.componentRef.setInput('row', row);
-    fixture.detectChanges();
-
-    await fixture.whenStable();
+    setResolution(value, reviewed);
   }
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     await TestBed.configureTestingModule({
-      imports: [ComparisonListField],
+      imports: [ComparisonResult],
     })
-      .overrideComponent(ComparisonListField, {
+      .overrideComponent(ComparisonResult, {
         set: {
           template: '',
           imports: [],
+          providers: [
+            {
+              provide: COMPARISON_DATA_SERVICE,
+              useValue: comparisonServiceMock,
+            },
+          ],
         },
       })
       .compileComponents();
@@ -106,804 +75,237 @@ describe('ComparisonListField', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should initialize inputs and signals', async () => {
+    it('should initialize optional inputs', async () => {
       await render();
 
-      expect(component.expandedId()).toBeNull();
-      expect(component.focusedId()).toBeNull();
+      expect(component.needsAttention()).toBe(false);
+      expect(component.isOverride()).toBe(false);
+      expect(component.editable()).toBe(true);
+      expect(component.expanded()).toBe(false);
       expect(component.readOnly()).toBe(false);
-
-      expect(component.adding()).toBe(false);
-      expect(component.draft()).toBe('');
-      expect(component.addError()).toBeNull();
-
-      expect(component.structuredDraft()).toEqual({});
-      expect(component.structuredError()).toBeNull();
-      expect(component.structuredModalVisible()).toBe(false);
+      expect(component.emptyMeansDropped()).toBe(false);
+      expect(component.kind()).toBe('text');
+      expect(component.options()).toEqual([]);
+      expect(component.fieldId()).toBe('');
     });
   });
 
-  describe('Simple entry validation', () => {
-    it('should not validate an empty draft', async () => {
-      await render();
+  describe('Display value', () => {
+    it('should return the resolved value when no options exist', async () => {
+      await render('Belgium');
 
-      component.draft.set('');
-
-      expect(component.validationError()).toBe('');
+      expect(component.displayValue()).toBe('Belgium');
     });
 
-    it('should accept a valid email', async () => {
-      await render(makeRow({ key: 'emails' }));
+    it('should return the matching option label', async () => {
+      await render('BE');
 
-      component.draft.set('john@example.com');
+      fixture.componentRef.setInput('options', [
+        { value: 'BE', label: 'Belgium' },
+        { value: 'FR', label: 'France' },
+      ]);
 
-      expect(component.validationError()).toBe('');
+      fixture.detectChanges();
+
+      expect(component.displayValue()).toBe('Belgium');
     });
 
-    it('should reject an invalid email', async () => {
-      await render(makeRow({ key: 'emails' }));
+    it('should return the original value when no option matches', async () => {
+      await render('LU');
 
-      component.draft.set('invalid-email');
+      fixture.componentRef.setInput('options', [
+        { value: 'BE', label: 'Belgium' },
+      ]);
 
-      expect(component.validationError()).toContain(
-        'Incorrect format'
-      );
+      fixture.detectChanges();
+
+      expect(component.displayValue()).toBe('LU');
     });
 
-    it('should accept a valid phone number', async () => {
-      await render(makeRow({ key: 'phone-numbers' }));
+    it('should return null for an empty resolution', async () => {
+      await render(null);
 
-      component.draft.set('+352621123456');
-
-      expect(component.validationError()).toBe('');
+      expect(component.displayValue()).toBeNull();
     });
 
-    it('should reject a phone number without plus', async () => {
-      await render(makeRow({ key: 'phone-numbers' }));
+    it('should use Italian town labels for the Italian birth town field', async () => {
+      await render('001');
 
-      component.draft.set('352621123456');
-
-      expect(component.validationError()).toContain(
-        'Incorrect format'
-      );
-    });
-
-    it('should reject a phone number with too few digits', async () => {
-      await render(makeRow({ key: 'phone-numbers' }));
-
-      component.draft.set('+123');
-
-      expect(component.validationError()).toContain(
-        'Incorrect format'
-      );
-    });
-
-    it('should clear addError when draft changes', async () => {
-      await render();
-
-      component.addError.set('Duplicate email');
-
-      component.onDraftChange('new@example.com');
-
-      expect(component.draft()).toBe('new@example.com');
-      expect(component.addError()).toBeNull();
-    });
-  });
-
-  describe('Nationality limits', () => {
-    it('should allow fewer than three nationalities', async () => {
-      await render(
-        makeRow({
-          key: 'nationalities',
-          entries: [
-            makeEntry({ entryKey: 'BE' }),
-            makeEntry({ entryKey: 'FR' }),
-          ],
-        })
+      fixture.componentRef.setInput(
+        'fieldId',
+        'italian-birth-town-code'
       );
 
-      expect(component.maxEntriesReached()).toBe(false);
-    });
-
-    it('should prevent exceeding three nationalities', async () => {
-      await render(
-        makeRow({
-          key: 'nationalities',
-          entries: [
-            makeEntry({ entryKey: 'BE' }),
-            makeEntry({ entryKey: 'FR' }),
-            makeEntry({ entryKey: 'LU' }),
-          ],
-        })
-      );
-
-      expect(component.maxEntriesReached()).toBe(true);
-    });
-
-    it('should not apply the limit to other lists', async () => {
-      await render(
-        makeRow({
-          key: 'emails',
-          entries: Array.from(
-            { length: 4 },
-            (_, index) =>
-              makeEntry({
-                entryKey: `email${index}@example.com`,
-              })
-          ),
-        })
-      );
-
-      expect(component.maxEntriesReached()).toBe(false);
-    });
-  });
-
-  describe('Nationality duplicates', () => {
-    it('should detect an existing nationality', async () => {
-      await render(
-        structuredRow(
-          'nationalities',
-          ['country', 'date'],
-          [makeEntry({ entryKey: 'BE' })]
-        )
-      );
-
-      component.setFieldValue('country', 'BE');
-
-      expect(component.nationalityDuplicate()).toBe(true);
-    });
-
-    it('should recognize country labels and codes as duplicates', async () => {
-      await render(
-        makeRow({
-          key: 'nationalities',
-          entries: [makeEntry({ entryKey: 'BE' })],
-          options: [
-            { value: 'BE', label: 'Belgium' },
-            { value: 'FR', label: 'France' },
-          ],
-        })
-      );
-
-      component.setFieldValue('country', 'Belgium');
-
-      expect(component.nationalityDuplicate()).toBe(true);
-    });
-
-    it('should allow a new nationality', async () => {
-      await render(
-        structuredRow(
-          'nationalities',
-          ['country', 'date'],
-          [makeEntry({ entryKey: 'BE' })]
-        )
-      );
-
-      component.setFieldValue('country', 'FR');
-
-      expect(component.nationalityDuplicate()).toBe(false);
-    });
-
-    it('should detect a nationality from a resolved child', async () => {
-      await render(
-        structuredRow('nationalities', ['country', 'date'], [
-          makeEntry({
-            entryKey: 'manual-1',
-            isManual: true,
-            children: [makeChild('country', 'LU')],
-          }),
-        ])
-      );
-
-      component.setFieldValue('country', 'LU');
-
-      expect(component.nationalityDuplicate()).toBe(true);
-    });
-  });
-
-  describe('Simple entry submission', () => {
-    it('should emit a trimmed value', async () => {
-      await render();
-
-      const emitSpy = jest.fn();
-      component.addEntry.subscribe(emitSpy);
-
-      component.draft.set('  john@example.com  ');
-
-      component.submit();
-
-      expect(emitSpy).toHaveBeenCalledWith(
-        'john@example.com'
-      );
-      expect(component.draft()).toBe('');
-      expect(component.adding()).toBe(false);
-    });
-
-    it('should not submit an empty value', async () => {
-      await render();
-
-      const emitSpy = jest.fn();
-      component.addEntry.subscribe(emitSpy);
-
-      component.draft.set('   ');
-      component.submit();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-    });
-
-    it('should reject a duplicate email ignoring case', async () => {
-      await render(
-        makeRow({
-          key: 'emails',
-          entryNoun: 'email',
-          entries: [
-            makeEntry({
-              entryKey: 'john@example.com',
-            }),
-          ],
-        })
-      );
-
-      const emitSpy = jest.fn();
-      component.addEntry.subscribe(emitSpy);
-
-      component.draft.set('JOHN@example.com');
-      component.submit();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-      expect(component.addError()).toBe(
-        'This email already exists'
-      );
-    });
-
-    it('should detect duplicate phone numbers with different formatting', async () => {
-      await render(
-        makeRow({
-          key: 'phone-numbers',
-          entryNoun: 'phone number',
-          entries: [
-            makeEntry({
-              entryKey: '+352 621 123 456',
-            }),
-          ],
-        })
-      );
-
-      const emitSpy = jest.fn();
-      component.addEntry.subscribe(emitSpy);
-
-      component.draft.set('+352621123456');
-      component.submit();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-      expect(component.addError()).toContain(
-        'already exists'
-      );
-    });
-
-    it('should cancel adding and reset the draft', async () => {
-      await render();
-
-      component.adding.set(true);
-      component.draft.set('draft@example.com');
-      component.addError.set('Existing value');
-      component.structuredDraft.set({ country: 'BE' });
-
-      component.cancelAdd();
-
-      expect(component.adding()).toBe(false);
-      expect(component.draft()).toBe('');
-      expect(component.addError()).toBeNull();
-      expect(component.structuredDraft()).toEqual({});
-    });
-
-    it('should open the simple add editor', async () => {
-      await render();
-
-      component.draft.set('previous@example.com');
-      component.openSimpleAdd();
-
-      expect(component.adding()).toBe(true);
-      expect(component.draft()).toBe('');
-    });
-  });
-
-  describe('Structured entry validation', () => {
-    it('should reject a structured list without field definitions', async () => {
-      await render(
-        structuredRow('nationalities', [])
-      );
-
-      expect(component.canSubmitStructured()).toBe(false);
-    });
-
-    it('should require country and date for nationality', async () => {
-      await render(
-        structuredRow('nationalities', [
-          'country',
-          'date',
-        ])
-      );
-
-      component.setFieldValue('country', 'BE');
-
-      expect(component.canSubmitStructured()).toBe(false);
-
-      component.setFieldValue('date', '2026-11-17');
-
-      expect(component.canSubmitStructured()).toBe(true);
-    });
-
-    it('should prevent adding an existing nationality', async () => {
-      await render(
-        structuredRow(
-          'nationalities',
-          ['country', 'date'],
-          [makeEntry({ entryKey: 'BE' })]
-        )
-      );
-
-      component.setFieldValue('country', 'BE');
-      component.setFieldValue('date', '2026-11-17');
-
-      expect(component.canSubmitStructured()).toBe(false);
-    });
-
-    it('should require a tax country', async () => {
-      await render(
-        structuredRow('tax-information', [
-          'tax-country',
-          'tin',
-          'tin-unavailable-reason',
-        ])
-      );
-
-      component.setFieldValue('tin', '123456789');
-
-      expect(component.canSubmitStructured()).toBe(false);
-    });
-
-    it('should accept tax country with a TIN', async () => {
-      await render(
-        structuredRow('tax-information', [
-          'tax-country',
-          'tin',
-          'tin-unavailable-reason',
-        ])
-      );
-
-      component.setFieldValue('tax-country', 'LU');
-      component.setFieldValue('tin', '123456789');
-
-      expect(component.canSubmitStructured()).toBe(true);
-    });
-
-    it('should accept a reason when TIN is unavailable', async () => {
-      await render(
-        structuredRow('tax-information', [
-          'tax-country',
-          'tin',
-          'tin-unavailable-reason',
-        ])
-      );
-
-      component.setFieldValue('tax-country', 'LU');
-      component.setFieldValue(
-        'tin-unavailable-reason',
-        'A'
-      );
-
-      expect(component.canSubmitStructured()).toBe(true);
-    });
-
-    it('should reject tax information without TIN or reason', async () => {
-      await render(
-        structuredRow('tax-information', [
-          'tax-country',
-          'tin',
-          'tin-unavailable-reason',
-        ])
-      );
-
-      component.setFieldValue('tax-country', 'LU');
-
-      expect(component.canSubmitStructured()).toBe(false);
-    });
-  });
-
-  describe('Structured form state', () => {
-    it('should update a structured field', async () => {
-      await render();
-
-      component.setFieldValue('country', 'BE');
-
-      expect(component.fieldValue('country')).toBe('BE');
-    });
-
-    it('should clear the TIN reason when a TIN is entered', async () => {
-      await render();
-
-      component.setFieldValue(
-        'tin-unavailable-reason',
-        'A'
-      );
-
-      component.setFieldValue('tin', '123456789');
-
-      expect(component.fieldValue('tin')).toBe('123456789');
-      expect(
-        component.fieldValue('tin-unavailable-reason')
-      ).toBe('');
-    });
-
-    it('should clear structured error when a field changes', async () => {
-      await render();
-
-      component.structuredError.set('Invalid value');
-      component.setFieldValue('country', 'FR');
-
-      expect(component.structuredError()).toBeNull();
-    });
-
-    it('should open the structured modal', async () => {
-      await render();
-
-      component.openStructuredModal();
-
-      expect(component.structuredModalVisible()).toBe(true);
-    });
-
-    it('should close and clear the structured modal', async () => {
-      await render();
-
-      component.structuredModalVisible.set(true);
-      component.structuredDraft.set({ country: 'BE' });
-
-      component.closeStructuredModal();
-
-      expect(component.structuredModalVisible()).toBe(false);
-      expect(component.structuredDraft()).toEqual({});
-    });
-  });
-
-  describe('Structured submission', () => {
-    it('should emit a nationality and close the modal', async () => {
-      await render(
-        structuredRow('nationalities', [
-          'country',
-          'date',
-        ])
-      );
-
-      const emitSpy = jest.fn();
-      component.addStructureEntry.subscribe(emitSpy);
-
-      component.structuredModalVisible.set(true);
-      component.setFieldValue('country', 'FR');
-      component.setFieldValue('date', '2026-11-17');
-
-      component.submitStructured();
-
-      expect(emitSpy).toHaveBeenCalledWith({
-        fields: [
-          { key: 'country', value: 'FR' },
-          { key: 'date', value: '2026-11-17' },
-        ],
-      });
-
-      expect(component.structuredError()).toBeNull();
-      expect(component.structuredModalVisible()).toBe(false);
-    });
-
-    it('should reject a nationality without country', async () => {
-      await render(
-        structuredRow('nationalities', [
-          'country',
-          'date',
-        ])
-      );
-
-      const emitSpy = jest.fn();
-      component.addStructureEntry.subscribe(emitSpy);
-
-      component.setFieldValue('date', '2026-11-17');
-      component.submitStructured();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-      expect(component.structuredError()).toBe(
-        'Nationality is required.'
-      );
-    });
-
-    it('should reject an existing nationality', async () => {
-      await render(
-        structuredRow(
-          'nationalities',
-          ['country', 'date'],
-          [makeEntry({ entryKey: 'BE' })]
-        )
-      );
-
-      const emitSpy = jest.fn();
-      component.addStructureEntry.subscribe(emitSpy);
-
-      component.setFieldValue('country', 'BE');
-      component.setFieldValue('date', '2026-11-17');
-
-      component.submitStructured();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-      expect(component.structuredError()).toBe(
-        'This nationality already exists.'
-      );
-    });
-
-    it('should reject a duplicate tax country', async () => {
-      await render(
-        structuredRow(
-          'tax-information',
-          ['tax-country', 'tin'],
-          [makeEntry({ entryKey: 'LU' })]
-        )
-      );
-
-      const emitSpy = jest.fn();
-      component.addStructureEntry.subscribe(emitSpy);
-
-      component.setFieldValue('tax-country', 'LU');
-      component.setFieldValue('tin', '123456789');
-
-      component.submitStructured();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-      expect(component.structuredError()).toBe(
-        'Tax Country already exists.'
-      );
-    });
-
-    it('should reject a second default TIN', async () => {
-      await render(
-        structuredRow(
-          'tax-information',
-          ['tax-country', 'tin', 'is-default'],
-          [
-            makeEntry({
-              entryKey: 'LU',
-              children: [
-                makeChild('is-default', 'true'),
-              ],
-            }),
-          ]
-        )
-      );
-
-      const emitSpy = jest.fn();
-      component.addStructureEntry.subscribe(emitSpy);
-
-      component.setFieldValue('tax-country', 'FR');
-      component.setFieldValue('tin', '123456789');
-      component.setFieldValue('is-default', 'true');
-
-      component.submitStructured();
-
-      expect(emitSpy).not.toHaveBeenCalled();
-      expect(component.structuredError()).toBe(
-        'Default TIN already chosen.'
-      );
-    });
-
-    it('should emit tax information with empty fields as null', async () => {
-      await render(
-        structuredRow('tax-information', [
-          'tax-country',
-          'tin',
-          'tin-unavailable-reason',
-        ])
-      );
-
-      const emitSpy = jest.fn();
-      component.addStructureEntry.subscribe(emitSpy);
-
-      component.setFieldValue('tax-country', 'LU');
-      component.setFieldValue('tin', '123456789');
-
-      component.submitStructured();
-
-      expect(emitSpy).toHaveBeenCalledWith({
-        fields: [
-          { key: 'tax-country', value: 'LU' },
-          { key: 'tin', value: '123456789' },
-          { key: 'tin-unavailable-reason', value: null },
-        ],
-      });
-    });
-  });
-
-  describe('Structured field errors', () => {
-    it('should store an error for a specific entry and child', async () => {
-      await render();
-
-      component.updateStructuredFieldError(
-        'entry-1',
-        'country',
-        'Nationality is required.'
-      );
+      fixture.detectChanges();
 
       expect(
-        component.structuredChildrenErrors()
-          .get('entry-1')
-          ?.get('country')
-      ).toBe('Nationality is required.');
+        comparisonServiceMock.getItalianBirthTownLabels
+      ).toHaveBeenCalled();
+
+      expect(component.displayValue()).toBe('Rome');
     });
 
-    it('should clear an existing child error', async () => {
-      await render();
+    it('should fall back to the raw value for an unknown Italian town', async () => {
+      await render('999');
 
-      component.updateStructuredFieldError(
-        'entry-1',
-        'country',
-        'Nationality is required.'
+      fixture.componentRef.setInput(
+        'fieldId',
+        'italian-birth-town-code'
       );
 
-      component.updateStructuredFieldError(
-        'entry-1',
-        'country',
-        null
-      );
+      fixture.detectChanges();
 
-      expect(
-        component.structuredChildrenErrors()
-          .get('entry-1')
-          ?.get('country')
-      ).toBeNull();
+      expect(component.displayValue()).toBe('999');
     });
 
-    it('should preserve errors for other entries', async () => {
-      await render();
+    it('should recompute the displayed value when resolution changes', async () => {
+      await render('BE');
 
-      component.updateStructuredFieldError(
-        'entry-1',
-        'country',
-        'Country required'
+      fixture.componentRef.setInput('options', [
+        { value: 'BE', label: 'Belgium' },
+        { value: 'FR', label: 'France' },
+      ]);
+
+      fixture.detectChanges();
+
+      expect(component.displayValue()).toBe('Belgium');
+
+      setResolution('FR');
+
+      expect(component.displayValue()).toBe('France');
+    });
+
+    it('should update when the Italian town labels change', async () => {
+      await render('001');
+
+      fixture.componentRef.setInput(
+        'fieldId',
+        'italian-birth-town-code'
       );
 
-      component.updateStructuredFieldError(
-        'entry-2',
-        'tin',
-        'TIN required'
-      );
+      fixture.detectChanges();
 
-      expect(
-        component.structuredChildrenErrors()
-          .get('entry-1')
-          ?.get('country')
-      ).toBe('Country required');
+      expect(component.displayValue()).toBe('Rome');
 
-      expect(
-        component.structuredChildrenErrors()
-          .get('entry-2')
-          ?.get('tin')
-      ).toBe('TIN required');
+      italianTownLabels.set([
+        { value: '001', label: 'Roma' },
+      ]);
+
+      expect(component.displayValue()).toBe('Roma');
+
+      italianTownLabels.set([
+        { value: '001', label: 'Rome' },
+        { value: '002', label: 'Milan' },
+      ]);
     });
   });
 
-  describe('Attention counter', () => {
-    it('should return zero when no entry requires attention', async () => {
-      await render(
-        makeRow({
-          entries: [
-            makeEntry({
-              needsAttention: false,
-              children: [],
-            }),
-          ],
-        })
-      );
+  describe('Empty and dropped states', () => {
+    it('should consider null as empty', async () => {
+      await render(null);
 
-      expect(component.attentionCount()).toBe(0);
+      expect(component.isEmpty()).toBe(true);
     });
 
-    it('should count entries requiring attention', async () => {
-      await render(
-        makeRow({
-          entries: [
-            makeEntry({
-              id: 'entry-1',
-              needsAttention: true,
-            }),
-            makeEntry({
-              id: 'entry-2',
-              needsAttention: false,
-            }),
-            makeEntry({
-              id: 'entry-3',
-              needsAttention: true,
-            }),
-          ],
-        })
-      );
+    it('should consider an empty string as empty', async () => {
+      await render('');
 
-      expect(component.attentionCount()).toBe(2);
+      expect(component.isEmpty()).toBe(true);
     });
 
-    it('should count an entry with a child requiring attention', async () => {
-      await render(
-        makeRow({
-          entries: [
-            makeEntry({
-              needsAttention: false,
-              children: [
-                makeChild('country', 'BE', true),
-              ],
-            }),
-          ],
-        })
-      );
+    it('should consider whitespace-only values as empty', async () => {
+      await render('   ');
 
-      expect(component.attentionCount()).toBe(1);
+      expect(component.isEmpty()).toBe(true);
     });
 
-    it('should not count the same entry twice', async () => {
-      await render(
-        makeRow({
-          entries: [
-            makeEntry({
-              needsAttention: true,
-              children: [
-                makeChild('country', 'BE', true),
-                makeChild('date', null, true),
-              ],
-            }),
-          ],
-        })
+    it('should not consider a populated value as empty', async () => {
+      await render('Belgium');
+
+      expect(component.isEmpty()).toBe(false);
+    });
+
+    it('should mark an empty list value as dropped when enabled', async () => {
+      await render(null);
+
+      fixture.componentRef.setInput(
+        'emptyMeansDropped',
+        true
       );
 
-      expect(component.attentionCount()).toBe(1);
+      fixture.detectChanges();
+
+      expect(component.isDropped()).toBe(true);
+    });
+
+    it('should not mark an empty value as dropped by default', async () => {
+      await render(null);
+
+      expect(component.isDropped()).toBe(false);
+    });
+
+    it('should not mark a populated value as dropped', async () => {
+      await render('BE');
+
+      fixture.componentRef.setInput(
+        'emptyMeansDropped',
+        true
+      );
+
+      fixture.detectChanges();
+
+      expect(component.isDropped()).toBe(false);
     });
   });
 
-  describe('Output events', () => {
-    it('should emit a resolution patch for an entry', async () => {
-      await render();
+  describe('Pending review', () => {
+    it('should be pending when attention is required and not reviewed', async () => {
+      await render('BE', false);
 
-      const emitSpy = jest.fn();
-      component.applyEntry.subscribe(emitSpy);
+      fixture.componentRef.setInput(
+        'needsAttention',
+        true
+      );
 
-      const entry = makeEntry({ id: 'entry-123' });
+      fixture.detectChanges();
 
-      const patch = {
-        source: 'core',
-        value: 'BE',
-      } as Parameters<ComparisonListField['emitApply']>[0];
-
-      component.emitApply(patch, entry);
-
-      expect(emitSpy).toHaveBeenCalledWith({
-        id: 'entry-123',
-        payload: patch,
-      });
+      expect(component.pending()).toBe(true);
     });
 
-    it('should emit a string through toggleEntry', async () => {
-      await render();
+    it('should not be pending when the resolution is reviewed', async () => {
+      await render('BE', true);
 
-      const emitSpy = jest.fn();
-      component.toggleEntry.subscribe(emitSpy);
+      fixture.componentRef.setInput(
+        'needsAttention',
+        true
+      );
 
-      component.toggleEntry.emit('entry-1');
+      fixture.detectChanges();
 
-      expect(emitSpy).toHaveBeenCalledWith('entry-1');
+      expect(component.pending()).toBe(false);
     });
 
-    it('should emit a string through resetEntry', async () => {
-      await render();
+    it('should not be pending when attention is not required', async () => {
+      await render('BE', false);
 
-      const emitSpy = jest.fn();
-      component.resetEntry.subscribe(emitSpy);
+      expect(component.pending()).toBe(false);
+    });
 
-      component.resetEntry.emit('entry-1');
+    it('should recompute pending when the review state changes', async () => {
+      await render('BE', false);
 
-      expect(emitSpy).toHaveBeenCalledWith('entry-1');
+      fixture.componentRef.setInput(
+        'needsAttention',
+        true
+      );
+
+      fixture.detectChanges();
+
+      expect(component.pending()).toBe(true);
+
+      setResolution('BE', true);
+
+      expect(component.pending()).toBe(false);
     });
   });
 });
