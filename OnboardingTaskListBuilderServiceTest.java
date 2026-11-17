@@ -6,25 +6,36 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 
-import { DataApplicationUsersService } from './data-application-users.service';
+import { DataCasesService } from './data-cases.service';
 import { environment } from 'PATH_TO_ENVIRONMENT';
 
-describe('DataApplicationUsersService', () => {
-  let service: DataApplicationUsersService;
+describe('DataCasesService', () => {
+  let service: DataCasesService;
   let httpMock: HttpTestingController;
 
-  const baseUrl = environment.apiUrls.get('caseManagement');
+  const caseId = 'CLIP_TEST_001';
+  const taskId = 123;
+
+  const clientProfilingUrl =
+    environment.apiUrls.get('clientProfiling');
+
+  const caseManagementUrl =
+    environment.apiUrls.get('caseManagement');
+
+  const taskType =
+    'change-of-client-information-sign-off' as
+      Parameters<DataCasesService['updateTask']>[2];
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        DataApplicationUsersService,
+        DataCasesService,
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
     });
 
-    service = TestBed.inject(DataApplicationUsersService);
+    service = TestBed.inject(DataCasesService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
@@ -36,67 +47,217 @@ describe('DataApplicationUsersService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('findAll', () => {
-    it('should retrieve all users', () => {
-      const users = [
-        { preferred_username: 'john.doe' },
-        { preferred_username: 'jane.doe' },
-      ];
+  describe('getCaseData', () => {
+    it('should retrieve client profiling case data', () => {
+      const response = {
+        caseBusinessIdentifier: caseId,
+      };
 
       let result: unknown;
 
-      service.findAll().subscribe(value => {
+      service.getCaseData(caseId).subscribe(value => {
         result = value;
       });
 
-      const req = httpMock.expectOne(`${baseUrl}/users`);
+      const req = httpMock.expectOne(
+        `${clientProfilingUrl}/cases/client-profiling/${caseId}/data`
+      );
 
       expect(req.request.method).toBe('GET');
 
-      req.flush(users);
+      req.flush(response);
 
-      expect(result).toEqual(users);
+      expect(result).toEqual(response);
     });
   });
 
-  describe('findAllUserTeams', () => {
-    it('should retrieve teams for a given user', () => {
-      const username = 'john.doe';
-      const teams = ['TEAM_A', 'TEAM_B'];
+  describe('getCaseBusinessData', () => {
+    it('should retrieve the latest business data', () => {
+      const response = {
+        policy: {
+          policyNumber: '2412-157945',
+        },
+      };
 
-      let result: string[] | undefined;
+      let result: unknown;
 
-      service.findAllUserTeams(username).subscribe(value => {
+      service.getCaseBusinessData(caseId).subscribe(value => {
         result = value;
       });
 
       const req = httpMock.expectOne(
-        `${baseUrl}/users/${username}/teams`
+        `${clientProfilingUrl}/cases/client-profiling/business-data/${caseId}/last`
       );
 
       expect(req.request.method).toBe('GET');
 
-      req.flush(teams);
+      req.flush(response);
 
-      expect(result).toEqual(teams);
+      expect(result).toEqual(response);
     });
+  });
 
-    it('should return an empty array when the user has no teams', () => {
-      const username = 'john.doe';
+  describe('findTaskById', () => {
+    it('should retrieve task details by identifier', () => {
+      const response = {
+        taskId,
+      };
 
-      let result: string[] | undefined;
+      let result: unknown;
 
-      service.findAllUserTeams(username).subscribe(value => {
+      service.findTaskById(taskId).subscribe(value => {
         result = value;
       });
 
       const req = httpMock.expectOne(
-        `${baseUrl}/users/${username}/teams`
+        `${caseManagementUrl}/user-tasks/${taskId}`
       );
 
-      req.flush([]);
+      expect(req.request.method).toBe('GET');
 
-      expect(result).toEqual([]);
+      req.flush(response);
+
+      expect(result).toEqual(response);
+    });
+  });
+
+  describe('updateTask', () => {
+    it('should update a task with the correct payload', () => {
+      const request = {
+        reviewed: true,
+      };
+
+      const additionalParams = new Map([
+        ['source', 'unit-test'],
+      ]);
+
+      service.updateTask(
+        caseId,
+        taskId,
+        taskType,
+        request,
+        additionalParams
+      ).subscribe();
+
+      const req = httpMock.expectOne(
+        request =>
+          request.url ===
+          `${clientProfilingUrl}/cases/client-profiling/${caseId}/tasks/${taskType}`
+      );
+
+      expect(req.request.method).toBe('PUT');
+
+      expect(req.request.body).toEqual({
+        reviewed: true,
+        taskId,
+      });
+
+      expect(req.request.params.get('source'))
+        .toBe('unit-test');
+
+      req.flush({});
+    });
+  });
+
+  describe('updateTaskAction', () => {
+    it('should send the task action and additional parameters', () => {
+      const action =
+        'APPROVE' as
+          Parameters<DataCasesService['updateTaskAction']>[1];
+
+      const additionalParams = new Map([
+        ['source', 'unit-test'],
+      ]);
+
+      service.updateTaskAction(
+        taskId,
+        action,
+        additionalParams
+      ).subscribe();
+
+      const req = httpMock.expectOne(
+        request =>
+          request.url ===
+          `${caseManagementUrl}/user-tasks/${taskId}/completed`
+      );
+
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({});
+
+      expect(req.request.params.get('action'))
+        .toBe(action);
+
+      expect(req.request.params.get('source'))
+        .toBe('unit-test');
+
+      req.flush({});
+    });
+  });
+
+  describe('updateTimestamp', () => {
+    it('should update the case timestamp', () => {
+      service.updateTimestamp(caseId).subscribe();
+
+      const req = httpMock.expectOne(
+        `${caseManagementUrl}/cases/${caseId}/update-timestamp`
+      );
+
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({});
+
+      req.flush({});
+    });
+  });
+
+  describe('updateRejectionReason', () => {
+    it('should send the rejection reason for the selected task', () => {
+      const rejectionReason = {
+        rejectionReason: 'Incorrect client information',
+      } as Parameters<DataCasesService['updateRejectionReason']>[2];
+
+      service.updateRejectionReason(
+        caseId,
+        taskType,
+        rejectionReason
+      ).subscribe();
+
+      const req = httpMock.expectOne(
+        `${clientProfilingUrl}/cases/client-profiling/${caseId}/tasks/${taskType}/rejection-reason`
+      );
+
+      expect(req.request.method).toBe('PUT');
+
+      expect(req.request.body).toEqual(rejectionReason);
+
+      req.flush({});
+    });
+  });
+
+  describe('HTTP errors', () => {
+    it('should propagate an error when case data cannot be loaded', () => {
+      let receivedError: unknown;
+
+      service.getCaseData(caseId).subscribe({
+        error: error => {
+          receivedError = error;
+        },
+      });
+
+      const req = httpMock.expectOne(
+        `${clientProfilingUrl}/cases/client-profiling/${caseId}/data`
+      );
+
+      req.flush(
+        { message: 'Not found' },
+        {
+          status: 404,
+          statusText: 'Not Found',
+        }
+      );
+
+      expect(receivedError).toMatchObject({
+        status: 404,
+      });
     });
   });
 });
