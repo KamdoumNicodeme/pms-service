@@ -2,7 +2,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Signal, WritableSignal } from '@angular/core';
 
-import { HolderProfiling } from './holder-profiling.component';
+import { PolicyProfiling } from './policy-profiling';
+
+type PolicyInput = ReturnType<PolicyProfiling['snapshotPolicy']>;
 
 type Counters = {
   total: number;
@@ -12,14 +14,16 @@ type Counters = {
   overridden: number;
 };
 
-type Filter = 'all' | 'attention' | 'changes';
+type ComparisonFilter = 'all' | 'attention' | 'changes';
 
-type Section = {
+type NavSection = {
   id: string;
   title: string;
+  state: string;
+  pending: number;
 };
 
-type ComparisonEvent = {
+type PolicyChangesEvent = {
   sectionId: string;
   changes: ReadonlyMap<string, unknown>;
   removedEntries: readonly {
@@ -28,45 +32,31 @@ type ComparisonEvent = {
   }[];
 };
 
-type HolderProfilingView = {
-  sections: readonly Section[];
+type PolicyProfilingView = {
+  sections: readonly { id: string; title: string }[];
 
   totals: Signal<Counters>;
-  navSections: Signal<
-    readonly {
-      id: string;
-      title: string;
-      state: string;
-      pending: number;
-    }[]
-  >;
-
-  entityId: Signal<string | null>;
+  navSections: Signal<readonly NavSection[]>;
   activeId: WritableSignal<string | null>;
-  filter: WritableSignal<Filter>;
+  filter: WritableSignal<ComparisonFilter>;
 
   countersFor(sectionId: string): Counters | null;
   isOpen(sectionId: string): boolean;
 
   onCounters(sectionId: string, counters: Counters): void;
-  setFilter(filter: Filter): void;
+  setFilter(filter: ComparisonFilter): void;
   toggle(sectionId: string): void;
   goTo(sectionId: string): void;
-
-  onComparisonChange(event: ComparisonEvent): void;
-  onDocumentValidated(document: unknown): void;
-  onDocumentRejected(document: unknown): void;
-  onDocumentDownloaded(document: unknown): void;
+  onPolicyChanges(event: PolicyChangesEvent): void;
 };
 
-describe('HolderProfiling', () => {
-  let fixture: ComponentFixture<HolderProfiling>;
-  let component: HolderProfiling;
-  let view: HolderProfilingView;
+describe('PolicyProfiling', () => {
+  let fixture: ComponentFixture<PolicyProfiling>;
+  let component: PolicyProfiling;
+  let view: PolicyProfilingView;
 
-  const holder = (thirdPartyId: string) => ({
-    thirdPartyId,
-  });
+  const createPolicy = (): PolicyInput =>
+    ({ policyNumber: 'POLICY-001' }) as unknown as PolicyInput;
 
   const makeCounters = (
     overrides: Partial<Counters> = {}
@@ -80,18 +70,14 @@ describe('HolderProfiling', () => {
   });
 
   function render(): void {
-    fixture = TestBed.createComponent(HolderProfiling);
+    fixture = TestBed.createComponent(PolicyProfiling);
     component = fixture.componentInstance;
-    view = component as unknown as HolderProfilingView;
+    view = component as unknown as PolicyProfilingView;
 
-    fixture.componentRef.setInput(
-      'snapshotHolder',
-      holder('SNAPSHOT-001')
-    );
-
-    fixture.componentRef.setInput('coreHolder', holder('CORE-001'));
-    fixture.componentRef.setInput('portalHolder', holder('PORTAL-001'));
-    fixture.componentRef.setInput('clipHolder', holder('CLIP-001'));
+    fixture.componentRef.setInput('snapshotPolicy', createPolicy());
+    fixture.componentRef.setInput('portalPolicy', createPolicy());
+    fixture.componentRef.setInput('corePolicy', createPolicy());
+    fixture.componentRef.setInput('clipPolicy', null);
     fixture.componentRef.setInput('policyNumber', 'POLICY-001');
 
     fixture.detectChanges();
@@ -99,9 +85,9 @@ describe('HolderProfiling', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HolderProfiling],
+      imports: [PolicyProfiling],
     })
-      .overrideComponent(HolderProfiling, {
+      .overrideComponent(PolicyProfiling, {
         set: {
           template: '',
           imports: [],
@@ -110,9 +96,7 @@ describe('HolderProfiling', () => {
       .compileComponents();
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+  afterEach(() => jest.restoreAllMocks());
 
   describe('Initialization', () => {
     it('should create the component', () => {
@@ -124,13 +108,7 @@ describe('HolderProfiling', () => {
     it('should initialize totals to zero', () => {
       render();
 
-      expect(view.totals()).toEqual({
-        total: 0,
-        changes: 0,
-        attention: 0,
-        reviewed: 0,
-        overridden: 0,
-      });
+      expect(view.totals()).toEqual(makeCounters());
     });
 
     it('should initialize the filter to all', () => {
@@ -145,71 +123,19 @@ describe('HolderProfiling', () => {
       expect(view.activeId()).toBeNull();
     });
 
-    it('should initialize navigation from configured sections', () => {
+    it('should initialize navigation from policy sections', () => {
       render();
 
-      const navigation = view.navSections();
-
-      expect(navigation).toHaveLength(view.sections.length);
+      expect(view.navSections()).toHaveLength(view.sections.length);
 
       view.sections.forEach((section, index) => {
-        expect(navigation[index]).toEqual({
+        expect(view.navSections()[index]).toEqual({
           id: section.id,
           title: section.title,
           state: 'loading',
           pending: 0,
         });
       });
-    });
-  });
-
-  describe('Entity identification', () => {
-    it('should prioritize the CLIP holder ID', () => {
-      render();
-
-      expect(view.entityId()).toBe('CLIP-001');
-    });
-
-    it('should use the core holder ID when CLIP is missing', () => {
-      render();
-
-      fixture.componentRef.setInput('clipHolder', null);
-      fixture.detectChanges();
-
-      expect(view.entityId()).toBe('CORE-001');
-    });
-
-    it('should use the portal holder ID when CLIP and core are missing', () => {
-      render();
-
-      fixture.componentRef.setInput('clipHolder', null);
-      fixture.componentRef.setInput('coreHolder', null);
-      fixture.detectChanges();
-
-      expect(view.entityId()).toBe('PORTAL-001');
-    });
-
-    it('should fall back to the snapshot holder ID', () => {
-      render();
-
-      fixture.componentRef.setInput('clipHolder', null);
-      fixture.componentRef.setInput('coreHolder', null);
-      fixture.componentRef.setInput('portalHolder', null);
-      fixture.detectChanges();
-
-      expect(view.entityId()).toBe('SNAPSHOT-001');
-    });
-
-    it('should recompute the entity ID when an input changes', () => {
-      render();
-
-      fixture.componentRef.setInput(
-        'clipHolder',
-        holder('NEW-CLIP-001')
-      );
-      fixture.detectChanges();
-
-      expect(view.entityId()).toBe('NEW-CLIP-001');
     });
   });
 
@@ -226,8 +152,8 @@ describe('HolderProfiling', () => {
       const sectionId = view.sections[0].id;
       const counters = makeCounters({
         total: 5,
-        changes: 2,
-        attention: 1,
+        changes: 3,
+        attention: 2,
         reviewed: 1,
       });
 
@@ -288,11 +214,11 @@ describe('HolderProfiling', () => {
         makeCounters({ total: 5, changes: 1 })
       );
 
-      expect(view.totals().changes).toBe(1);
       expect(view.totals().total).toBe(5);
+      expect(view.totals().changes).toBe(1);
     });
 
-    it('should update the navigation pending count', () => {
+    it('should update navigation pending count', () => {
       render();
 
       const sectionId = view.sections[0].id;
@@ -301,9 +227,8 @@ describe('HolderProfiling', () => {
         sectionId,
         makeCounters({
           total: 5,
-          changes: 3,
-          attention: 3,
-          reviewed: 1,
+          attention: 4,
+          reviewed: 2,
         })
       );
 
@@ -313,15 +238,37 @@ describe('HolderProfiling', () => {
 
       expect(section?.pending).toBe(2);
     });
+
+    it('should update totals reactively when counters change', () => {
+      render();
+
+      const sectionId = view.sections[0].id;
+
+      expect(view.totals().changes).toBe(0);
+
+      view.onCounters(
+        sectionId,
+        makeCounters({ total: 3, changes: 2 })
+      );
+
+      expect(view.totals().changes).toBe(2);
+
+      view.onCounters(
+        sectionId,
+        makeCounters({ total: 3, changes: 3 })
+      );
+
+      expect(view.totals().changes).toBe(3);
+    });
   });
 
   describe('Section navigation', () => {
     it('should initially close all sections', () => {
       render();
 
-      for (const section of view.sections) {
+      view.sections.forEach(section => {
         expect(view.isOpen(section.id)).toBe(false);
-      }
+      });
     });
 
     it('should open a section when toggled', () => {
@@ -346,34 +293,35 @@ describe('HolderProfiling', () => {
       expect(view.isOpen(sectionId)).toBe(false);
     });
 
-    it('should open a section when navigating to it', () => {
+    it('should allow multiple sections to remain open', () => {
       render();
 
-      const sectionId = view.sections[0].id;
+      const firstSection = view.sections[0].id;
+      const secondSection = view.sections[1].id;
 
-      view.goTo(sectionId);
+      view.toggle(firstSection);
+      view.toggle(secondSection);
 
-      expect(view.isOpen(sectionId)).toBe(true);
-      expect(view.activeId()).toBe(sectionId);
+      expect(view.isOpen(firstSection)).toBe(true);
+      expect(view.isOpen(secondSection)).toBe(true);
+      expect(view.activeId()).toBe(secondSection);
     });
 
-    it('should scroll to the requested section', () => {
+    it('should navigate to a section and scroll into view', () => {
       render();
 
       const sectionId = view.sections[0].id;
       const panel = document.createElement('section');
 
+      panel.dataset['section'] = sectionId;
       panel.scrollIntoView = jest.fn();
 
-      const querySpy = jest
-        .spyOn(fixture.nativeElement, 'querySelector')
-        .mockReturnValue(panel);
+      fixture.nativeElement.appendChild(panel);
 
       view.goTo(sectionId);
 
-      expect(querySpy).toHaveBeenCalledWith(
-        `[data-section="${sectionId}"]`
-      );
+      expect(view.isOpen(sectionId)).toBe(true);
+      expect(view.activeId()).toBe(sectionId);
 
       expect(panel.scrollIntoView).toHaveBeenCalledWith({
         block: 'start',
@@ -381,26 +329,18 @@ describe('HolderProfiling', () => {
       });
     });
 
-    it('should automatically open a pending section', () => {
+    it('should not throw when the target section is missing in DOM', () => {
       render();
 
-      const sectionId = view.sections[0].id;
+      expect(() => {
+        view.goTo('missing-section');
+      }).not.toThrow();
 
-      view.onCounters(
-        sectionId,
-        makeCounters({
-          total: 3,
-          changes: 2,
-          attention: 2,
-          reviewed: 0,
-        })
-      );
-
-      expect(view.isOpen(sectionId)).toBe(true);
+      expect(view.activeId()).toBe('missing-section');
     });
   });
 
-  describe('Section filtering', () => {
+  describe('Section filters', () => {
     it('should update the selected filter', () => {
       render();
 
@@ -419,8 +359,8 @@ describe('HolderProfiling', () => {
         firstSection,
         makeCounters({
           total: 3,
-          attention: 2,
           changes: 2,
+          attention: 2,
         })
       );
 
@@ -428,8 +368,8 @@ describe('HolderProfiling', () => {
         secondSection,
         makeCounters({
           total: 3,
-          attention: 0,
           changes: 1,
+          attention: 0,
         })
       );
 
@@ -439,7 +379,7 @@ describe('HolderProfiling', () => {
       expect(view.isOpen(secondSection)).toBe(false);
     });
 
-    it('should open sections containing changes', () => {
+    it('should open only sections containing changes', () => {
       render();
 
       const firstSection = view.sections[0].id;
@@ -447,12 +387,18 @@ describe('HolderProfiling', () => {
 
       view.onCounters(
         firstSection,
-        makeCounters({ total: 3, changes: 2 })
+        makeCounters({
+          total: 3,
+          changes: 2,
+        })
       );
 
       view.onCounters(
         secondSection,
-        makeCounters({ total: 3, changes: 0 })
+        makeCounters({
+          total: 3,
+          changes: 0,
+        })
       );
 
       view.setFilter('changes');
@@ -461,7 +407,7 @@ describe('HolderProfiling', () => {
       expect(view.isOpen(secondSection)).toBe(false);
     });
 
-    it('should preserve open sections when resetting the filter', () => {
+    it('should preserve opened sections when resetting filter to all', () => {
       render();
 
       const sectionId = view.sections[0].id;
@@ -472,106 +418,97 @@ describe('HolderProfiling', () => {
       expect(view.filter()).toBe('all');
       expect(view.isOpen(sectionId)).toBe(true);
     });
-  });
 
-  describe('Comparison changes', () => {
-    it('should emit changes with the snapshot holder ID', () => {
+    it('should not open sections without counters when filtering', () => {
       render();
 
-      const emitSpy = jest.spyOn(component.holderChanges, 'emit');
+      view.setFilter('attention');
 
-      const changes = new Map([
-        ['firstName', {
-          source: 'manual',
-          value: 'John',
-          reason: '',
-          comment: '',
-        }],
+      view.sections.forEach(section => {
+        expect(view.isOpen(section.id)).toBe(false);
+      });
+    });
+  });
+
+  describe('Policy changes', () => {
+    it('should forward policy changes to the parent', () => {
+      render();
+
+      const emitSpy = jest.spyOn(component.changesChange, 'emit');
+
+      const changes = new Map<string, unknown>([
+        [
+          'sending-address',
+          {
+            source: 'manual',
+            value: 'New address',
+            reason: 'CORRECTION',
+            comment: '',
+          },
+        ],
       ]);
 
+      const event: PolicyChangesEvent = {
+        sectionId: 'sending-address',
+        changes,
+        removedEntries: [],
+      };
+
+      view.onPolicyChanges(event);
+
+      expect(emitSpy).toHaveBeenCalledTimes(1);
+      expect(emitSpy).toHaveBeenCalledWith(event);
+    });
+
+    it('should forward empty changes', () => {
+      render();
+
+      const emitSpy = jest.spyOn(component.changesChange, 'emit');
+
+      const event: PolicyChangesEvent = {
+        sectionId: 'sending-address',
+        changes: new Map(),
+        removedEntries: [],
+      };
+
+      view.onPolicyChanges(event);
+
+      expect(emitSpy).toHaveBeenCalledWith(event);
+    });
+
+    it('should preserve removed entries when forwarding changes', () => {
+      render();
+
+      const emitSpy = jest.spyOn(component.changesChange, 'emit');
+
       const removedEntries = [
-        { id: 'emails:old@example.com', value: 'old@example.com' },
+        { id: 'entry-001', value: 'old-value' },
       ];
 
-      view.onComparisonChange({
-        sectionId: 'physical-person',
-        changes,
-        removedEntries,
-      });
-
-      expect(emitSpy).toHaveBeenCalledWith({
-        thirdPartyId: 'SNAPSHOT-001',
-        sectionId: 'physical-person',
-        changes,
-        removedEntries,
-      });
-    });
-
-    it('should emit empty changes without losing the section ID', () => {
-      render();
-
-      const emitSpy = jest.spyOn(component.holderChanges, 'emit');
-
-      view.onComparisonChange({
-        sectionId: 'contact-details',
+      const event: PolicyChangesEvent = {
+        sectionId: 'opt-in-out',
         changes: new Map(),
-        removedEntries: [],
-      });
+        removedEntries,
+      };
 
-      expect(emitSpy).toHaveBeenCalledWith({
-        thirdPartyId: 'SNAPSHOT-001',
-        sectionId: 'contact-details',
-        changes: new Map(),
-        removedEntries: [],
-      });
-    });
-  });
+      view.onPolicyChanges(event);
 
-  describe('Document events', () => {
-    it('should forward document validation', () => {
-      render();
-
-      const document = { documentId: 'DOC-001' };
-      const emitSpy = jest.spyOn(component.validatedDocument, 'emit');
-
-      view.onDocumentValidated(document);
-
-      expect(emitSpy).toHaveBeenCalledWith(document);
-    });
-
-    it('should forward document rejection', () => {
-      render();
-
-      const document = { documentId: 'DOC-002' };
-      const emitSpy = jest.spyOn(component.rejectedDocument, 'emit');
-
-      view.onDocumentRejected(document);
-
-      expect(emitSpy).toHaveBeenCalledWith(document);
-    });
-
-    it('should forward document download', () => {
-      render();
-
-      const document = { documentId: 'DOC-003' };
-      const emitSpy = jest.spyOn(component.downloadedDocument, 'emit');
-
-      view.onDocumentDownloaded(document);
-
-      expect(emitSpy).toHaveBeenCalledWith(document);
+      expect(emitSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          removedEntries,
+        })
+      );
     });
   });
 
   describe('Review state', () => {
-    it('should emit a review state when counters change', () => {
+    it('should emit the review state when counters change', () => {
       render();
 
       const emitSpy = jest.spyOn(component.stateChange, 'emit');
 
-      const sectionId = view.sections[0].id;
-
       view.onCounters(
-        sectionId,
+        view.sections[0].id,
         makeCounters({
           total: 4,
           changes: 2,
