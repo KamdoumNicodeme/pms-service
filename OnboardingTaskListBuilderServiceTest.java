@@ -3,66 +3,47 @@ import {
   ComponentFixture,
   TestBed,
 } from '@angular/core/testing';
-import { signal } from '@angular/core';
 
-import { ComparisonResult } from './comparison-result';
+import { ComparisonToolbar } from './comparison-toolbar';
 
-// Reuse the same injection token as the component.
-import { COMPARISON_DATA_SERVICE } from '../../comparison-data.service';
+type Counters = ReturnType<ComparisonToolbar['counters']>;
 
-describe('ComparisonResult', () => {
-  let fixture: ComponentFixture<ComparisonResult>;
-  let component: ComparisonResult;
+describe('ComparisonToolbar', () => {
+  let fixture: ComponentFixture<ComparisonToolbar>;
+  let component: ComparisonToolbar;
 
-  const italianTownLabels = signal([
-    { value: '001', label: 'Rome' },
-    { value: '002', label: 'Milan' },
-  ]);
-
-  const comparisonServiceMock = {
-    getItalianBirthTownLabels: jest.fn(
-      () => italianTownLabels
-    ),
-  };
-
-  function setResolution(
-    value: string | null,
-    reviewed = false
-  ): void {
-    fixture.componentRef.setInput('resolution', {
-      value,
-      reviewed,
-    });
-
-    fixture.detectChanges();
-  }
+  const makeCounters = (
+    overrides: Partial<Counters> = {}
+  ): Counters => ({
+    total: 10,
+    changes: 5,
+    attention: 3,
+    reviewed: 2,
+    overridden: 1,
+    ...overrides,
+  });
 
   async function render(
-    value: string | null = 'BE',
-    reviewed = false
+    counters: Counters = makeCounters()
   ): Promise<void> {
-    fixture = TestBed.createComponent(ComparisonResult);
+    fixture = TestBed.createComponent(ComparisonToolbar);
     component = fixture.componentInstance;
 
-    setResolution(value, reviewed);
+    fixture.componentRef.setInput('counters', counters);
+    fixture.componentRef.setInput('filter', 'all');
+
+    fixture.detectChanges();
+    await fixture.whenStable();
   }
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-
     await TestBed.configureTestingModule({
-      imports: [ComparisonResult],
+      imports: [ComparisonToolbar],
     })
-      .overrideComponent(ComparisonResult, {
+      .overrideComponent(ComparisonToolbar, {
         set: {
           template: '',
           imports: [],
-          providers: [
-            {
-              provide: COMPARISON_DATA_SERVICE,
-              useValue: comparisonServiceMock,
-            },
-          ],
         },
       })
       .compileComponents();
@@ -75,237 +56,131 @@ describe('ComparisonResult', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should initialize optional inputs', async () => {
+    it('should initialize the filter input', async () => {
       await render();
 
-      expect(component.needsAttention()).toBe(false);
-      expect(component.isOverride()).toBe(false);
-      expect(component.editable()).toBe(true);
-      expect(component.expanded()).toBe(false);
-      expect(component.readOnly()).toBe(false);
-      expect(component.emptyMeansDropped()).toBe(false);
-      expect(component.kind()).toBe('text');
-      expect(component.options()).toEqual([]);
-      expect(component.fieldId()).toBe('');
+      expect(component.filter()).toBe('all');
     });
   });
 
-  describe('Display value', () => {
-    it('should return the resolved value when no options exist', async () => {
-      await render('Belgium');
+  describe('Filter chips', () => {
+    it('should create the three filter chips', async () => {
+      await render();
 
-      expect(component.displayValue()).toBe('Belgium');
+      expect(component.chips()).toHaveLength(3);
     });
 
-    it('should return the matching option label', async () => {
-      await render('BE');
+    it('should return the expected labels and counts', async () => {
+      await render();
 
-      fixture.componentRef.setInput('options', [
-        { value: 'BE', label: 'Belgium' },
-        { value: 'FR', label: 'France' },
+      expect(component.chips()).toEqual([
+        {
+          value: 'all',
+          label: 'All',
+          count: 10,
+        },
+        {
+          value: 'changes',
+          label: 'Changes',
+          count: 5,
+        },
+        {
+          value: 'attention',
+          label: 'Needs review',
+          count: 3,
+        },
       ]);
-
-      fixture.detectChanges();
-
-      expect(component.displayValue()).toBe('Belgium');
     });
 
-    it('should return the original value when no option matches', async () => {
-      await render('LU');
+    it('should handle zero counters', async () => {
+      await render(
+        makeCounters({
+          total: 0,
+          changes: 0,
+          attention: 0,
+        })
+      );
 
-      fixture.componentRef.setInput('options', [
-        { value: 'BE', label: 'Belgium' },
+      expect(component.chips()).toEqual([
+        {
+          value: 'all',
+          label: 'All',
+          count: 0,
+        },
+        {
+          value: 'changes',
+          label: 'Changes',
+          count: 0,
+        },
+        {
+          value: 'attention',
+          label: 'Needs review',
+          count: 0,
+        },
       ]);
-
-      fixture.detectChanges();
-
-      expect(component.displayValue()).toBe('LU');
     });
 
-    it('should return null for an empty resolution', async () => {
-      await render(null);
+    it('should update chips when counters change', async () => {
+      await render();
 
-      expect(component.displayValue()).toBeNull();
-    });
-
-    it('should use Italian town labels for the Italian birth town field', async () => {
-      await render('001');
+      expect(component.chips()[0].count).toBe(10);
 
       fixture.componentRef.setInput(
-        'fieldId',
-        'italian-birth-town-code'
+        'counters',
+        makeCounters({
+          total: 20,
+          changes: 8,
+          attention: 4,
+        })
       );
 
       fixture.detectChanges();
+
+      expect(component.chips()).toEqual([
+        {
+          value: 'all',
+          label: 'All',
+          count: 20,
+        },
+        {
+          value: 'changes',
+          label: 'Changes',
+          count: 8,
+        },
+        {
+          value: 'attention',
+          label: 'Needs review',
+          count: 4,
+        },
+      ]);
+    });
+
+    it('should keep the correct chip order', async () => {
+      await render();
 
       expect(
-        comparisonServiceMock.getItalianBirthTownLabels
-      ).toHaveBeenCalled();
-
-      expect(component.displayValue()).toBe('Rome');
-    });
-
-    it('should fall back to the raw value for an unknown Italian town', async () => {
-      await render('999');
-
-      fixture.componentRef.setInput(
-        'fieldId',
-        'italian-birth-town-code'
-      );
-
-      fixture.detectChanges();
-
-      expect(component.displayValue()).toBe('999');
-    });
-
-    it('should recompute the displayed value when resolution changes', async () => {
-      await render('BE');
-
-      fixture.componentRef.setInput('options', [
-        { value: 'BE', label: 'Belgium' },
-        { value: 'FR', label: 'France' },
-      ]);
-
-      fixture.detectChanges();
-
-      expect(component.displayValue()).toBe('Belgium');
-
-      setResolution('FR');
-
-      expect(component.displayValue()).toBe('France');
-    });
-
-    it('should update when the Italian town labels change', async () => {
-      await render('001');
-
-      fixture.componentRef.setInput(
-        'fieldId',
-        'italian-birth-town-code'
-      );
-
-      fixture.detectChanges();
-
-      expect(component.displayValue()).toBe('Rome');
-
-      italianTownLabels.set([
-        { value: '001', label: 'Roma' },
-      ]);
-
-      expect(component.displayValue()).toBe('Roma');
-
-      italianTownLabels.set([
-        { value: '001', label: 'Rome' },
-        { value: '002', label: 'Milan' },
+        component.chips().map(chip => chip.value)
+      ).toEqual([
+        'all',
+        'changes',
+        'attention',
       ]);
     });
-  });
 
-  describe('Empty and dropped states', () => {
-    it('should consider null as empty', async () => {
-      await render(null);
+    it('should not change chip counts when only the selected filter changes', async () => {
+      await render();
 
-      expect(component.isEmpty()).toBe(true);
-    });
-
-    it('should consider an empty string as empty', async () => {
-      await render('');
-
-      expect(component.isEmpty()).toBe(true);
-    });
-
-    it('should consider whitespace-only values as empty', async () => {
-      await render('   ');
-
-      expect(component.isEmpty()).toBe(true);
-    });
-
-    it('should not consider a populated value as empty', async () => {
-      await render('Belgium');
-
-      expect(component.isEmpty()).toBe(false);
-    });
-
-    it('should mark an empty list value as dropped when enabled', async () => {
-      await render(null);
+      const initialChips = component.chips();
 
       fixture.componentRef.setInput(
-        'emptyMeansDropped',
-        true
+        'filter',
+        'attention'
       );
 
       fixture.detectChanges();
 
-      expect(component.isDropped()).toBe(true);
-    });
-
-    it('should not mark an empty value as dropped by default', async () => {
-      await render(null);
-
-      expect(component.isDropped()).toBe(false);
-    });
-
-    it('should not mark a populated value as dropped', async () => {
-      await render('BE');
-
-      fixture.componentRef.setInput(
-        'emptyMeansDropped',
-        true
-      );
-
-      fixture.detectChanges();
-
-      expect(component.isDropped()).toBe(false);
-    });
-  });
-
-  describe('Pending review', () => {
-    it('should be pending when attention is required and not reviewed', async () => {
-      await render('BE', false);
-
-      fixture.componentRef.setInput(
-        'needsAttention',
-        true
-      );
-
-      fixture.detectChanges();
-
-      expect(component.pending()).toBe(true);
-    });
-
-    it('should not be pending when the resolution is reviewed', async () => {
-      await render('BE', true);
-
-      fixture.componentRef.setInput(
-        'needsAttention',
-        true
-      );
-
-      fixture.detectChanges();
-
-      expect(component.pending()).toBe(false);
-    });
-
-    it('should not be pending when attention is not required', async () => {
-      await render('BE', false);
-
-      expect(component.pending()).toBe(false);
-    });
-
-    it('should recompute pending when the review state changes', async () => {
-      await render('BE', false);
-
-      fixture.componentRef.setInput(
-        'needsAttention',
-        true
-      );
-
-      fixture.detectChanges();
-
-      expect(component.pending()).toBe(true);
-
-      setResolution('BE', true);
-
-      expect(component.pending()).toBe(false);
+      expect(component.filter()).toBe('attention');
+      expect(component.chips()).toEqual(initialChips);
     });
   });
 });
