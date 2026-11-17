@@ -1,393 +1,320 @@
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ComparisonAnnotations } from './comparison-annotations';
+import {
+  ComponentFixture,
+  TestBed,
+} from '@angular/core/testing';
 
-type Annotation = ReturnType<
-  ComparisonAnnotations['annotations']
->[number];
+import { ComparisonEntryRowComponent } from './comparison-entry-row';
 
-describe('ComparisonAnnotations', () => {
-  let fixture: ComponentFixture<ComparisonAnnotations>;
-  let component: ComparisonAnnotations;
+type Entry = ReturnType<ComparisonEntryRowComponent['entry']>;
 
-  const createAnnotation = (
-    overrides: Partial<Annotation> = {}
-  ): Annotation =>
+describe('ComparisonEntryRowComponent', () => {
+  let fixture: ComponentFixture<ComparisonEntryRowComponent>;
+  let component: ComparisonEntryRowComponent;
+
+  const makeEntry = (overrides: Partial<Entry> = {}): Entry =>
     ({
-      source: 'core',
-      label: 'Core system',
-      tone: 'warn',
-      value: 'John Doe',
+      id: 'entry-1',
+      key: 'entry-1',
+      label: 'Belgium',
+      status: 'aligned',
+      isManual: false,
+      isOverride: false,
+      values: {
+        snapshot: 'BE',
+        portal: 'BE',
+        core: 'BE',
+        clip: 'BE',
+      },
+      resolution: {
+        source: 'core',
+        value: 'BE',
+        reason: '',
+        comment: '',
+      },
+      children: [],
       ...overrides,
-    }) as Annotation;
+    }) as Entry;
 
-  function render(
-    annotations: readonly Annotation[] = []
-  ): void {
-    fixture = TestBed.createComponent(ComparisonAnnotations);
+  async function render(
+    entry: Entry = makeEntry()
+  ): Promise<void> {
+    fixture = TestBed.createComponent(
+      ComparisonEntryRowComponent
+    );
+
     component = fixture.componentInstance;
-
-    fixture.componentRef.setInput('annotations', annotations);
+    fixture.componentRef.setInput('entry', entry);
     fixture.detectChanges();
+
+    await fixture.whenStable();
   }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ComparisonAnnotations],
-    }).compileComponents();
+      imports: [ComparisonEntryRowComponent],
+    })
+      .overrideComponent(ComparisonEntryRowComponent, {
+        set: {
+          template: '',
+          imports: [],
+        },
+      })
+      .compileComponents();
   });
 
   describe('Initialization', () => {
-    it('should create the component', () => {
-      render();
+    it('should create the component', async () => {
+      await render();
 
       expect(component).toBeTruthy();
     });
 
-    it('should not display annotations when the list is empty', () => {
-      render([]);
+    it('should initialize optional inputs with defaults', async () => {
+      await render();
 
-      const list = fixture.nativeElement.querySelector('ul');
-
-      expect(list).toBeNull();
+      expect(component.expanded()).toBe(false);
+      expect(component.focused()).toBe(false);
+      expect(component.kind()).toBe('text');
+      expect(component.expandedId()).toBeNull();
+      expect(component.focusedId()).toBeNull();
+      expect(component.options()).toEqual([]);
+      expect(component.readOnly()).toBe(false);
     });
   });
 
-  describe('Annotation rendering', () => {
-    it('should display a warning annotation', () => {
-      render([createAnnotation()]);
+  describe('Chip label', () => {
+    it.each([
+      ['added', 'added'],
+      ['removed', 'removed'],
+      ['drift', 'conflict'],
+      ['conflict', 'conflict'],
+      ['updated', 'changed'],
+      ['aligned', ''],
+    ] as const)(
+      'should return %s status as %s',
+      async (status, expected) => {
+        await render(makeEntry({ status }));
 
-      const item: HTMLElement =
-        fixture.nativeElement.querySelector('li');
+        expect(component.chipLabel()).toBe(expected);
+      }
+    );
 
-      expect(item).toBeTruthy();
-      expect(item.getAttribute('data-tone')).toBe('warn');
-      expect(item.getAttribute('data-source')).toBe('core');
-      expect(item.textContent).toContain('Core system');
-      expect(item.textContent).toContain('John Doe');
+    it('should return manual for a manual entry', async () => {
+      await render(
+        makeEntry({
+          isManual: true,
+          status: 'added',
+        })
+      );
+
+      expect(component.chipLabel()).toBe('manual');
     });
+  });
 
-    it('should display an update annotation', () => {
-      render([
-        createAnnotation({
-          source: 'portal',
-          label: 'Connect data',
-          tone: 'update',
-          value: 'Jane Doe',
-        }),
-      ]);
+  describe('Chip icon', () => {
+    it.each([
+      ['added', 'plus'],
+      ['removed', 'minus'],
+      ['updated', 'swap'],
+      ['conflict', 'warning'],
+      ['drift', 'warning'],
+    ] as const)(
+      'should return %s icon as %s',
+      async (status, expected) => {
+        await render(makeEntry({ status }));
 
-      const item: HTMLElement =
-        fixture.nativeElement.querySelector('li');
+        expect(component.chipIcon()).toBe(expected);
+      }
+    );
 
-      expect(item.getAttribute('data-tone')).toBe('update');
-      expect(item.textContent).toContain('Jane Doe');
+    it('should return edit icon for a manual entry', async () => {
+      await render(
+        makeEntry({
+          isManual: true,
+        })
+      );
+
+      expect(component.chipIcon()).toBe('edit');
     });
+  });
 
-    it('should not display muted annotations', () => {
-      render([
-        createAnnotation({ tone: 'muted' }),
-      ]);
+  describe('Entry display label', () => {
+    it('should display the entry label by default', async () => {
+      await render(makeEntry({ label: 'Nationality' }));
 
-      expect(
-        fixture.nativeElement.querySelectorAll('li')
-      ).toHaveLength(0);
-    });
-
-    it('should display only non-muted annotations', () => {
-      render([
-        createAnnotation({
-          source: 'core',
-          tone: 'warn',
-        }),
-        createAnnotation({
-          source: 'portal',
-          tone: 'muted',
-        }),
-        createAnnotation({
-          source: 'manual',
-          tone: 'update',
-        }),
-      ]);
-
-      const items = fixture.nativeElement.querySelectorAll('li');
-
-      expect(items).toHaveLength(2);
-      expect(items[0].getAttribute('data-source')).toBe('core');
-      expect(items[1].getAttribute('data-source')).toBe('manual');
-    });
-
-    it('should display "no value" when annotation value is null', () => {
-      render([
-        createAnnotation({ value: null }),
-      ]);
-
-      expect(fixture.nativeElement.textContent).toContain(
-        'no value'
+      expect(component.entryDisplayLabel()).toBe(
+        'Nationality'
       );
     });
 
-    it('should display "no value" for whitespace-only values', () => {
-      render([
-        createAnnotation({ value: '   ' }),
-      ]);
-
-      expect(fixture.nativeElement.textContent).toContain(
-        'no value'
+    it('should display resolution value for a manual entry', async () => {
+      await render(
+        makeEntry({
+          isManual: true,
+          resolution: {
+            source: 'manual',
+            value: 'Belgium',
+            reason: '',
+            comment: '',
+          },
+        })
       );
+
+      expect(component.entryDisplayLabel()).toBe('Belgium');
     });
 
-    it('should update the rendered annotations when input changes', () => {
-      render([createAnnotation()]);
+    it('should display the resolution value for an override', async () => {
+      await render(
+        makeEntry({
+          isOverride: true,
+          resolution: {
+            source: 'manual',
+            value: 'France',
+            reason: '',
+            comment: '',
+          },
+        })
+      );
 
-      fixture.componentRef.setInput('annotations', [
-        createAnnotation({
-          source: 'portal',
-          label: 'Connect data',
-          value: 'Updated value',
-        }),
+      expect(component.entryDisplayLabel()).toBe('France');
+    });
+
+    it('should map the resolution value to its option label', async () => {
+      await render(
+        makeEntry({
+          isManual: true,
+          resolution: {
+            source: 'manual',
+            value: 'BE',
+            reason: '',
+            comment: '',
+          },
+        })
+      );
+
+      fixture.componentRef.setInput('options', [
+        { value: 'BE', label: 'Belgium' },
+        { value: 'FR', label: 'France' },
       ]);
 
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain(
-        'Updated value'
+      expect(component.entryDisplayLabel()).toBe('Belgium');
+    });
+
+    it('should return an empty label for a manual entry without value', async () => {
+      await render(
+        makeEntry({
+          isManual: true,
+          resolution: {
+            source: 'manual',
+            value: null,
+            reason: '',
+            comment: '',
+          },
+        })
       );
-      expect(fixture.nativeElement.textContent).not.toContain(
-        'John Doe'
-      );
+
+      expect(component.entryDisplayLabel()).toBe('');
     });
   });
 
-  describe('isBlank', () => {
-    it('should return true for null', () => {
-      render();
+  describe('Display value', () => {
+    it('should return an empty string for null', async () => {
+      await render();
 
-      expect(component.isBlank(null)).toBe(true);
+      expect(component.displayValue(null)).toBe('');
     });
 
-    it('should return true for an empty string', () => {
-      render();
+    it('should return the option label when available', async () => {
+      await render();
 
-      expect(component.isBlank('')).toBe(true);
+      fixture.componentRef.setInput('options', [
+        { value: 'BE', label: 'Belgium' },
+      ]);
+
+      fixture.detectChanges();
+
+      expect(component.displayValue('BE')).toBe('Belgium');
     });
 
-    it('should return true for whitespace-only strings', () => {
-      render();
+    it('should return the original value when no option matches', async () => {
+      await render();
 
-      expect(component.isBlank('   ')).toBe(true);
-    });
-
-    it('should return false for a non-empty string', () => {
-      render();
-
-      expect(component.isBlank('John Doe')).toBe(false);
-    });
-
-    it('should return false for the string zero', () => {
-      render();
-
-      expect(component.isBlank('0')).toBe(false);
-    });
-  });
-});
-
-
-
-
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ComparisonCell } from './comparison-cell';
-
-describe('ComparisonCell', () => {
-  let fixture: ComponentFixture<ComparisonCell>;
-  let component: ComparisonCell;
-
-  function render(
-    value: string | null = null,
-    emphasis: 'muted' | 'strong' = 'muted',
-    marker = ''
-  ): void {
-    fixture = TestBed.createComponent(ComparisonCell);
-    component = fixture.componentInstance;
-
-    fixture.componentRef.setInput('value', value);
-    fixture.componentRef.setInput('emphasis', emphasis);
-    fixture.componentRef.setInput('marker', marker);
-
-    fixture.detectChanges();
-  }
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [ComparisonCell],
-    }).compileComponents();
-  });
-
-  describe('Initialization', () => {
-    it('should create the component', () => {
-      render();
-
-      expect(component).toBeTruthy();
-    });
-
-    it('should initialize emphasis with muted by default', () => {
-      render();
-
-      expect(component.emphasis()).toBe('muted');
-    });
-
-    it('should initialize marker with an empty string', () => {
-      render();
-
-      expect(component.marker()).toBe('');
-    });
-  });
-
-  describe('Value rendering', () => {
-    it('should display the provided value', () => {
-      render('John Doe');
-
-      const value: HTMLElement =
-        fixture.nativeElement.querySelector('.cell__value');
-
-      expect(value.textContent?.trim()).toBe('John Doe');
-    });
-
-    it('should display a placeholder for null', () => {
-      render(null);
-
-      expect(component.isEmpty()).toBe(true);
-
-      expect(
-        fixture.nativeElement.querySelector('.cell__placeholder')
-      ).toBeTruthy();
-
-      expect(
-        fixture.nativeElement.querySelector('.cell__value')
-      ).toBeNull();
-    });
-
-    it('should consider an empty string as empty', () => {
-      render('');
-
-      expect(component.isEmpty()).toBe(true);
-    });
-
-    it('should consider whitespace-only values as empty', () => {
-      render('   ');
-
-      expect(component.isEmpty()).toBe(true);
-    });
-
-    it('should not consider zero as empty', () => {
-      render('0');
-
-      expect(component.isEmpty()).toBe(false);
-
-      expect(fixture.nativeElement.textContent).toContain('0');
-    });
-
-    it('should display the full value in the title attribute', () => {
-      render('A very long comparison value');
-
-      const value: HTMLElement =
-        fixture.nativeElement.querySelector('.cell__value');
-
-      expect(value.getAttribute('title')).toBe(
-        'A very long comparison value'
+      expect(component.displayValue('UNKNOWN')).toBe(
+        'UNKNOWN'
       );
     });
   });
 
-  describe('Emphasis', () => {
-    it('should apply strong styling when emphasis is strong', () => {
-      render('John Doe', 'strong');
+  describe('Remove action', () => {
+    it('should prevent event propagation and emit remove', async () => {
+      await render();
 
-      const cell: HTMLElement =
-        fixture.nativeElement.querySelector('.cell');
+      const removeSpy = jest.fn();
+      component.remove.subscribe(removeSpy);
 
-      expect(cell.classList.contains('cell--strong')).toBe(true);
-    });
+      const event = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      });
 
-    it('should not apply strong styling when emphasis is muted', () => {
-      render('John Doe', 'muted');
+      const preventDefaultSpy = jest.spyOn(
+        event,
+        'preventDefault'
+      );
 
-      const cell: HTMLElement =
-        fixture.nativeElement.querySelector('.cell');
+      const stopPropagationSpy = jest.spyOn(
+        event,
+        'stopPropagation'
+      );
 
-      expect(cell.classList.contains('cell--strong')).toBe(false);
-    });
+      component.onRemove(event);
 
-    it('should apply empty styling for null values', () => {
-      render(null);
-
-      const cell: HTMLElement =
-        fixture.nativeElement.querySelector('.cell');
-
-      expect(cell.classList.contains('cell--empty')).toBe(true);
+      expect(preventDefaultSpy).toHaveBeenCalledTimes(1);
+      expect(stopPropagationSpy).toHaveBeenCalledTimes(1);
+      expect(removeSpy).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('Marker', () => {
-    it('should display the marker when a tooltip is provided', () => {
-      render('John Doe', 'muted', 'Original value');
-
-      const marker = fixture.nativeElement.querySelector(
-        '.cell__marker'
+  describe('Click behaviour', () => {
+    it('should not toggle a row containing children', async () => {
+      await render(
+        makeEntry({
+          children: [
+            {
+              key: 'child-1',
+              label: 'Country',
+              status: 'aligned',
+            },
+          ] as Entry['children'],
+        })
       );
 
-      expect(marker).toBeTruthy();
-    });
+      const toggleSpy = jest.fn();
+      component.toggle.subscribe(toggleSpy);
 
-    it('should not display the marker when tooltip is empty', () => {
-      render('John Doe', 'muted', '');
+      component.onClick(new MouseEvent('click'));
 
-      const marker = fixture.nativeElement.querySelector(
-        '.cell__marker'
-      );
-
-      expect(marker).toBeNull();
+      expect(toggleSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('Reactive inputs', () => {
-    it('should update the displayed value when input changes', () => {
-      render('John Doe');
+    it('should recompute chip label when entry changes', async () => {
+      await render(makeEntry({ status: 'added' }));
 
-      fixture.componentRef.setInput('value', 'Jane Doe');
-      fixture.detectChanges();
+      expect(component.chipLabel()).toBe('added');
 
-      expect(fixture.nativeElement.textContent).toContain(
-        'Jane Doe'
+      fixture.componentRef.setInput(
+        'entry',
+        makeEntry({ status: 'removed' })
       );
 
-      expect(fixture.nativeElement.textContent).not.toContain(
-        'John Doe'
-      );
-    });
-
-    it('should update isEmpty when value changes to null', () => {
-      render('John Doe');
-
-      expect(component.isEmpty()).toBe(false);
-
-      fixture.componentRef.setInput('value', null);
       fixture.detectChanges();
 
-      expect(component.isEmpty()).toBe(true);
-    });
-
-    it('should update emphasis dynamically', () => {
-      render('John Doe', 'muted');
-
-      fixture.componentRef.setInput('emphasis', 'strong');
-      fixture.detectChanges();
-
-      const cell: HTMLElement =
-        fixture.nativeElement.querySelector('.cell');
-
-      expect(cell.classList.contains('cell--strong')).toBe(true);
+      expect(component.chipLabel()).toBe('removed');
     });
   });
 });
-
