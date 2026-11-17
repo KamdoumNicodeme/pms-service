@@ -1,189 +1,126 @@
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { WritableSignal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { firstValueFrom, of, throwError } from 'rxjs';
 
-import { SegmentedChoice } from './segmented-choice';
+import { CaseSummaryServiceService } from './case-summary-service.service';
+import { DataCasesService } from './data-cases.service';
 
-describe('SegmentedChoice', () => {
-  let component: SegmentedChoice;
-  let fixture: ComponentFixture<SegmentedChoice>;
+describe('CaseSummaryServiceService', () => {
+  let service: CaseSummaryServiceService;
 
-  let onChange: jest.Mock;
-  let onTouched: jest.Mock;
-
-  type UnderTest = {
-    value: WritableSignal<string | null>;
-    disabled: WritableSignal<boolean>;
-    select: (value: string) => void;
+  const dataCasesMock = {
+    getCaseData: jest.fn(),
   };
 
-  const view = (): UnderTest =>
-    component as unknown as UnderTest;
+  const caseId = 'CLIP_TEST_001';
 
-  const options = [
-    { value: 'yes', label: 'Yes' },
-    { value: 'no', label: 'No' },
-  ];
+  type CurrentCase =
+    Parameters<CaseSummaryServiceService['getSummary']>[1];
 
-  beforeEach(async () => {
-    onChange = jest.fn();
-    onTouched = jest.fn();
+  const currentCase = {
+    ownerDetails: {
+      displayName: 'John Doe',
+    },
+  } as CurrentCase;
 
-    await TestBed.configureTestingModule({
-      imports: [SegmentedChoice],
-    })
-      .overrideComponent(SegmentedChoice, {
-        set: {
-          template: '',
-          imports: [],
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    TestBed.configureTestingModule({
+      providers: [
+        CaseSummaryServiceService,
+        {
+          provide: DataCasesService,
+          useValue: dataCasesMock,
+        },
+      ],
+    });
+
+    service = TestBed.inject(CaseSummaryServiceService);
+  });
+
+  it('should create the service', () => {
+    expect(service).toBeTruthy();
+  });
+
+  it('should load case data using the case identifier', async () => {
+    dataCasesMock.getCaseData.mockReturnValue(of({}));
+
+    await firstValueFrom(
+      service.getSummary(caseId, currentCase)
+    );
+
+    expect(dataCasesMock.getCaseData)
+      .toHaveBeenCalledWith(caseId);
+  });
+
+  it('should build the case summary correctly', async () => {
+    dataCasesMock.getCaseData.mockReturnValue(
+      of({
+        caseBusinessIdentifier: caseId,
+        initialBusinessData: {
+          policy: {
+            policyNumber: '2412-157945',
+            broker: 'B/2757',
+          },
         },
       })
-      .compileComponents();
+    );
 
-    fixture = TestBed.createComponent(SegmentedChoice);
-    component = fixture.componentInstance;
+    const result = await firstValueFrom(
+      service.getSummary(caseId, currentCase)
+    );
 
-    fixture.componentRef.setInput('options', options);
-
-    fixture.detectChanges();
-  });
-
-  describe('Initialization', () => {
-    it('should create the component', () => {
-      expect(component).toBeTruthy();
-    });
-
-    it('should initialize with a null value', () => {
-      expect(view().value()).toBeNull();
-    });
-
-    it('should be enabled by default', () => {
-      expect(view().disabled()).toBe(false);
-    });
-  });
-
-  describe('writeValue', () => {
-    it('should update the value', () => {
-      component.writeValue('yes');
-
-      expect(view().value()).toBe('yes');
-    });
-
-    it('should accept a null value', () => {
-      component.writeValue('yes');
-      component.writeValue(null);
-
-      expect(view().value()).toBeNull();
-    });
-
-    it('should not trigger callbacks', () => {
-      component.registerOnChange(onChange);
-      component.registerOnTouched(onTouched);
-
-      component.writeValue('yes');
-
-      expect(onChange).not.toHaveBeenCalled();
-      expect(onTouched).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      reference: caseId,
+      title: 'Client profiling',
+      facts: [
+        {
+          label: 'POLICY NUMBER',
+          value: '2412-157945',
+        },
+        {
+          label: 'CASE OWNER',
+          value: 'John Doe',
+        },
+        {
+          label: 'BROKER',
+          value: 'B/2757',
+        },
+      ],
     });
   });
 
-  describe('registerOnChange', () => {
-    it('should call the registered callback when selecting a value', () => {
-      component.registerOnChange(onChange);
+  it('should use default values when information is missing', async () => {
+    dataCasesMock.getCaseData.mockReturnValue(
+      of({
+        initialBusinessData: {
+          policy: {},
+        },
+      })
+    );
 
-      view().select('yes');
+    const result = await firstValueFrom(
+      service.getSummary(caseId, {} as CurrentCase)
+    );
 
-      expect(onChange).toHaveBeenCalledTimes(1);
-      expect(onChange).toHaveBeenCalledWith('yes');
-    });
+    expect(result.reference).toBe('');
+    expect(result.title).toBe('Client profiling');
+
+    expect(result.facts).toEqual([
+      { label: 'POLICY NUMBER', value: '-' },
+      { label: 'CASE OWNER', value: '-' },
+      { label: 'BROKER', value: '-' },
+    ]);
   });
 
-  describe('registerOnTouched', () => {
-    it('should call the registered callback when selecting a value', () => {
-      component.registerOnTouched(onTouched);
+  it('should propagate an error when loading case data fails', async () => {
+    dataCasesMock.getCaseData.mockReturnValue(
+      throwError(() => new Error('API error'))
+    );
 
-      view().select('yes');
-
-      expect(onTouched).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('setDisabledState', () => {
-    it('should disable the component', () => {
-      component.setDisabledState(true);
-
-      expect(view().disabled()).toBe(true);
-    });
-
-    it('should enable the component', () => {
-      component.setDisabledState(true);
-      component.setDisabledState(false);
-
-      expect(view().disabled()).toBe(false);
-    });
-
-    it('should preserve the selected value when disabled', () => {
-      component.writeValue('yes');
-
-      component.setDisabledState(true);
-
-      expect(view().value()).toBe('yes');
-    });
-  });
-
-  describe('select', () => {
-    beforeEach(() => {
-      component.registerOnChange(onChange);
-      component.registerOnTouched(onTouched);
-    });
-
-    it('should update the selected value', () => {
-      view().select('yes');
-
-      expect(view().value()).toBe('yes');
-    });
-
-    it('should update the value when selecting another option', () => {
-      view().select('yes');
-      view().select('no');
-
-      expect(view().value()).toBe('no');
-    });
-
-    it('should notify Angular forms when selecting an option', () => {
-      view().select('yes');
-
-      expect(onChange).toHaveBeenCalledWith('yes');
-      expect(onTouched).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not update the value when disabled', () => {
-      component.writeValue('yes');
-      component.setDisabledState(true);
-
-      view().select('no');
-
-      expect(view().value()).toBe('yes');
-    });
-
-    it('should not trigger callbacks when disabled', () => {
-      component.setDisabledState(true);
-
-      view().select('yes');
-
-      expect(onChange).not.toHaveBeenCalled();
-      expect(onTouched).not.toHaveBeenCalled();
-    });
-
-    it('should allow selection after being enabled again', () => {
-      component.setDisabledState(true);
-      component.setDisabledState(false);
-
-      view().select('no');
-
-      expect(view().value()).toBe('no');
-      expect(onChange).toHaveBeenCalledWith('no');
-      expect(onTouched).toHaveBeenCalledTimes(1);
-    });
+    await expect(
+      firstValueFrom(service.getSummary(caseId, currentCase))
+    ).rejects.toThrow('API error');
   });
 });
