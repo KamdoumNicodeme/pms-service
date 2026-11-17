@@ -1,63 +1,25 @@
-import { TestBed } from '@angular/core/testing';
-import { NzModalService } from 'ng-zorro-antd/modal';
-import { AssignmentService } from './assignment.service';
-// Adjust this import to the actual folder used by AssignmentService.
-import { AssignmentComponent } from '../components/assignment/assignment.component';
+import { RejectionModalService } from './rejection-modal.service';
+// Adjust this import to the actual folder used by RejectionModalService.
+import { RejectionComponent } from '../components/rejection/rejection.component';
 
-describe('AssignmentService', () => {
-  let service: AssignmentService;
-  let modal: { create: jest.Mock };
+describe('RejectionModalService', () => {
+  it('creates a centered rejection modal and returns its reference', () => {
+    // The class extends NzModalService. The inherited create() method is
+    // replaced here to avoid constructing the real Angular modal/overlay.
+    const service = Object.create(RejectionModalService.prototype) as RejectionModalService;
+    const modalRef = { afterClose: {} };
+    const create = jest.fn().mockReturnValue(modalRef);
+    Object.defineProperty(service, 'create', { value: create });
 
-  beforeEach(() => {
-    modal = { create: jest.fn() };
-    TestBed.configureTestingModule({
-      providers: [
-        AssignmentService,
-        { provide: NzModalService, useValue: modal },
-      ],
-    });
-    service = TestBed.inject(AssignmentService);
-  });
+    const result = service.openRejectionModal();
 
-  it('creates the assignment modal with the expected data and configuration', () => {
-    const teams = [{ name: 'TEAM_A' }];
-    const assignedTeam = { name: 'TEAM_A' };
-    const assignee = { name: 'john.doe' };
-    const ref = { afterClose: {} };
-    modal.create.mockReturnValue(ref);
-
-    const result = service.openAssignmentModal(
-      teams as never,
-      'Assign task',
-      assignedTeam as never,
-      assignee as never,
-    );
-
-    expect(modal.create).toHaveBeenCalledWith({
-      nzTitle: 'Assign task',
-      nzData: { teams, assignedTeam, assignee },
+    expect(create).toHaveBeenCalledWith({
+      nzTitle: 'You are about to reject this task',
       nzCentered: true,
-      nzWidth: '20%',
+      nzWidth: '30%',
       nzFooter: null,
-      nzContent: AssignmentComponent,
+      nzContent: RejectionComponent,
     });
-    expect(result).toBe(ref);
-  });
-
-  it('allows the title and optional assignment values to be omitted', () => {
-    modal.create.mockReturnValue({});
-
-    service.openAssignmentModal([]);
-
-    expect(modal.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        nzTitle: undefined,
-        nzData: {
-          teams: [],
-          assignedTeam: undefined,
-          assignee: undefined,
-        },
-      }),
-    );
+    expect(result).toBe(modalRef);
   });
 });
