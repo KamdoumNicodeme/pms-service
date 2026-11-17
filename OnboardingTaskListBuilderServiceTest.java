@@ -4,47 +4,38 @@ import {
   TestBed,
 } from '@angular/core/testing';
 
-import { ComparisonEntryRowComponent } from './comparison-entry-row';
+import { ComparisonGroupField } from './comparison-group-field';
 
-type Entry = ReturnType<ComparisonEntryRowComponent['entry']>;
+type Row = ReturnType<ComparisonGroupField['row']>;
 
-describe('ComparisonEntryRowComponent', () => {
-  let fixture: ComponentFixture<ComparisonEntryRowComponent>;
-  let component: ComparisonEntryRowComponent;
+describe('ComparisonGroupField', () => {
+  let fixture: ComponentFixture<ComparisonGroupField>;
+  let component: ComparisonGroupField;
 
-  const makeEntry = (overrides: Partial<Entry> = {}): Entry =>
+  const makeRow = (overrides: Partial<Row> = {}): Row =>
     ({
-      id: 'entry-1',
-      key: 'entry-1',
-      label: 'Belgium',
+      id: 'group-1',
+      key: 'group-1',
+      label: 'Address',
       status: 'aligned',
-      isManual: false,
-      isOverride: false,
-      values: {
-        snapshot: 'BE',
-        portal: 'BE',
-        core: 'BE',
-        clip: 'BE',
-      },
-      resolution: {
-        source: 'core',
-        value: 'BE',
-        reason: '',
-        comment: '',
-      },
       children: [],
+      composed: {
+        snapshot: [],
+        portal: [],
+        core: [],
+        clip: [],
+      },
+      composedResult: [],
       ...overrides,
-    }) as Entry;
+    }) as Row;
 
   async function render(
-    entry: Entry = makeEntry()
+    row: Row = makeRow()
   ): Promise<void> {
-    fixture = TestBed.createComponent(
-      ComparisonEntryRowComponent
-    );
-
+    fixture = TestBed.createComponent(ComparisonGroupField);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput('entry', entry);
+
+    fixture.componentRef.setInput('row', row);
     fixture.detectChanges();
 
     await fixture.whenStable();
@@ -52,9 +43,9 @@ describe('ComparisonEntryRowComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ComparisonEntryRowComponent],
+      imports: [ComparisonGroupField],
     })
-      .overrideComponent(ComparisonEntryRowComponent, {
+      .overrideComponent(ComparisonGroupField, {
         set: {
           template: '',
           imports: [],
@@ -73,248 +64,156 @@ describe('ComparisonEntryRowComponent', () => {
     it('should initialize optional inputs with defaults', async () => {
       await render();
 
-      expect(component.expanded()).toBe(false);
-      expect(component.focused()).toBe(false);
-      expect(component.kind()).toBe('text');
+      expect(component.open()).toBe(false);
       expect(component.expandedId()).toBeNull();
       expect(component.focusedId()).toBeNull();
-      expect(component.options()).toEqual([]);
       expect(component.readOnly()).toBe(false);
     });
   });
 
-  describe('Chip label', () => {
-    it.each([
-      ['added', 'added'],
-      ['removed', 'removed'],
-      ['drift', 'conflict'],
-      ['conflict', 'conflict'],
-      ['updated', 'changed'],
-      ['aligned', ''],
-    ] as const)(
-      'should return %s status as %s',
-      async (status, expected) => {
-        await render(makeEntry({ status }));
+  describe('Change count', () => {
+    it('should return zero when there are no children', async () => {
+      await render(makeRow({ children: [] }));
 
-        expect(component.chipLabel()).toBe(expected);
-      }
-    );
+      expect(component.changeCount()).toBe(0);
+    });
 
-    it('should return manual for a manual entry', async () => {
+    it('should return zero when all children are aligned', async () => {
       await render(
-        makeEntry({
-          isManual: true,
-          status: 'added',
-        })
-      );
-
-      expect(component.chipLabel()).toBe('manual');
-    });
-  });
-
-  describe('Chip icon', () => {
-    it.each([
-      ['added', 'plus'],
-      ['removed', 'minus'],
-      ['updated', 'swap'],
-      ['conflict', 'warning'],
-      ['drift', 'warning'],
-    ] as const)(
-      'should return %s icon as %s',
-      async (status, expected) => {
-        await render(makeEntry({ status }));
-
-        expect(component.chipIcon()).toBe(expected);
-      }
-    );
-
-    it('should return edit icon for a manual entry', async () => {
-      await render(
-        makeEntry({
-          isManual: true,
-        })
-      );
-
-      expect(component.chipIcon()).toBe('edit');
-    });
-  });
-
-  describe('Entry display label', () => {
-    it('should display the entry label by default', async () => {
-      await render(makeEntry({ label: 'Nationality' }));
-
-      expect(component.entryDisplayLabel()).toBe(
-        'Nationality'
-      );
-    });
-
-    it('should display resolution value for a manual entry', async () => {
-      await render(
-        makeEntry({
-          isManual: true,
-          resolution: {
-            source: 'manual',
-            value: 'Belgium',
-            reason: '',
-            comment: '',
-          },
-        })
-      );
-
-      expect(component.entryDisplayLabel()).toBe('Belgium');
-    });
-
-    it('should display the resolution value for an override', async () => {
-      await render(
-        makeEntry({
-          isOverride: true,
-          resolution: {
-            source: 'manual',
-            value: 'France',
-            reason: '',
-            comment: '',
-          },
-        })
-      );
-
-      expect(component.entryDisplayLabel()).toBe('France');
-    });
-
-    it('should map the resolution value to its option label', async () => {
-      await render(
-        makeEntry({
-          isManual: true,
-          resolution: {
-            source: 'manual',
-            value: 'BE',
-            reason: '',
-            comment: '',
-          },
-        })
-      );
-
-      fixture.componentRef.setInput('options', [
-        { value: 'BE', label: 'Belgium' },
-        { value: 'FR', label: 'France' },
-      ]);
-
-      fixture.detectChanges();
-
-      expect(component.entryDisplayLabel()).toBe('Belgium');
-    });
-
-    it('should return an empty label for a manual entry without value', async () => {
-      await render(
-        makeEntry({
-          isManual: true,
-          resolution: {
-            source: 'manual',
-            value: null,
-            reason: '',
-            comment: '',
-          },
-        })
-      );
-
-      expect(component.entryDisplayLabel()).toBe('');
-    });
-  });
-
-  describe('Display value', () => {
-    it('should return an empty string for null', async () => {
-      await render();
-
-      expect(component.displayValue(null)).toBe('');
-    });
-
-    it('should return the option label when available', async () => {
-      await render();
-
-      fixture.componentRef.setInput('options', [
-        { value: 'BE', label: 'Belgium' },
-      ]);
-
-      fixture.detectChanges();
-
-      expect(component.displayValue('BE')).toBe('Belgium');
-    });
-
-    it('should return the original value when no option matches', async () => {
-      await render();
-
-      expect(component.displayValue('UNKNOWN')).toBe(
-        'UNKNOWN'
-      );
-    });
-  });
-
-  describe('Remove action', () => {
-    it('should prevent event propagation and emit remove', async () => {
-      await render();
-
-      const removeSpy = jest.fn();
-      component.remove.subscribe(removeSpy);
-
-      const event = new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-      });
-
-      const preventDefaultSpy = jest.spyOn(
-        event,
-        'preventDefault'
-      );
-
-      const stopPropagationSpy = jest.spyOn(
-        event,
-        'stopPropagation'
-      );
-
-      component.onRemove(event);
-
-      expect(preventDefaultSpy).toHaveBeenCalledTimes(1);
-      expect(stopPropagationSpy).toHaveBeenCalledTimes(1);
-      expect(removeSpy).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('Click behaviour', () => {
-    it('should not toggle a row containing children', async () => {
-      await render(
-        makeEntry({
+        makeRow({
           children: [
-            {
-              key: 'child-1',
-              label: 'Country',
-              status: 'aligned',
-            },
-          ] as Entry['children'],
+            { status: 'aligned' },
+            { status: 'aligned' },
+          ] as Row['children'],
         })
       );
 
-      const toggleSpy = jest.fn();
-      component.toggle.subscribe(toggleSpy);
-
-      component.onClick(new MouseEvent('click'));
-
-      expect(toggleSpy).not.toHaveBeenCalled();
+      expect(component.changeCount()).toBe(0);
     });
-  });
 
-  describe('Reactive inputs', () => {
-    it('should recompute chip label when entry changes', async () => {
-      await render(makeEntry({ status: 'added' }));
+    it('should count children whose status is not aligned', async () => {
+      await render(
+        makeRow({
+          children: [
+            { status: 'aligned' },
+            { status: 'added' },
+            { status: 'removed' },
+            { status: 'conflict' },
+          ] as Row['children'],
+        })
+      );
 
-      expect(component.chipLabel()).toBe('added');
+      expect(component.changeCount()).toBe(3);
+    });
+
+    it('should count updated and drifted children', async () => {
+      await render(
+        makeRow({
+          children: [
+            { status: 'updated' },
+            { status: 'drift' },
+            { status: 'aligned' },
+          ] as Row['children'],
+        })
+      );
+
+      expect(component.changeCount()).toBe(2);
+    });
+
+    it('should recompute the count when row changes', async () => {
+      await render(
+        makeRow({
+          children: [
+            { status: 'aligned' },
+          ] as Row['children'],
+        })
+      );
+
+      expect(component.changeCount()).toBe(0);
 
       fixture.componentRef.setInput(
-        'entry',
-        makeEntry({ status: 'removed' })
+        'row',
+        makeRow({
+          children: [
+            { status: 'added' },
+            { status: 'removed' },
+          ] as Row['children'],
+        })
       );
 
       fixture.detectChanges();
 
-      expect(component.chipLabel()).toBe('removed');
+      expect(component.changeCount()).toBe(2);
+    });
+  });
+
+  describe('Status', () => {
+    it('should compute status text from the row status', async () => {
+      await render(
+        makeRow({
+          status: 'conflict',
+        })
+      );
+
+      expect(component.statusText()).toBe(
+        statusLabel('conflict')
+      );
+    });
+
+    it('should update status text when status changes', async () => {
+      await render(
+        makeRow({ status: 'added' })
+      );
+
+      fixture.componentRef.setInput(
+        'row',
+        makeRow({ status: 'removed' })
+      );
+
+      fixture.detectChanges();
+
+      expect(component.statusText()).toBe(
+        statusLabel('removed')
+      );
+    });
+  });
+
+  describe('Inputs', () => {
+    it('should update open state', async () => {
+      await render();
+
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component.open()).toBe(true);
+    });
+
+    it('should update expanded and focused identifiers', async () => {
+      await render();
+
+      fixture.componentRef.setInput(
+        'expandedId',
+        'child-1'
+      );
+
+      fixture.componentRef.setInput(
+        'focusedId',
+        'child-2'
+      );
+
+      fixture.detectChanges();
+
+      expect(component.expandedId()).toBe('child-1');
+      expect(component.focusedId()).toBe('child-2');
+    });
+
+    it('should update readOnly state', async () => {
+      await render();
+
+      fixture.componentRef.setInput('readOnly', true);
+      fixture.detectChanges();
+
+      expect(component.readOnly()).toBe(true);
     });
   });
 });
