@@ -1,106 +1,92 @@
 
-import {
-  ComponentFixture,
-  TestBed,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NzModalRef } from 'ng-zorro-antd/modal';
 
-import { Summary } from './summary';
+import { CompletionConfirmationComponent } from './completion-confirmation.component';
 
-type CaseFact = ReturnType<Summary['facts']>[number];
+describe('CompletionConfirmationComponent', () => {
+  let component: CompletionConfirmationComponent;
+  let fixture: ComponentFixture<CompletionConfirmationComponent>;
 
-describe('Summary', () => {
-  let component: Summary;
-  let fixture: ComponentFixture<Summary>;
-
-  const facts = [
-    {
-      label: 'Policy number',
-      value: 'POLICY_001',
-    },
-    {
-      label: 'Case owner',
-      value: 'John Doe',
-    },
-    {
-      label: 'Broker',
-      value: 'BROKER_001',
-    },
-  ] as unknown as readonly CaseFact[];
+  let modalRefMock: {
+    close: jest.Mock;
+  };
 
   beforeEach(async () => {
+    modalRefMock = {
+      close: jest.fn(),
+    };
+
     await TestBed.configureTestingModule({
-      imports: [Summary],
-    })
-      .overrideComponent(Summary, {
-        set: {
-          template: '',
-          imports: [],
+      imports: [CompletionConfirmationComponent],
+      providers: [
+        {
+          provide: NzModalRef,
+          useValue: modalRefMock,
         },
-      })
-      .compileComponents();
+      ],
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(Summary);
+    fixture = TestBed.createComponent(
+      CompletionConfirmationComponent
+    );
+
     component = fixture.componentInstance;
-
     fixture.detectChanges();
   });
 
-  describe('Initialization', () => {
-    it('should create the component', () => {
-      expect(component).toBeTruthy();
-    });
-
-    it('should initialize facts with an empty array', () => {
-      expect(component.facts()).toEqual([]);
-    });
+  it('should create the component', () => {
+    expect(component).toBeTruthy();
   });
 
-  describe('Facts input', () => {
-    it('should receive the provided case facts', () => {
-      fixture.componentRef.setInput('facts', facts);
-      fixture.detectChanges();
-
-      expect(component.facts()).toEqual(facts);
-      expect(component.facts()).toHaveLength(3);
-    });
-
-    it('should update facts when the input changes', () => {
-      fixture.componentRef.setInput('facts', facts);
-      fixture.detectChanges();
-
-      const updatedFacts = [
-        {
-          label: 'Policy number',
-          value: 'POLICY_002',
-        },
-      ] as unknown as readonly CaseFact[];
-
-      fixture.componentRef.setInput(
-        'facts',
-        updatedFacts
+  it('should display the confirmation message', () => {
+    const message: HTMLElement =
+      fixture.nativeElement.querySelector(
+        '.completion-confirmation__message'
       );
 
-      fixture.detectChanges();
+    expect(message.textContent?.trim()).toBe(
+      'Are you sure you want to complete this task?'
+    );
+  });
 
-      expect(component.facts()).toEqual(updatedFacts);
-      expect(component.facts()).toHaveLength(1);
-    });
+  it('should display Cancel and Confirm buttons', () => {
+    const buttons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '.completion-confirmation__actions button'
+      )
+    );
 
-    it('should handle an empty facts array after receiving data', () => {
-      fixture.componentRef.setInput('facts', facts);
-      fixture.detectChanges();
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].textContent?.trim()).toBe('Cancel');
+    expect(buttons[1].textContent?.trim()).toBe('Confirm');
+  });
 
-      fixture.componentRef.setInput('facts', []);
-      fixture.detectChanges();
+  it('should close the modal with false when Cancel is clicked', () => {
+    const cancelButton: HTMLButtonElement =
+      fixture.nativeElement.querySelector(
+        '.completion-confirmation__actions button:first-child'
+      );
 
-      expect(component.facts()).toEqual([]);
-    });
+    cancelButton.click();
 
-    it('should preserve the provided facts without modifying them', () => {
-      fixture.componentRef.setInput('facts', facts);
-      fixture.detectChanges();
+    expect(modalRefMock.close).toHaveBeenCalledTimes(1);
+    expect(modalRefMock.close).toHaveBeenCalledWith(false);
+  });
 
-      expect(component.facts()).toBe(facts);
-    });
+  it('should close the modal with true when Confirm is clicked', () => {
+    const confirmButton: HTMLButtonElement =
+      fixture.nativeElement.querySelector(
+        '.completion-confirmation__actions button:last-child'
+      );
+
+    confirmButton.click();
+
+    expect(modalRefMock.close).toHaveBeenCalledTimes(1);
+    expect(modalRefMock.close).toHaveBeenCalledWith(true);
+  });
+
+  it('should not close the modal on initialization', () => {
+    expect(modalRefMock.close).not.toHaveBeenCalled();
   });
 });
