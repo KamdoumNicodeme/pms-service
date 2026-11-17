@@ -1,6 +1,2 @@
-protected readonly filenameValue = toSignal(
-  this.form.controls.filename.valueChanges.pipe(
-    startWith(this.form.controls.filename.value)
-  ),
-  { initialValue: this.form.controls.filename.value }
-);
+const documentType = this.documentTypeValue()?.trim() ?? '';
+const filename = this.filenameValue().trim();
