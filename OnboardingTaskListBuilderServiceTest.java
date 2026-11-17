@@ -1,105 +1,94 @@
 
-import {
-  ComponentFixture,
-  TestBed,
-} from '@angular/core/testing';
-import { of } from 'rxjs';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { SectionDocuments } from './section-documents';
 
-import { ProfilingSection } from './profiling-section';
-import {
-  COMPARISON_DATA_SERVICE,
-} from '../path/to/comparison-data.service';
+type CaseDocument = Parameters<
+  SectionDocuments['validateDocument']['emit']
+>[0];
 
-// Reuse the existing model imports from your project.
-import type {
-  IThirdParty,
-  ComparisonSectionDto,
-} from '../path/to/models';
+type SectionDocumentsView = {
+  documents: () => readonly CaseDocument[];
+  settled: () => number;
+  validate: (document: CaseDocument) => void;
+  reject: (document: CaseDocument) => void;
+  download: (document: CaseDocument) => void;
+  statusOf: (document: CaseDocument) => string | null;
+};
 
-describe('ProfilingSection', () => {
-  let component: ProfilingSection;
-  let fixture: ComponentFixture<ProfilingSection>;
+describe('SectionDocuments', () => {
+  let fixture: ComponentFixture<SectionDocuments>;
+  let component: SectionDocuments;
 
-  let comparisonService: {
-    getSection: jest.Mock;
-  };
+  const makeDocument = (
+    id: string,
+    type: string,
+    status: string | null = null
+  ): CaseDocument =>
+    ({
+      id,
+      type,
+      status,
+    }) as CaseDocument;
 
-  const snapshotHolder = {
-    thirdPartyId: 'HOLDER_001',
-    firstName: 'John',
-    lastName: 'Doe',
-  } as unknown as IThirdParty;
+  const residence = makeDocument(
+    'DOC_001',
+    'PROOF_OF_RESIDENCE',
+    'Pending'
+  );
 
-  const coreHolder = {
-    thirdPartyId: 'HOLDER_001',
-    firstName: 'John',
-    lastName: 'Smith',
-  } as unknown as IThirdParty;
+  const identity = makeDocument(
+    'DOC_002',
+    'IDI',
+    'Validated'
+  );
 
-  const portalHolder = {
-    thirdPartyId: 'HOLDER_001',
-    firstName: 'John',
-    lastName: 'Doe',
-  } as unknown as IThirdParty;
+  const aeoi = makeDocument(
+    'DOC_003',
+    'AEOI',
+    'Pending'
+  );
 
-  const clipHolder = {
-    thirdPartyId: 'HOLDER_001',
-    firstName: 'Jonathan',
-    lastName: 'Doe',
-  } as unknown as IThirdParty;
+  const w9bene = makeDocument(
+    'DOC_004',
+    'W9BENE',
+    'Rejected'
+  );
 
-  const section = {
-    id: 'physical-person',
-  } as ComparisonSectionDto;
+  const w9ben = makeDocument(
+    'DOC_005',
+    'W9BEN',
+    'Pending'
+  );
 
-  async function render(): Promise<void> {
-    fixture = TestBed.createComponent(ProfilingSection);
+  const documents = [
+    residence,
+    identity,
+    aeoi,
+    w9bene,
+    w9ben,
+  ];
+
+  const view = (): SectionDocumentsView =>
+    component as unknown as SectionDocumentsView;
+
+  function render(
+    sectionId = 'contact-details',
+    caseDocuments: readonly CaseDocument[] = documents
+  ): void {
+    fixture = TestBed.createComponent(SectionDocuments);
     component = fixture.componentInstance;
 
-    fixture.componentRef.setInput(
-      'policyNumber',
-      'POLICY_001'
-    );
-    fixture.componentRef.setInput(
-      'snapshotHolder',
-      snapshotHolder
-    );
-    fixture.componentRef.setInput(
-      'sectionId',
-      'physical-person'
-    );
+    fixture.componentRef.setInput('sectionId', sectionId);
+    fixture.componentRef.setInput('caseDocuments', caseDocuments);
 
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-  }
-
-  async function updateInput(
-    name: string,
-    value: unknown
-  ): Promise<void> {
-    fixture.componentRef.setInput(name, value);
-    fixture.detectChanges();
-
-    await fixture.whenStable();
     fixture.detectChanges();
   }
 
   beforeEach(async () => {
-    comparisonService = {
-      getSection: jest.fn().mockReturnValue(of(section)),
-    };
-
     await TestBed.configureTestingModule({
-      imports: [ProfilingSection],
-      providers: [
-        {
-          provide: COMPARISON_DATA_SERVICE,
-          useValue: comparisonService,
-        },
-      ],
+      imports: [SectionDocuments],
     })
-      .overrideComponent(ProfilingSection, {
+      .overrideComponent(SectionDocuments, {
         set: {
           template: '',
           imports: [],
@@ -109,189 +98,270 @@ describe('ProfilingSection', () => {
   });
 
   describe('Initialization', () => {
-    it('should create the component', async () => {
-      await render();
+    it('should create the component', () => {
+      render();
 
       expect(component).toBeTruthy();
     });
 
-    it('should initialize optional inputs with default values', async () => {
-      await render();
+    it('should initialize caseDocuments to an empty array', () => {
+      render('contact-details', []);
 
-      expect(component.coreHolder()).toBeNull();
-      expect(component.portalHolder()).toBeNull();
-      expect(component.clipHolder()).toBeNull();
-      expect(component.filter()).toBe('all');
-      expect(component.readOnly()).toBe(false);
-      expect(component.entityId()).toBeNull();
-      expect(component.changeReasons()).toEqual({});
+      expect(component.caseDocuments()).toEqual([]);
+      expect(view().documents()).toEqual([]);
     });
 
-    it('should initialize required inputs correctly', async () => {
-      await render();
+    it('should receive the sectionId input', () => {
+      render('identity-documents');
 
-      expect(component.policyNumber()).toBe('POLICY_001');
-      expect(component.snapshotHolder()).toEqual(
-        snapshotHolder
-      );
-      expect(component.sectionId()).toBe(
-        'physical-person'
-      );
+      expect(component.sectionId()).toBe('identity-documents');
     });
   });
 
-  describe('Section loading', () => {
-    it('should call getSection with the correct context', async () => {
-      await render();
+  describe('Document filtering', () => {
+    it('should return residence documents for contact details', () => {
+      render('contact-details');
 
-      expect(comparisonService.getSection).toHaveBeenCalledWith(
-        {
-          policyNumber: 'POLICY_001',
-          coreHolder: null,
-          snapshotHolder,
-          portalHolder: null,
-          clipHolder: null,
-        },
-        'physical-person'
-      );
+      expect(view().documents()).toEqual([residence]);
     });
 
-    it('should load the section returned by the service', async () => {
-      await render();
+    it('should return identity documents for identity-documents', () => {
+      render('identity-documents');
 
-      const view = component as unknown as {
-        section: {
-          value: () => ComparisonSectionDto | undefined;
-        };
-      };
-
-      expect(view.section.value()).toEqual(section);
+      expect(view().documents()).toEqual([identity]);
     });
 
-    it('should pass all holder sources to getSection', async () => {
-      await render();
+    it('should return tax documents for tax-information', () => {
+      render('tax-information');
 
-      await updateInput('coreHolder', coreHolder);
-      await updateInput('portalHolder', portalHolder);
-      await updateInput('clipHolder', clipHolder);
+      expect(view().documents()).toEqual([
+        aeoi,
+        w9bene,
+        w9ben,
+      ]);
+    });
 
-      expect(comparisonService.getSection).toHaveBeenLastCalledWith(
-        {
-          policyNumber: 'POLICY_001',
-          coreHolder,
-          snapshotHolder,
-          portalHolder,
-          clipHolder,
-        },
-        'physical-person'
+    it('should return an empty array for an unknown section', () => {
+      render('unknown-section');
+
+      expect(view().documents()).toEqual([]);
+    });
+
+    it('should filter document types case-insensitively', () => {
+      const lowerCaseDocument = makeDocument(
+        'DOC_006',
+        'proof_of_residence'
       );
+
+      render('contact-details', [lowerCaseDocument]);
+
+      expect(view().documents()).toEqual([
+        lowerCaseDocument,
+      ]);
+    });
+
+    it('should update documents when sectionId changes', () => {
+      render('contact-details');
+
+      expect(view().documents()).toEqual([residence]);
+
+      fixture.componentRef.setInput(
+        'sectionId',
+        'identity-documents'
+      );
+
+      fixture.detectChanges();
+
+      expect(view().documents()).toEqual([identity]);
+    });
+
+    it('should update documents when caseDocuments changes', () => {
+      render('identity-documents', [identity]);
+
+      const newIdentity = makeDocument(
+        'DOC_007',
+        'IDI',
+        'Pending'
+      );
+
+      fixture.componentRef.setInput('caseDocuments', [
+        identity,
+        newIdentity,
+      ]);
+
+      fixture.detectChanges();
+
+      expect(view().documents()).toEqual([
+        identity,
+        newIdentity,
+      ]);
     });
   });
 
-  describe('Reactive inputs', () => {
-    it('should reload the section when policyNumber changes', async () => {
-      await render();
+  describe('Document status', () => {
+    it('should return the initial document status', () => {
+      render('identity-documents');
 
-      comparisonService.getSection.mockClear();
-
-      await updateInput('policyNumber', 'POLICY_002');
-
-      expect(comparisonService.getSection).toHaveBeenCalledWith(
-        expect.objectContaining({
-          policyNumber: 'POLICY_002',
-        }),
-        'physical-person'
-      );
+      expect(view().statusOf(identity)).toBe('Validated');
     });
 
-    it('should reload the section when sectionId changes', async () => {
-      await render();
+    it('should return null when a document has no status', () => {
+      const document = makeDocument('DOC_006', 'IDI');
 
-      comparisonService.getSection.mockClear();
+      render('identity-documents', [document]);
 
-      await updateInput('sectionId', 'contact-details');
-
-      expect(comparisonService.getSection).toHaveBeenCalledWith(
-        expect.any(Object),
-        'contact-details'
-      );
+      expect(view().statusOf(document)).toBeNull();
     });
 
-    it('should reload the section when snapshotHolder changes', async () => {
-      await render();
+    it('should return the updated status after validation', () => {
+      render('contact-details');
 
-      comparisonService.getSection.mockClear();
+      view().validate(residence);
 
-      const updatedHolder = {
-        ...snapshotHolder,
-        firstName: 'Michael',
-      };
-
-      await updateInput(
-        'snapshotHolder',
-        updatedHolder
-      );
-
-      expect(comparisonService.getSection).toHaveBeenCalledWith(
-        expect.objectContaining({
-          snapshotHolder: updatedHolder,
-        }),
-        'physical-person'
-      );
+      expect(view().statusOf(residence)).toBe('Validated');
     });
 
-    it('should reload the section when coreHolder changes', async () => {
-      await render();
+    it('should return the updated status after rejection', () => {
+      render('contact-details');
 
-      comparisonService.getSection.mockClear();
+      view().reject(residence);
 
-      await updateInput('coreHolder', coreHolder);
-
-      expect(comparisonService.getSection).toHaveBeenCalledWith(
-        expect.objectContaining({
-          coreHolder,
-        }),
-        'physical-person'
-      );
+      expect(view().statusOf(residence)).toBe('Rejected');
     });
 
-    it('should not reload when only the filter changes', async () => {
-      await render();
+    it('should use the latest locally updated status', () => {
+      render('contact-details');
 
-      comparisonService.getSection.mockClear();
+      view().validate(residence);
+      expect(view().statusOf(residence)).toBe('Validated');
 
-      await updateInput('filter', 'attention');
+      view().reject(residence);
+      expect(view().statusOf(residence)).toBe('Rejected');
+    });
+  });
 
-      expect(component.filter()).toBe('attention');
-      expect(
-        comparisonService.getSection
-      ).not.toHaveBeenCalled();
+  describe('Settled documents', () => {
+    it('should return zero when no documents are settled', () => {
+      render('contact-details');
+
+      expect(view().settled()).toBe(0);
     });
 
-    it('should not reload when readOnly changes', async () => {
-      await render();
+    it('should count validated documents', () => {
+      render('identity-documents');
 
-      comparisonService.getSection.mockClear();
-
-      await updateInput('readOnly', true);
-
-      expect(component.readOnly()).toBe(true);
-      expect(
-        comparisonService.getSection
-      ).not.toHaveBeenCalled();
+      expect(view().settled()).toBe(1);
     });
 
-    it('should update entityId without reloading the section', async () => {
-      await render();
+    it('should count rejected documents', () => {
+      render('tax-information');
 
-      comparisonService.getSection.mockClear();
+      expect(view().settled()).toBe(1);
+    });
 
-      await updateInput('entityId', 'HOLDER_001');
+    it('should count both validated and rejected documents', () => {
+      const first = makeDocument('1', 'IDI', 'Validated');
+      const second = makeDocument('2', 'IDI', 'Rejected');
+      const third = makeDocument('3', 'IDI', 'Pending');
 
-      expect(component.entityId()).toBe('HOLDER_001');
-      expect(
-        comparisonService.getSection
-      ).not.toHaveBeenCalled();
+      render('identity-documents', [
+        first,
+        second,
+        third,
+      ]);
+
+      expect(view().settled()).toBe(2);
+    });
+
+    it('should update settled count after validating a document', () => {
+      render('contact-details');
+
+      expect(view().settled()).toBe(0);
+
+      view().validate(residence);
+
+      expect(view().settled()).toBe(1);
+    });
+
+    it('should update settled count after rejecting a document', () => {
+      render('contact-details');
+
+      expect(view().settled()).toBe(0);
+
+      view().reject(residence);
+
+      expect(view().settled()).toBe(1);
+    });
+
+    it('should not count the same document twice', () => {
+      render('contact-details');
+
+      view().validate(residence);
+      view().reject(residence);
+
+      expect(view().settled()).toBe(1);
+    });
+  });
+
+  describe('Outputs', () => {
+    it('should emit validateDocument when validating a document', () => {
+      render();
+
+      const emitSpy = jest.fn();
+
+      component.validateDocument.subscribe(emitSpy);
+
+      view().validate(residence);
+
+      expect(emitSpy).toHaveBeenCalledTimes(1);
+      expect(emitSpy).toHaveBeenCalledWith(residence);
+    });
+
+    it('should emit rejectDocument when rejecting a document', () => {
+      render();
+
+      const emitSpy = jest.fn();
+
+      component.rejectDocument.subscribe(emitSpy);
+
+      view().reject(residence);
+
+      expect(emitSpy).toHaveBeenCalledTimes(1);
+      expect(emitSpy).toHaveBeenCalledWith(residence);
+    });
+
+    it('should emit downloadDocument when downloading a document', () => {
+      render();
+
+      const emitSpy = jest.fn();
+
+      component.downloadDocument.subscribe(emitSpy);
+
+      view().download(residence);
+
+      expect(emitSpy).toHaveBeenCalledTimes(1);
+      expect(emitSpy).toHaveBeenCalledWith(residence);
+    });
+
+    it('should not change document status when downloading', () => {
+      render();
+
+      const initialStatus = view().statusOf(residence);
+
+      view().download(residence);
+
+      expect(view().statusOf(residence)).toBe(initialStatus);
+    });
+
+    it('should not mutate the original document when validating', () => {
+      render();
+
+      const initialStatus = residence.status;
+
+      view().validate(residence);
+
+      expect(residence.status).toBe(initialStatus);
+      expect(view().statusOf(residence)).toBe('Validated');
     });
   });
 });
