@@ -1,322 +1,112 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { ProfilingNav } from './profiling-nav';
 
-import { PolicySection } from './policy-section';
-import { COMPARISON_DATA_SERVICE } from 'PATH_TO_COMPARISON_DATA_SERVICE';
+type NavSection = Parameters<ProfilingNav['icon']>[0];
 
-type Policy = ReturnType<PolicySection['snapshotPolicy']>;
+describe('ProfilingNav', () => {
+  let component: ProfilingNav;
+  let fixture: ComponentFixture<ProfilingNav>;
 
-type SectionResource = {
-  value: () => unknown;
-  isLoading: () => boolean;
-  error: () => unknown;
-};
+  const makeSection = (
+    state: NavSection['state']
+  ): NavSection => ({
+    id: 'contact-details',
+    title: 'Contact details',
+    state,
+    pending: 0,
+  });
 
-describe('PolicySection', () => {
-  let fixture: ComponentFixture<PolicySection>;
-  let component: PolicySection;
-
-  let getPolicySectionMock: jest.Mock;
-
-  const snapshotPolicy = {
-    policyNumber: 'SNAPSHOT-001',
-  } as unknown as Policy;
-
-  const portalPolicy = {
-    policyNumber: 'PORTAL-001',
-  } as unknown as Policy;
-
-  const corePolicy = {
-    policyNumber: 'CORE-001',
-  } as unknown as Policy;
-
-  const clipPolicy = {
-    policyNumber: 'CLIP-001',
-  } as unknown as Policy;
-
-  const sectionData = {
-    id: 'sending-address',
-    title: 'Sending address',
-    fields: [],
-  };
-
-  const section = (): SectionResource =>
-    (component as unknown as {
-      section: SectionResource;
-    }).section;
-
-  async function render(): Promise<void> {
-    fixture = TestBed.createComponent(PolicySection);
-    component = fixture.componentInstance;
-
-    fixture.componentRef.setInput(
-      'snapshotPolicy',
-      snapshotPolicy
-    );
-    fixture.componentRef.setInput(
-      'portalPolicy',
-      portalPolicy
-    );
-    fixture.componentRef.setInput(
-      'corePolicy',
-      corePolicy
-    );
-    fixture.componentRef.setInput('clipPolicy', null);
-    fixture.componentRef.setInput(
-      'sectionId',
-      'sending-address'
-    );
-
-    fixture.detectChanges();
-    await fixture.whenStable();
-  }
+  const sections: NavSection[] = [
+    makeSection('loading'),
+    {
+      ...makeSection('pending'),
+      id: 'tax-information',
+      title: 'Tax information',
+      pending: 2,
+    },
+  ];
 
   beforeEach(async () => {
-    getPolicySectionMock = jest
-      .fn()
-      .mockReturnValue(of(sectionData));
-
     await TestBed.configureTestingModule({
-      imports: [PolicySection],
+      imports: [ProfilingNav],
     })
-      .overrideComponent(PolicySection, {
+      .overrideComponent(ProfilingNav, {
         set: {
           template: '',
           imports: [],
-          providers: [
-            {
-              provide: COMPARISON_DATA_SERVICE,
-              useValue: {
-                getPolicySection: getPolicySectionMock,
-              },
-            },
-          ],
         },
       })
       .compileComponents();
+
+    fixture = TestBed.createComponent(ProfilingNav);
+    component = fixture.componentInstance;
+
+    fixture.componentRef.setInput('sections', sections);
+    fixture.detectChanges();
   });
 
   describe('Initialization', () => {
-    it('should create the component', async () => {
-      await render();
-
+    it('should create the component', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should initialize optional inputs with default values', async () => {
-      await render();
-
-      expect(component.clipPolicy()).toBeNull();
-      expect(component.readOnly()).toBe(false);
-      expect(component.entityId()).toBeNull();
-      expect(component.filter()).toBe('all');
-      expect(component.changeReasons()).toEqual({});
+    it('should initialize activeId to null', () => {
+      expect(component.activeId()).toBeNull();
     });
 
-    it('should initialize references as an empty object', async () => {
-      await render();
+    it('should receive the sections input', () => {
+      expect(component.sections()).toEqual(sections);
+    });
 
-      const view = component as unknown as {
-        references: () => Record<string, unknown>;
-      };
+    it('should update activeId when input changes', () => {
+      fixture.componentRef.setInput(
+        'activeId',
+        'tax-information'
+      );
 
-      expect(view.references()).toEqual({});
+      fixture.detectChanges();
+
+      expect(component.activeId()).toBe('tax-information');
+    });
+
+    it('should update sections when input changes', () => {
+      const updatedSections = [
+        makeSection('pending'),
+      ];
+
+      fixture.componentRef.setInput(
+        'sections',
+        updatedSections
+      );
+
+      fixture.detectChanges();
+
+      expect(component.sections()).toEqual(updatedSections);
     });
   });
 
-  describe('Policy section resource', () => {
-    it('should load the policy section with the correct parameters', async () => {
-      await render();
+  describe('icon', () => {
+    it('should return loading icon when section is loading', () => {
+      const section = makeSection('loading');
 
-      expect(getPolicySectionMock).toHaveBeenCalledWith(
-        snapshotPolicy,
-        portalPolicy,
-        corePolicy,
-        null,
-        'sending-address'
-      );
-
-      expect(getPolicySectionMock).toHaveBeenCalledTimes(1);
+      expect(component.icon(section)).toBe('loading');
     });
 
-    it('should expose the loaded section data', async () => {
-      await render();
+    it('should return exclamation-circle for a pending section', () => {
+      const section = makeSection('pending');
 
-      expect(section().value()).toEqual(sectionData);
-      expect(section().isLoading()).toBe(false);
-    });
-
-    it('should reload when sectionId changes', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      fixture.componentRef.setInput(
-        'sectionId',
-        'opt-in-out'
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).toHaveBeenCalledWith(
-        snapshotPolicy,
-        portalPolicy,
-        corePolicy,
-        null,
-        'opt-in-out'
-      );
-
-      expect(getPolicySectionMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('should reload when snapshotPolicy changes', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      const updatedSnapshot = {
-        policyNumber: 'SNAPSHOT-002',
-      } as unknown as Policy;
-
-      fixture.componentRef.setInput(
-        'snapshotPolicy',
-        updatedSnapshot
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).toHaveBeenCalledWith(
-        updatedSnapshot,
-        portalPolicy,
-        corePolicy,
-        null,
-        'sending-address'
+      expect(component.icon(section)).toBe(
+        'exclamation-circle'
       );
     });
 
-    it('should reload when portalPolicy changes', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      const updatedPortal = {
-        policyNumber: 'PORTAL-002',
-      } as unknown as Policy;
-
-      fixture.componentRef.setInput(
-        'portalPolicy',
-        updatedPortal
+    it('should return check-circle for other states', () => {
+      const section = makeSection(
+        'reviewed' as NavSection['state']
       );
 
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).toHaveBeenCalledWith(
-        snapshotPolicy,
-        updatedPortal,
-        corePolicy,
-        null,
-        'sending-address'
-      );
-    });
-
-    it('should reload when corePolicy changes', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      const updatedCore = {
-        policyNumber: 'CORE-002',
-      } as unknown as Policy;
-
-      fixture.componentRef.setInput(
-        'corePolicy',
-        updatedCore
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).toHaveBeenCalledWith(
-        snapshotPolicy,
-        portalPolicy,
-        updatedCore,
-        null,
-        'sending-address'
-      );
-    });
-
-    it('should reload when clipPolicy becomes available', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      fixture.componentRef.setInput(
-        'clipPolicy',
-        clipPolicy
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).toHaveBeenCalledWith(
-        snapshotPolicy,
-        portalPolicy,
-        corePolicy,
-        clipPolicy,
-        'sending-address'
-      );
-    });
-
-    it('should not reload when readOnly changes', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      fixture.componentRef.setInput('readOnly', true);
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).not.toHaveBeenCalled();
-      expect(component.readOnly()).toBe(true);
-    });
-
-    it('should not reload when filter changes', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      fixture.componentRef.setInput(
-        'filter',
-        'attention'
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).not.toHaveBeenCalled();
-      expect(component.filter()).toBe('attention');
-    });
-
-    it('should not reload when entityId changes', async () => {
-      await render();
-
-      getPolicySectionMock.mockClear();
-
-      fixture.componentRef.setInput(
-        'entityId',
-        'ENTITY-002'
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(getPolicySectionMock).not.toHaveBeenCalled();
-      expect(component.entityId()).toBe('ENTITY-002');
+      expect(component.icon(section)).toBe('check-circle');
     });
   });
 });
