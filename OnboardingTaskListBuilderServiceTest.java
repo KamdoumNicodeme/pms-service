@@ -1,179 +1,297 @@
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ProfilingPanel } from './profiling-panel';
+import {
+  ComponentFixture,
+  TestBed,
+} from '@angular/core/testing';
+import { of } from 'rxjs';
 
-type Counters = NonNullable<
-  ReturnType<ProfilingPanel['counters']>
->;
+import { ProfilingSection } from './profiling-section';
+import {
+  COMPARISON_DATA_SERVICE,
+} from '../path/to/comparison-data.service';
 
-describe('ProfilingPanel', () => {
-  let component: ProfilingPanel;
-  let fixture: ComponentFixture<ProfilingPanel>;
-  let host: HTMLElement;
+// Reuse the existing model imports from your project.
+import type {
+  IThirdParty,
+  ComparisonSectionDto,
+} from '../path/to/models';
 
-  const counters: Counters = {
-    total: 5,
-    changes: 3,
-    attention: 2,
-    reviewed: 0,
-    overridden: 0,
+describe('ProfilingSection', () => {
+  let component: ProfilingSection;
+  let fixture: ComponentFixture<ProfilingSection>;
+
+  let comparisonService: {
+    getSection: jest.Mock;
   };
 
+  const snapshotHolder = {
+    thirdPartyId: 'HOLDER_001',
+    firstName: 'John',
+    lastName: 'Doe',
+  } as unknown as IThirdParty;
+
+  const coreHolder = {
+    thirdPartyId: 'HOLDER_001',
+    firstName: 'John',
+    lastName: 'Smith',
+  } as unknown as IThirdParty;
+
+  const portalHolder = {
+    thirdPartyId: 'HOLDER_001',
+    firstName: 'John',
+    lastName: 'Doe',
+  } as unknown as IThirdParty;
+
+  const clipHolder = {
+    thirdPartyId: 'HOLDER_001',
+    firstName: 'Jonathan',
+    lastName: 'Doe',
+  } as unknown as IThirdParty;
+
+  const section = {
+    id: 'physical-person',
+  } as ComparisonSectionDto;
+
+  async function render(): Promise<void> {
+    fixture = TestBed.createComponent(ProfilingSection);
+    component = fixture.componentInstance;
+
+    fixture.componentRef.setInput(
+      'policyNumber',
+      'POLICY_001'
+    );
+    fixture.componentRef.setInput(
+      'snapshotHolder',
+      snapshotHolder
+    );
+    fixture.componentRef.setInput(
+      'sectionId',
+      'physical-person'
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  async function updateInput(
+    name: string,
+    value: unknown
+  ): Promise<void> {
+    fixture.componentRef.setInput(name, value);
+    fixture.detectChanges();
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
   beforeEach(async () => {
+    comparisonService = {
+      getSection: jest.fn().mockReturnValue(of(section)),
+    };
+
     await TestBed.configureTestingModule({
-      imports: [ProfilingPanel],
+      imports: [ProfilingSection],
+      providers: [
+        {
+          provide: COMPARISON_DATA_SERVICE,
+          useValue: comparisonService,
+        },
+      ],
     })
-      .overrideComponent(ProfilingPanel, {
+      .overrideComponent(ProfilingSection, {
         set: {
           template: '',
           imports: [],
         },
       })
       .compileComponents();
-
-    fixture = TestBed.createComponent(ProfilingPanel);
-    component = fixture.componentInstance;
-    host = fixture.nativeElement as HTMLElement;
-
-    fixture.componentRef.setInput(
-      'title',
-      'Contact details'
-    );
-
-    fixture.detectChanges();
   });
 
   describe('Initialization', () => {
-    it('should create the component', () => {
+    it('should create the component', async () => {
+      await render();
+
       expect(component).toBeTruthy();
     });
 
-    it('should initialize title correctly', () => {
-      expect(component.title()).toBe('Contact details');
+    it('should initialize optional inputs with default values', async () => {
+      await render();
+
+      expect(component.coreHolder()).toBeNull();
+      expect(component.portalHolder()).toBeNull();
+      expect(component.clipHolder()).toBeNull();
+      expect(component.filter()).toBe('all');
+      expect(component.readOnly()).toBe(false);
+      expect(component.entityId()).toBeNull();
+      expect(component.changeReasons()).toEqual({});
     });
 
-    it('should initialize open to false', () => {
-      expect(component.open()).toBe(false);
-    });
+    it('should initialize required inputs correctly', async () => {
+      await render();
 
-    it('should initialize counters to null', () => {
-      expect(component.counters()).toBeNull();
-    });
-
-    it('should return clean state when counters are null', () => {
-      expect(component.state()).toBe('clean');
-    });
-
-    it('should return an empty label when counters are null', () => {
-      expect(component.label()).toBe('');
+      expect(component.policyNumber()).toBe('POLICY_001');
+      expect(component.snapshotHolder()).toEqual(
+        snapshotHolder
+      );
+      expect(component.sectionId()).toBe(
+        'physical-person'
+      );
     });
   });
 
-  describe('Inputs', () => {
-    it('should update title when input changes', () => {
-      fixture.componentRef.setInput(
-        'title',
-        'Tax information'
+  describe('Section loading', () => {
+    it('should call getSection with the correct context', async () => {
+      await render();
+
+      expect(comparisonService.getSection).toHaveBeenCalledWith(
+        {
+          policyNumber: 'POLICY_001',
+          coreHolder: null,
+          snapshotHolder,
+          portalHolder: null,
+          clipHolder: null,
+        },
+        'physical-person'
+      );
+    });
+
+    it('should load the section returned by the service', async () => {
+      await render();
+
+      const view = component as unknown as {
+        section: {
+          value: () => ComparisonSectionDto | undefined;
+        };
+      };
+
+      expect(view.section.value()).toEqual(section);
+    });
+
+    it('should pass all holder sources to getSection', async () => {
+      await render();
+
+      await updateInput('coreHolder', coreHolder);
+      await updateInput('portalHolder', portalHolder);
+      await updateInput('clipHolder', clipHolder);
+
+      expect(comparisonService.getSection).toHaveBeenLastCalledWith(
+        {
+          policyNumber: 'POLICY_001',
+          coreHolder,
+          snapshotHolder,
+          portalHolder,
+          clipHolder,
+        },
+        'physical-person'
+      );
+    });
+  });
+
+  describe('Reactive inputs', () => {
+    it('should reload the section when policyNumber changes', async () => {
+      await render();
+
+      comparisonService.getSection.mockClear();
+
+      await updateInput('policyNumber', 'POLICY_002');
+
+      expect(comparisonService.getSection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          policyNumber: 'POLICY_002',
+        }),
+        'physical-person'
+      );
+    });
+
+    it('should reload the section when sectionId changes', async () => {
+      await render();
+
+      comparisonService.getSection.mockClear();
+
+      await updateInput('sectionId', 'contact-details');
+
+      expect(comparisonService.getSection).toHaveBeenCalledWith(
+        expect.any(Object),
+        'contact-details'
+      );
+    });
+
+    it('should reload the section when snapshotHolder changes', async () => {
+      await render();
+
+      comparisonService.getSection.mockClear();
+
+      const updatedHolder = {
+        ...snapshotHolder,
+        firstName: 'Michael',
+      };
+
+      await updateInput(
+        'snapshotHolder',
+        updatedHolder
       );
 
-      fixture.detectChanges();
-
-      expect(component.title()).toBe('Tax information');
+      expect(comparisonService.getSection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          snapshotHolder: updatedHolder,
+        }),
+        'physical-person'
+      );
     });
 
-    it('should update open when input changes', () => {
-      fixture.componentRef.setInput('open', true);
+    it('should reload the section when coreHolder changes', async () => {
+      await render();
 
-      fixture.detectChanges();
+      comparisonService.getSection.mockClear();
 
-      expect(component.open()).toBe(true);
+      await updateInput('coreHolder', coreHolder);
+
+      expect(comparisonService.getSection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          coreHolder,
+        }),
+        'physical-person'
+      );
     });
 
-    it('should update counters when input changes', () => {
-      fixture.componentRef.setInput('counters', counters);
+    it('should not reload when only the filter changes', async () => {
+      await render();
 
-      fixture.detectChanges();
+      comparisonService.getSection.mockClear();
 
-      expect(component.counters()).toEqual(counters);
-    });
-  });
+      await updateInput('filter', 'attention');
 
-  describe('Computed properties', () => {
-    it('should return pending state when attention is required', () => {
-      fixture.componentRef.setInput('counters', counters);
-
-      fixture.detectChanges();
-
-      expect(component.state()).toBe('pending');
+      expect(component.filter()).toBe('attention');
+      expect(
+        comparisonService.getSection
+      ).not.toHaveBeenCalled();
     });
 
-    it('should compute a label when counters are provided', () => {
-      fixture.componentRef.setInput('counters', counters);
+    it('should not reload when readOnly changes', async () => {
+      await render();
 
-      fixture.detectChanges();
+      comparisonService.getSection.mockClear();
 
-      expect(component.label()).not.toBe('');
+      await updateInput('readOnly', true);
+
+      expect(component.readOnly()).toBe(true);
+      expect(
+        comparisonService.getSection
+      ).not.toHaveBeenCalled();
     });
 
-    it('should reset state and label when counters become null', () => {
-      fixture.componentRef.setInput('counters', counters);
-      fixture.detectChanges();
+    it('should update entityId without reloading the section', async () => {
+      await render();
 
-      fixture.componentRef.setInput('counters', null);
-      fixture.detectChanges();
+      comparisonService.getSection.mockClear();
 
-      expect(component.state()).toBe('clean');
-      expect(component.label()).toBe('');
-    });
-  });
+      await updateInput('entityId', 'HOLDER_001');
 
-  describe('Host bindings', () => {
-    it('should always apply the panel class', () => {
-      expect(host.classList.contains('panel')).toBe(true);
-    });
-
-    it('should not apply is-open class when closed', () => {
-      expect(host.classList.contains('is-open')).toBe(false);
-    });
-
-    it('should apply is-open class when open is true', () => {
-      fixture.componentRef.setInput('open', true);
-
-      fixture.detectChanges();
-
-      expect(host.classList.contains('is-open')).toBe(true);
-    });
-
-    it('should remove is-open class when panel closes', () => {
-      fixture.componentRef.setInput('open', true);
-      fixture.detectChanges();
-
-      fixture.componentRef.setInput('open', false);
-      fixture.detectChanges();
-
-      expect(host.classList.contains('is-open')).toBe(false);
-    });
-
-    it('should set data-state to clean when counters are null', () => {
-      expect(host.getAttribute('data-state')).toBe('clean');
-    });
-
-    it('should update data-state when counters change', () => {
-      fixture.componentRef.setInput('counters', counters);
-
-      fixture.detectChanges();
-
-      expect(host.getAttribute('data-state')).toBe('pending');
-    });
-
-    it('should reset data-state when counters are removed', () => {
-      fixture.componentRef.setInput('counters', counters);
-      fixture.detectChanges();
-
-      fixture.componentRef.setInput('counters', null);
-      fixture.detectChanges();
-
-      expect(host.getAttribute('data-state')).toBe('clean');
+      expect(component.entityId()).toBe('HOLDER_001');
+      expect(
+        comparisonService.getSection
+      ).not.toHaveBeenCalled();
     });
   });
 });
